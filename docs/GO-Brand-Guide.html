@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light only">
+<title>GO! Event Group | Brand and Product Rules</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--cream:#F9F7F3;--white:#fff;--line:#E8E2D9;--char:#211D1C;--soft:#4A4340;--mut:#8C847C;--taupe:#8B7355;--orange:#F49B1F;--deep:#D9820A;--tint:#FDF1E0;--good:#3E8E4A;color-scheme:light only;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:#F9F7F3!important;color:#211D1C!important;}
+body{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:900px;margin:0 auto;padding:0 22px 80px;}
+.top{display:flex;justify-content:space-between;align-items:center;padding:22px 0 12px;border-bottom:1px solid var(--line);}
+.wordmark{font-weight:900;letter-spacing:.08em;font-size:14px;}
+.wordmark b{color:var(--orange);}
+.top span{font-size:12px;color:var(--mut);font-weight:600;}
+h1{font-size:clamp(30px,5vw,44px);font-weight:900;letter-spacing:-.015em;line-height:1.05;margin-top:34px;}
+h1 em{font-style:normal;color:var(--orange);}
+.lead{font-size:16px;color:var(--soft);line-height:1.6;margin-top:12px;max-width:620px;}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;}
+.toc a{font-size:12px;font-weight:700;color:var(--soft);text-decoration:none;padding:7px 12px;border:1px solid var(--line);border-radius:18px;background:#fff;}
+.toc a:hover{border-color:var(--char);}
+section{padding-top:44px;}
+.sh{display:flex;align-items:center;gap:12px;}
+.sh i{display:inline-block;height:3px;width:30px;background:var(--orange);transform:skewX(-24deg);}
+.sh span{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--taupe);}
+h2{font-size:24px;font-weight:900;letter-spacing:-.01em;margin-top:8px;}
+p{font-size:14.5px;color:var(--soft);line-height:1.6;margin-top:10px;}
+.rule{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:14px;}
+.rule b{display:block;font-size:14px;margin-bottom:4px;}
+.rule p{margin-top:4px;font-size:13.5px;}
+ul{margin:10px 0 0 18px;color:var(--soft);font-size:14px;line-height:1.7;}
+li b{color:var(--char);}
+.grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px;}
+@media(min-width:700px){.grid{grid-template-columns:1fr 1fr;}}
+.pal{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px;}
+@media(min-width:700px){.pal{grid-template-columns:repeat(4,1fr);}}
+.sw{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;}
+.sw i{display:block;height:58px;}
+.sw div{padding:9px 11px;font-size:11px;color:var(--mut);}
+.sw b{display:block;color:var(--char);font-size:12.5px;}
+.type div{padding:10px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:baseline;}
+.type small{font-size:11px;color:var(--mut);font-weight:600;}
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13.5px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+th{text-align:left;font-size:11px;letter-spacing:.1em;color:var(--taupe);padding:10px 12px;border-bottom:1px solid var(--line);}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--soft);}
+td:first-child{color:var(--char);font-weight:600;width:34%;}
+tr:last-child td{border-bottom:0;}
+.dd{display:grid;grid-template-columns:1fr;gap:10px;margin-top:14px;}
+@media(min-width:700px){.dd{grid-template-columns:1fr 1fr;}}
+.do,.dont{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+.do h4{color:var(--good);font-size:11px;letter-spacing:.12em;}
+.dont h4{color:#B4482F;font-size:11px;letter-spacing:.12em;}
+.do p,.dont p{margin-top:8px;font-size:14px;color:var(--char);}
+.do p+p,.dont p+p{margin-top:6px;padding-top:6px;border-top:1px solid var(--line);}
+.chat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:14px;}
+.bub{padding:11px 13px;border-radius:12px;font-size:13.5px;line-height:1.5;background:var(--cream);border:1px solid var(--line);margin-top:8px;}
+.bub.you{background:var(--tint);border-color:var(--orange);margin-left:36px;}
+.bub.you:first-child{margin-top:0;}
+.btn{display:inline-block;background:var(--orange);color:var(--char);font-weight:800;font-size:13.5px;padding:10px 16px;border-radius:10px;margin-top:10px;}
+.never{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+.never span{font-size:13px;font-weight:700;padding:8px 12px;border-radius:10px;background:#fff;border:1px solid var(--line);text-decoration:line-through;color:var(--mut);}
+.plate{position:relative;overflow:hidden;border-radius:14px;aspect-ratio:5/4;background:linear-gradient(180deg,rgba(33,29,28,0) 45%,rgba(33,29,28,.72) 100%),repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 2px,transparent 2px 14px),linear-gradient(160deg,#C9B8A3 0%,#8B7355 45%,#3E3532 100%);}
+.plate .spec{position:absolute;top:12px;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:.14em;font-weight:700;color:rgba(255,255,255,.7);}
+.plate .txt{position:absolute;left:14px;bottom:14px;color:#fff;font-weight:900;font-size:18px;}
+footer{margin-top:60px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--mut);line-height:1.7;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div class="wordmark"><b>GO!</b> EVENT GROUP</div><span>Brand and product rules · v1 · Aug 31, 2026</span></div>
+
+  <h1>Party on.<br><em>We'll handle it.</em></h1>
+  <p class="lead">Everything the app looks like, sounds like, and refuses to do. Same rules the code follows in docs/BRAND.md. If the two ever disagree, the markdown wins and this page gets fixed.</p>
+  <div class="toc">
+    <a href="#essence">Essence</a><a href="#naming">Naming</a><a href="#color">Color</a><a href="#type">Type</a><a href="#imagery">Imagery</a><a href="#components">Components</a><a href="#motion">Motion</a><a href="#voice">Copy voice</a><a href="#ai">Ask GO</a><a href="#platform">Platform</a><a href="#never">Never</a>
+  </div>
+
+  <section id="essence"><div class="sh"><i></i><span>01</span></div><h2>Essence</h2>
+    <p>Matter-of-fact with a grin. Chill, confident, never salesy, never cute. The product's one job: make throwing a party feel like two minutes of easy decisions, whether it's a kids' birthday, a backyard cigar night, a wedding, or a company field day. Same ease on every route.</p>
+  </section>
+
+  <section id="naming"><div class="sh"><i></i><span>02</span></div><h2>Naming</h2>
+    <div class="grid">
+      <div class="rule"><b>In the app</b><p>GO! EVENT GROUP as the wordmark, orange GO!, charcoal EVENT GROUP. The app has no name of its own. It's GO's app.</p></div>
+      <div class="rule"><b>On listings and paper</b><p>The Go Event Group. One name, one address, one phone, everywhere.</p></div>
+      <div class="rule"><b>The assistant</b><p>Ask GO. A knowledgeable crew member, not a character or a mascot.</p></div>
+      <div class="rule"><b>Banned</b><p>"Party in a box." Any invented product name. Any sub-brand.</p></div>
+    </div>
+  </section>
+
+  <section id="color"><div class="sh"><i></i><span>03</span></div><h2>Color</h2>
+    <p>Cream ground, white cards, charcoal type, taupe labels. Orange is the single accent and it appears once per screen, on the action. If two things are orange, one is wrong. No dark screens; dark lives only inside photo gradients and the dark button. The app is locked to light mode so a phone on dark mode cannot flip it.</p>
+    <div class="pal">
+      <div class="sw"><i style="background:#F9F7F3;border-bottom:1px solid var(--line)"></i><div><b>Cream</b>#F9F7F3 · ground</div></div>
+      <div class="sw"><i style="background:#FFFFFF;border-bottom:1px solid var(--line)"></i><div><b>White</b>#FFFFFF · cards, nav</div></div>
+      <div class="sw"><i style="background:#E8E2D9"></i><div><b>Line</b>#E8E2D9 · borders</div></div>
+      <div class="sw"><i style="background:#211D1C"></i><div><b>Charcoal</b>#211D1C · headlines, dark button</div></div>
+      <div class="sw"><i style="background:#4A4340"></i><div><b>Charcoal soft</b>#4A4340 · body</div></div>
+      <div class="sw"><i style="background:#8C847C"></i><div><b>Muted</b>#8C847C · secondary, 12px+ only</div></div>
+      <div class="sw"><i style="background:#8B7355"></i><div><b>Taupe</b>#8B7355 · labels only</div></div>
+      <div class="sw"><i style="background:#F49B1F"></i><div><b>Orange</b>#F49B1F · the one accent</div></div>
+      <div class="sw"><i style="background:#D9820A"></i><div><b>Orange deep</b>#D9820A · hover</div></div>
+      <div class="sw"><i style="background:#FDF1E0"></i><div><b>Orange tint</b>#FDF1E0 · selected</div></div>
+      <div class="sw"><i style="background:#3E8E4A"></i><div><b>Good</b>#3E8E4A · open, paid, held</div></div>
+    </div>
+  </section>
+
+  <section id="type"><div class="sh"><i></i><span>04</span></div><h2>Type</h2>
+    <p>Inter, only Inter. Weight does the work. No italics, no all-caps except the label style. Headlines tighten slightly; only labels track out.</p>
+    <div class="type" style="margin-top:12px">
+      <div><small>HERO · 900 · 32</small><span style="font-size:32px;font-weight:900;letter-spacing:-.015em;line-height:1.08">Your party, built in <span style="color:var(--orange)">two minutes.</span></span></div>
+      <div><small>SCREEN · 900 · 26</small><span style="font-size:26px;font-weight:900;letter-spacing:-.015em">What are we celebrating?</span></div>
+      <div><small>SECTION · 800 · 20</small><span style="font-size:20px;font-weight:800">Recommended for you</span></div>
+      <div><small>PRICE · 900 · 22</small><span style="font-size:22px;font-weight:900">$1,899</span></div>
+      <div><small>CARD · 700 · 14</small><span style="font-size:14px;font-weight:700">Big Splash</span></div>
+      <div><small>BODY · 400 · 14.5</small><span style="font-size:14.5px;color:var(--soft);line-height:1.55">Pick the occasion. We build it from what's actually in the warehouse. You tweak it. We show up.</span></div>
+      <div><small>LABEL · 700 · 11</small><span style="font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--taupe)">STEP 1 OF 4</span></div>
+      <div><small>SMALL · 400 · 12</small><span style="font-size:12px;color:var(--mut)">Grayed days are booked solid, crew and gear included.</span></div>
+    </div>
+  </section>
+
+  <section id="imagery"><div class="sh"><i></i><span>05</span></div><h2>Imagery</h2>
+    <div class="grid">
+      <div>
+        <p>Real photos by Mel. Candid, warm, daylight, real Connecticut backyards and venues, the real crew. No stock, no renders. Every photo gets a bottom gradient to charcoal so white type can sit on it.</p>
+        <p>Until the photos exist, the app uses <b>photo plates</b>: warm gradients with a faint texture, corner marks, and a spec line naming the shot Mel owes and its ratio. The spec lines are her shot list. Swapping a plate for a photo changes one file and nothing else moves.</p>
+        <ul><li><b>Hero</b> 4:5</li><li><b>Package hero</b> 4:3</li><li><b>Rail card</b> 5:4</li><li><b>Occasion card</b> 1:1</li><li><b>Thumbnail</b> 1:1</li></ul>
+      </div>
+      <div class="plate"><span class="spec">MEL · 01 · BACKYARD WIDE · 5:4</span><span class="txt">Big Splash</span></div>
+    </div>
+  </section>
+
+  <section id="components"><div class="sh"><i></i><span>06</span></div><h2>Components</h2>
+    <p>Built on shadcn/ui with Tailwind and Lucide icons, restyled to the tokens. Every instance follows the source component; nothing gets restyled inline.</p>
+    <table>
+      <tr><th>COMPONENT</th><th>RULE</th></tr>
+      <tr><td>Button</td><td>Primary orange, dark charcoal, ghost white with line border. One primary per screen. Full width on mobile forms.</td></tr>
+      <tr><td>Chip</td><td>Guests, times, budgets. Three per row, two for budgets. Selected is orange border on orange tint.</td></tr>
+      <tr><td>Month chips + day carousel</td><td>Months tap, never scroll. Days scroll sideways and snap, 56px wide, green dot open, grayed booked. Tapping a day reveals the times beneath it.</td></tr>
+      <tr><td>Occasion card</td><td>1:1 photo plate, name bottom-left in white.</td></tr>
+      <tr><td>Recommended rail</td><td>Horizontal snap, 168px cards, 5:4 photo, name, price, one line, next open date in green.</td></tr>
+      <tr><td>Package hero</td><td>4:3 plate with date, time, guests overlaid. Name left, price right with "before add-ons". Inclusions with green checks.</td></tr>
+      <tr><td>Package select</td><td>Native select for switching packages. Native on purpose: identical on every phone and browser.</td></tr>
+      <tr><td>Item row + Swap</td><td>Thumbnail, name, category. Swap unfolds the alternatives with price deltas.</td></tr>
+      <tr><td>Add-on row + sticky total</td><td>Thumbnail, name, category, price, plus. Selected is orange tint. The live total floats above the nav.</td></tr>
+      <tr><td>Sheet</td><td>Bottom sheet for Ask GO and any secondary flow. Never a popup.</td></tr>
+      <tr><td>Bottom nav</td><td>Home, Book, Ask, My party. Fixed, white, safe-area padded. Four tabs, never five.</td></tr>
+      <tr><td>Progress marker</td><td>Four 4px bars skewed 24 degrees. The only diagonal in the system.</td></tr>
+    </table>
+  </section>
+
+  <section id="motion"><div class="sh"><i></i><span>07</span></div><h2>Motion</h2>
+    <p>Elements rise 10px and fade in over 380ms. Reveals open over 300ms. No page wipes, no parallax, no bouncing. Motion confirms, it never decorates.</p>
+  </section>
+
+  <section id="voice"><div class="sh"><i></i><span>08</span></div><h2>Copy voice</h2>
+    <p>Say the thing. Short sentences, verbs first. Matter-of-fact, then a little warmth. Prices are always visible and always real. Talk about the party, not the company. Assume the reader is competent.</p>
+    <div class="grid">
+      <div class="rule"><b>Punctuation</b><p>No exclamation points; the grin is in the rhythm. No em dashes; use a period, a comma, or "and". Sentence case everywhere except labels.</p></div>
+      <div class="rule"><b>Numbers</b><p>Numerals always: 2 hours, 25 people, $1,899. Times as 10 AM. Dates as Sat Sep 13. "from $1,600" when it varies.</p></div>
+    </div>
+    <div class="dd">
+      <div class="do"><h4>SOUNDS LIKE US</h4><p>Here's your party.</p><p>Ballpark? No wrong answer.</p><p>Held. You're good.</p><p>Gate width, stairs, dogs: tell the crew. We've seen it all.</p><p>Pick the occasion. We build it from what's actually in the warehouse. You tweak it. We show up.</p></div>
+      <div class="dont"><h4>DOESN'T</h4><p>Create unforgettable memories with our premier event experiences!</p><p>We're so excited to help you plan your dream celebration.</p><p>Elevate your special day with a seamless, one of a kind package.</p><p>Please select your preferred options below.</p></div>
+    </div>
+    <p style="margin-top:14px">Banned words: unforgettable, elevate, seamless, one of a kind, dream, magical, premier. The full string bank lives in docs/BRAND.md section 10 and grows as screens get built.</p>
+  </section>
+
+  <section id="ai"><div class="sh"><i></i><span>09</span></div><h2>Ask GO</h2>
+    <p>A knowledgeable crew member, not a chatbot. It sounds exactly like the copy. It never opens itself: three doors only, the dashed line on Home, "Ask about this package", and the Ask tab. Every answer is one to three sentences and ends with an action, then it hands control back. It only recommends real packages and real add-ons at real prices, never invents inventory, never promises availability it hasn't checked, and hands custom quotes, large weddings, and big corporate jobs to Mel or Andy.</p>
+    <div class="grid">
+      <div class="chat">
+        <div class="bub you">Backyard bday, 25 kids, about $1,500</div>
+        <div class="bub">Kids Birthday Deluxe at $1,599. Bounce house, a magician hour, face painting, cotton candy and snow cones. Right at the number.</div>
+        <span class="btn">Build that</span>
+      </div>
+      <div class="chat">
+        <div class="bub you">Can you do 200 people for a gala in October?</div>
+        <div class="bub">That's a custom build. I'd have Andy scope it with you. Want me to send it over with your date?</div>
+        <span class="btn">Send to Andy</span>
+      </div>
+    </div>
+    <ul>
+      <li><b>Price language</b>: exact when exact, "from" when it varies, "about" only for add-on totals.</li>
+      <li><b>One better option</b>, offered once. No pressure, no countdowns, no scarcity theater.</li>
+      <li><b>Uncertainty said plainly</b>. Never "Great question". Never an apology for being an AI.</li>
+      <li><b>No emoji, no exclamation points</b>, same as everywhere else.</li>
+    </ul>
+  </section>
+
+  <section id="platform"><div class="sh"><i></i><span>10</span></div><h2>Platform</h2>
+    <ul>
+      <li><b>Mobile first</b> at 390px. On desktop the app centers at 560px with more air. There is no separate desktop layout.</li>
+      <li><b>Browsers</b>: Safari iOS, Chrome Android, Chrome, Safari, Firefox, Edge. Internet Explorer retired in 2022 and is not supported.</li>
+      <li><b>Touch targets</b> 44px minimum. Contrast 4.5:1 minimum; muted text only at 12px and up.</li>
+      <li><b>Fixed nav</b> uses the iOS safe-area inset so it never collides with the home indicator.</li>
+      <li><b>Stack</b>: Vite, React, TypeScript, Tailwind v4, shadcn/ui, Lucide, React Router. Static data. Vercel previews per push.</li>
+    </ul>
+  </section>
+
+  <section id="never"><div class="sh"><i></i><span>11</span></div><h2>Never</h2>
+    <div class="never"><span>Dark screens</span><span>Emoji</span><span>Italics</span><span>Exclamation points</span><span>Em dashes</span><span>Two orange elements</span><span>A fifth nav tab</span><span>A popup</span><span>Party in a box</span><span>Stock photos</span><span>A product name</span><span>A desktop layout</span></div>
+  </section>
+
+  <footer>GO! Event Group brand and product rules, v1. Companion to docs/BRAND.md, docs/SCREENS.md, and CLAUDE.md in the go-parties-app repository.</footer>
+</div>
+</body>
+</html>

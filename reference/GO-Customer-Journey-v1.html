@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light only">
+<meta name="theme-color" content="#F9F7F3">
+<title>GO! Event Group | Build your party</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#F9F7F3; --white:#FFFFFF; --line:#E8E2D9;
+  --char:#211D1C; --soft:#4A4340; --taupe:#8B7355; --mut:#8C847C;
+  --orange:#F49B1F; --orange-deep:#D9820A; --tint:#FDF1E0;
+  --good:#3E8E4A;
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{color-scheme:light only;}
+html,body{background:#F9F7F3!important;background-color:#F9F7F3!important;color:#211D1C!important;min-height:100%;}
+html{scroll-behavior:smooth;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--char);-webkit-font-smoothing:antialiased;}
+button,select,input{font-family:inherit;}
+button{cursor:pointer;border:none;background:none;color:inherit;}
+.hide{display:none!important;}
+
+/* ---------- frame ---------- */
+.app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:calc(76px + env(safe-area-inset-bottom));background:var(--cream);color:var(--char);}
+body::before{content:"";position:fixed;inset:0;background:#F9F7F3;z-index:-1;}
+@media(min-width:900px){.app{max-width:560px;}}
+.hdr{display:flex;justify-content:space-between;align-items:center;padding:18px 20px 0;}
+.wordmark{font-weight:900;letter-spacing:.08em;font-size:14px;cursor:pointer;}
+.wordmark b{color:var(--orange);}
+.prog{display:flex;gap:5px;width:88px;}
+.prog i{height:4px;flex:1;background:var(--line);border-radius:2px;transform:skewX(-24deg);}
+.prog i.on{background:var(--orange);}
+.body{padding:18px 20px 24px;flex:1;}
+.label{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--taupe);text-transform:uppercase;}
+h1{font-size:clamp(26px,7vw,32px);font-weight:900;line-height:1.08;letter-spacing:-.015em;margin-top:6px;}
+h1 em{font-style:normal;color:var(--orange);}
+.p{font-size:14.5px;color:var(--soft);line-height:1.55;margin-top:8px;}
+.small{font-size:12px;color:var(--mut);line-height:1.5;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:15px;padding:15px 22px;border-radius:12px;background:var(--orange);color:var(--char);transition:.15s;}
+.btn:active{transform:scale(.985);}
+.btn.ghost{background:var(--white);border:1.5px solid var(--line);font-weight:700;}
+.btn.dark{background:var(--char);color:var(--white);}
+.btn.full{width:100%;}
+.btn.sm{padding:9px 14px;font-size:12.5px;border-radius:9px;}
+.foot{padding:8px 20px 12px;display:flex;gap:10px;}
+.foot .btn{flex:1;}
+.card{background:var(--white);border:1px solid var(--line);border-radius:var(--r);}
+.rise{animation:rise .38s ease both;}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ---------- photo plate ---------- */
+.plate{position:relative;overflow:hidden;border-radius:var(--r);
+  background:linear-gradient(180deg,rgba(33,29,28,0) 45%,rgba(33,29,28,.72) 100%),
+  repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 2px,transparent 2px 14px),
+  linear-gradient(160deg,#C9B8A3 0%,#8B7355 45%,#3E3532 100%);}
+.plate.cool{background:linear-gradient(180deg,rgba(33,29,28,0) 45%,rgba(33,29,28,.72) 100%),repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 2px,transparent 2px 14px),linear-gradient(160deg,#B9C4C9 0%,#6E7E86 45%,#2F3538 100%);}
+.plate.warm{background:linear-gradient(180deg,rgba(33,29,28,0) 45%,rgba(33,29,28,.72) 100%),repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 2px,transparent 2px 14px),linear-gradient(160deg,#F2C58A 0%,#C97F2B 45%,#5A3813 100%);}
+.plate.stone{background:linear-gradient(180deg,rgba(33,29,28,0) 45%,rgba(33,29,28,.72) 100%),repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 2px,transparent 2px 14px),linear-gradient(160deg,#A9A39C 0%,#5E5853 45%,#2A2624 100%);}
+.plate .spec{position:absolute;top:12px;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:.14em;font-weight:700;color:rgba(255,255,255,.7);white-space:nowrap;}
+.plate .txt{position:absolute;left:14px;right:14px;bottom:14px;color:#fff;}
+.plate .txt small{display:block;font-size:10px;letter-spacing:.14em;font-weight:700;opacity:.8;margin-bottom:3px;}
+.plate .txt b{display:block;font-size:18px;font-weight:900;line-height:1.1;}
+.plate .txt p{font-size:12px;opacity:.85;margin-top:3px;}
+.plate .corner{position:absolute;width:12px;height:12px;border:1.5px solid rgba(255,255,255,.5);}
+.plate .c1{top:9px;left:9px;border-right:0;border-bottom:0;}.plate .c2{top:9px;right:9px;border-left:0;border-bottom:0;}
+.plate .c3{bottom:9px;left:9px;border-right:0;border-top:0;}.plate .c4{bottom:9px;right:9px;border-left:0;border-top:0;}
+
+/* ---------- welcome ---------- */
+.hero{aspect-ratio:4/5;}
+.points{display:grid;gap:8px;margin-top:18px;}
+.pt{display:flex;gap:12px;align-items:center;padding:12px 14px;font-size:13.5px;font-weight:600;}
+.pt svg{width:20px;height:20px;stroke:var(--orange);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none;}
+.pt small{display:block;color:var(--mut);font-weight:500;font-size:12px;margin-top:1px;}
+
+/* ---------- sign in ---------- */
+.f-lab{display:block;font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--taupe);margin-bottom:6px;}
+.input{width:100%;padding:15px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--white);font-size:15px;color:var(--char);}
+.input:focus{outline:none;border-color:var(--char);}
+.divider{display:flex;align-items:center;gap:10px;color:var(--mut);font-size:11px;font-weight:700;margin:16px 0;}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line);}
+
+/* ---------- home ---------- */
+.occ4{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+.occ4 button{aspect-ratio:1/1;text-align:left;}
+.occ4 .plate{width:100%;height:100%;}
+.ai-line{display:flex;gap:10px;align-items:center;padding:13px 14px;border:1.5px dashed var(--line);border-radius:12px;background:var(--white);color:var(--mut);font-size:13.5px;width:100%;text-align:left;margin-top:12px;}
+.ai-line svg{width:18px;height:18px;stroke:var(--orange);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none;}
+.ai-line b{color:var(--char);margin-left:auto;font-size:12.5px;white-space:nowrap;}
+.rail{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory;margin-top:10px;-webkit-overflow-scrolling:touch;}
+.rail::-webkit-scrollbar{display:none;}
+.rcard{flex:none;width:168px;scroll-snap-align:start;overflow:hidden;text-align:left;}
+.rcard .plate{aspect-ratio:5/4;border-radius:0;}
+.rcard .bd{padding:10px 12px 12px;}
+.rcard .bd b{display:block;font-size:13.5px;}
+.rcard .bd span{font-weight:800;font-size:13px;}
+.rcard .bd small{display:block;color:var(--mut);font-size:11px;margin-top:2px;}
+.rcard .bd .next{color:var(--good);font-size:11px;font-weight:700;margin-top:6px;display:block;}
+
+/* ---------- date carousel ---------- */
+.months{display:flex;gap:6px;margin-top:12px;}
+.months button{flex:1;padding:9px 0;border-radius:10px;border:1.5px solid var(--line);background:var(--white);font-weight:700;font-size:12.5px;}
+.months button.on{border-color:var(--char);background:var(--char);color:#fff;}
+.days{display:flex;gap:8px;overflow-x:auto;padding:12px 0 8px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
+.days::-webkit-scrollbar{display:none;}
+.day{flex:none;width:56px;padding:10px 0 9px;border-radius:12px;border:1.5px solid var(--line);background:var(--white);text-align:center;font-size:16px;font-weight:800;scroll-snap-align:start;}
+.day small{display:block;font-size:10px;color:var(--mut);font-weight:600;margin-bottom:3px;}
+.day .dot{display:block;width:5px;height:5px;border-radius:50%;background:var(--good);margin:5px auto 0;}
+.day.blk{opacity:.35;}
+.day.blk .dot{background:var(--line);}
+.day.on{border-color:var(--orange);background:var(--tint);}
+.hint{display:flex;gap:10px;align-items:center;font-size:11.5px;color:var(--mut);margin-top:4px;}
+.hint i{width:6px;height:6px;border-radius:50%;background:var(--good);display:inline-block;}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.chip{padding:12px 4px;border-radius:12px;border:1.5px solid var(--line);background:var(--white);font-weight:700;font-size:13px;text-align:center;}
+.chip small{display:block;color:var(--mut);font-weight:500;font-size:11px;margin-top:2px;}
+.chip.on{border-color:var(--orange);background:var(--tint);}
+.reveal{overflow:hidden;max-height:0;transition:max-height .3s ease;}
+.reveal.open{max-height:160px;}
+.sec{margin-top:20px;}
+.sec .label{margin-bottom:8px;display:block;}
+.chips.two{grid-template-columns:1fr 1fr;}
+
+/* ---------- package ---------- */
+.pkg-hero{aspect-ratio:4/3;margin-top:12px;}
+.pkg-head{display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;}
+.pkg-head h2{font-size:24px;font-weight:900;letter-spacing:-.01em;line-height:1.1;}
+.pkg-head .pr{font-size:22px;font-weight:900;white-space:nowrap;}
+.pkg-head .pr small{display:block;font-size:11px;color:var(--mut);font-weight:600;text-align:right;}
+.inc{margin-top:12px;display:grid;gap:6px;}
+.inc div{display:flex;gap:10px;align-items:center;font-size:13.5px;color:var(--soft);}
+.inc svg{width:16px;height:16px;stroke:var(--good);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;}
+.select-wrap{position:relative;margin-top:14px;}
+.select{width:100%;appearance:none;padding:14px 44px 14px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--white);font-size:14px;font-weight:700;color:var(--char);}
+.select-wrap::after{content:"";position:absolute;right:16px;top:50%;width:8px;height:8px;border-right:2px solid var(--char);border-bottom:2px solid var(--char);transform:translateY(-70%) rotate(45deg);pointer-events:none;}
+.ask{display:flex;gap:10px;align-items:center;justify-content:center;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--white);font-weight:700;font-size:13.5px;margin-top:10px;width:100%;}
+.ask svg{width:16px;height:16px;stroke:var(--orange);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;}
+
+/* ---------- detail (items with swap) ---------- */
+.item{display:flex;gap:12px;align-items:center;padding:10px;margin-bottom:8px;}
+.item .plate{width:56px;height:56px;border-radius:10px;flex:none;}
+.item .plate .spec,.item .plate .corner{display:none;}
+.item .nm{flex:1;font-size:14px;font-weight:600;}
+.item .nm small{display:block;color:var(--mut);font-weight:500;font-size:11.5px;}
+.item .swap{font-size:12px;font-weight:700;color:var(--taupe);padding:8px 10px;border-radius:9px;border:1.5px solid var(--line);}
+.item .swap.on{background:var(--char);color:#fff;border-color:var(--char);}
+.swap-list{display:none;gap:6px;margin:-2px 0 10px 68px;}
+.swap-list.open{display:grid;}
+.swap-list button{text-align:left;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--white);font-size:13px;font-weight:600;}
+.swap-list button:hover{border-color:var(--char);}
+.swap-list button span{color:var(--mut);font-weight:500;float:right;}
+
+/* ---------- add-ons ---------- */
+.cats{display:flex;gap:8px;overflow-x:auto;margin:12px 0 10px;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
+.cats::-webkit-scrollbar{display:none;}
+.cats button{flex:none;padding:8px 13px;border-radius:20px;border:1.5px solid var(--line);background:var(--white);font-size:12.5px;font-weight:700;color:var(--mut);}
+.cats button.on{background:var(--char);color:#fff;border-color:var(--char);}
+.addon{display:flex;align-items:center;gap:12px;padding:10px 12px 10px 10px;margin-bottom:8px;}
+.addon .plate{width:46px;height:46px;border-radius:9px;flex:none;}
+.addon .plate .spec,.addon .plate .corner{display:none;}
+.addon .nm{flex:1;font-size:14px;font-weight:600;}
+.addon .nm small{display:block;color:var(--mut);font-weight:500;font-size:11.5px;}
+.addon .p{font-weight:800;font-size:13.5px;}
+.addon .add{width:34px;height:34px;border-radius:10px;border:1.5px solid var(--line);font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.addon.on{border-color:var(--orange);background:var(--tint);}
+.addon.on .add{background:var(--orange);border-color:var(--orange);}
+.sticky{position:fixed;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom));z-index:30;padding:10px 20px;}
+.sticky .in{max-width:480px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 12px 12px 16px;background:var(--white);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(33,29,28,.12);}
+@media(min-width:900px){.sticky .in{max-width:560px;}}
+.sticky small{display:block;color:var(--mut);font-size:11px;}
+.sticky b{font-size:19px;font-weight:900;}
+
+/* ---------- where ---------- */
+.map{aspect-ratio:16/10;margin-top:12px;background:
+  linear-gradient(90deg,transparent 0 31px,#E8E2D9 31px 32px) 0 0/32px 32px,
+  linear-gradient(0deg,transparent 0 31px,#E8E2D9 31px 32px) 0 0/32px 32px,
+  #F3EFE8;position:relative;}
+.map .road{position:absolute;left:-10%;right:-10%;top:52%;height:14px;background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);transform:rotate(-12deg);}
+.map .pin{position:absolute;left:58%;top:40%;transform:translate(-50%,-100%);}
+.map .pin svg{width:34px;height:34px;fill:var(--orange);stroke:#fff;stroke-width:1.5;}
+.map .lab{position:absolute;bottom:10px;left:12px;font-size:9px;letter-spacing:.14em;font-weight:700;color:var(--mut);}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;margin-top:8px;font-size:14px;font-weight:600;}
+.toggle-row small{display:block;color:var(--mut);font-weight:500;font-size:11.5px;}
+.sw{width:44px;height:26px;border-radius:13px;background:var(--line);position:relative;flex:none;}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.sw.on{background:var(--orange);}
+.sw.on::after{left:21px;}
+
+/* ---------- review ---------- */
+.line{display:flex;justify-content:space-between;font-size:14px;padding:9px 0;border-bottom:1px solid var(--line);color:var(--soft);}
+.line b{color:var(--char);}
+.line.total{border:0;padding-top:12px;font-size:16px;}
+.line.total b{font-size:22px;font-weight:900;}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+.meta div{padding:12px;}
+.meta small{display:block;font-size:10.5px;color:var(--taupe);font-weight:700;letter-spacing:.1em;}
+.meta b{display:block;font-size:14px;margin-top:3px;}
+.held{text-align:center;padding-top:20px;}
+.held .check{width:64px;height:64px;border-radius:50%;background:var(--tint);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;}
+.held .check svg{width:30px;height:30px;stroke:var(--orange);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+
+/* ---------- bottom nav ---------- */
+.bnav{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--white);border-top:1px solid var(--line);padding:8px 0 calc(8px + env(safe-area-inset-bottom));}
+.bnav .in{max-width:480px;margin:0 auto;display:flex;justify-content:space-around;}
+@media(min-width:900px){.bnav .in{max-width:560px;}}
+.bnav button{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10.5px;font-weight:600;color:var(--mut);padding:4px 10px;}
+.bnav button.on{color:var(--char);}
+.bnav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;}
+
+/* ---------- sheet ---------- */
+.sheet-bg{position:fixed;inset:0;background:rgba(33,29,28,.35);z-index:60;}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;background:var(--white);border-radius:20px 20px 0 0;padding:18px 20px calc(24px + env(safe-area-inset-bottom));max-height:78vh;overflow:auto;}
+.sheet .in{max-width:480px;margin:0 auto;}
+.sheet h3{font-size:16px;font-weight:800;display:flex;justify-content:space-between;align-items:center;}
+.sheet h3 svg{width:18px;height:18px;stroke:var(--orange);fill:none;stroke-width:1.75;}
+.bub{padding:12px 14px;border-radius:12px;font-size:13.5px;line-height:1.5;margin-top:10px;background:var(--cream);border:1px solid var(--line);}
+.bub.you{background:var(--tint);border-color:var(--orange);margin-left:30px;}
+.qchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+.qchips button{padding:9px 12px;border-radius:18px;border:1.5px solid var(--line);font-size:12.5px;font-weight:600;background:#fff;}
+.qchips button:hover{border-color:var(--char);}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));z-index:70;background:var(--char);color:#fff;font-weight:700;font-size:13px;padding:11px 18px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<nav class="bnav" id="bnav"><div class="in">
+  <button data-nav="home" onclick="goHome()"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Home</button>
+  <button data-nav="book" onclick="goBook()"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Book</button>
+  <button data-nav="ask" onclick="openAsk('home')"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/></svg>Ask</button>
+  <button data-nav="party" onclick="show('party')"><svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg>My party</button>
+</div></nav>
+
+<div id="sheetBg" class="sheet-bg hide" onclick="closeSheet()"></div>
+<div id="sheet" class="sheet hide"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= DATA ================= */
+const OCC = {
+  kids:{label:"Kids party", plate:"", q:"When's the party?"},
+  adult:{label:"Adult party", plate:"warm", q:"When's the night?"},
+  wedding:{label:"Wedding", plate:"cool", q:"When's the big day?"},
+  corporate:{label:"Corporate", plate:"stone", q:"When's the event?"}
+};
+const PKGS = {
+  kids:[
+    {id:"starter",n:"Backyard Starter",p:999,plate:"",inc:["1 bounce house, 4 hours","Popcorn or cotton candy station","Corn hole and ladder ball","Delivery, setup, teardown"],items:[["Bounce Castle A","Inflatable",["Bounce Castle B","Bounce/slide combo (+$150)"]],["Cotton candy station","Fun food",["Popcorn station","Snow cone station"]],["Corn hole + ladder ball","Games",["Giant Jenga","Ring toss"]]]},
+    {id:"theme",n:"Themed Bounce Party",p:1299,plate:"warm",demo:true,inc:["Character themed bounce house","Themed decor touches","Cotton candy station","Party favors"],items:[["Themed bounce (from inventory)","Inflatable",["Dino theme","Princess theme"]],["Cotton candy station","Fun food",["Popcorn station","Snow cone station"]],["Party favors","Extras",["Glow favors","Sand art kits"]]]},
+    {id:"deluxe",n:"Kids Birthday Deluxe",p:1599,plate:"",inc:["Bounce house, 4 hours","Magician or balloon artist hour","Face painting","Cotton candy and snow cones"],items:[["Bounce Castle A","Inflatable",["Bounce Castle B","Bounce/slide combo (+$150)"]],["Magician hour","Performer",["Balloon artist","Caricature artist"]],["Face painting","Performer",["Airbrush tattoos"]],["Cotton candy + snow cones","Fun food",["Popcorn + snow cones","Nacho bar (+$100)"]]]},
+    {id:"splash",n:"Big Splash",p:1899,plate:"cool",inc:["Water slide or bounce/slide combo","2 fun food stations","Yard games bundle","Speaker setup"],items:[["Big Wave water slide","Inflatable",["Bounce/slide combo","Dual lane slide (+$200)"]],["2 fun food stations","Fun food",["Cotton candy + snow cones","Popcorn + nacho bar"]],["Yard games bundle","Games",["Mini golf (+$150)","Carnival games (+$250)"]],["Speaker setup","Sound",["DJ, 2 hours (+$700)"]]]},
+    {id:"grad",n:"Graduation Bash",p:2299,plate:"stone",inc:["1 inflatable","Photo booth, 2 hours","Nacho bar","Speaker and uplights"],items:[["Obstacle course","Inflatable",["Water slide","Bounce/slide combo"]],["Photo booth, 2 hours","Photo",["360 booth (+$1,200)"]],["Nacho bar","Fun food",["Gelato bar (+$100)"]],["Speaker + uplights","Production",["DJ, 3 hours (+$900)"]]]}
+  ],
+  adult:[
+    {id:"cigar",n:"Cigar Lounge Night",p:1600,from:true,plate:"warm",inc:["Mobile cigar lounge, 4 hours","Brand cigars","Whiskey, scotch, cognac service","Cigarist on request"],items:[["Cigar trailer","Lounge",[]],["Cigar selection","Cigars",["Premium selection (+$300)"]],["Whiskey service","Bar",["Cognac flight (+$150)"]]]},
+    {id:"cocktail",n:"Backyard Cocktail Party",p:2999,plate:"",inc:["Lounge furniture set","Uplighting","Speaker setup","Nacho or gelato bar","Corn hole and ladder ball"],items:[["Lounge furniture set","Furniture",["High tops only"]],["Uplighting","Lighting",["Upbeat lighting (+$299)"]],["Gelato bar","Fun food",["Nacho bar"]],["Corn hole + ladder ball","Games",["Casino table (+$449)"]]]},
+    {id:"casino",n:"Casino Night at Home",p:3499,plate:"stone",inc:["Casino tables and games","Uplighting","Speaker setup","Fun food station"],items:[["Casino tables + dealer","Games",["Extra table (+$449)"]],["Uplighting","Lighting",["Gobo monogram (+$350)"]],["Fun food station","Fun food",["Nacho bar","Gelato bar"]]]},
+    {id:"gents",n:"Gentlemen's Lounge",p:4499,plate:"warm",inc:["Cigar lounge Basic Experience","Whiskey pairing service","Lounge furniture set","Uplighting"],items:[["Cigar trailer","Lounge",[]],["Whiskey pairings","Bar",["Scotch flight","Cognac flight"]],["Lounge furniture set","Furniture",["Light-up cubes"]],["Uplighting","Lighting",["Cold spark send-off (+$1,499)"]]]},
+    {id:"block",n:"Ultimate Block Party",p:4999,plate:"cool",inc:["Obstacle course or 2 inflatables","MC and DJ, 4 hours","Photo booth, 2 hours","2 fun food stations","Games bundle"],items:[["Obstacle course","Inflatable",["2 bounce houses"]],["MC + DJ, 4 hours","Entertainment",["DJ, 5 hours (+$500)"]],["Photo booth, 2 hours","Photo",["360 booth (+$1,200)"]],["2 fun food stations","Fun food",["3 stations (+$200)"]]]}
+  ],
+  wedding:[
+    {id:"basic",n:"The Basic",p:4999,plate:"cool",inc:["DJ and MC, 4 hours","1 videographer, 6 hours","1 photographer, 6 hours","Online gallery"],items:[["DJ + MC","Entertainment",["Add uplighting (+$599)"]],["Videographer","Video",["Drone add-on (+$1,500)"]],["Photographer","Photo",["Second shooter (+$1,199)"]]]},
+    {id:"ess",n:"Essential",p:7999,plate:"",inc:["MC and DJ, 5 hours","Videographer, 8 hours","Photographer, 8 hours","Photo booth, 2 hours","One add-on at $350"],items:[["MC + DJ, 5 hours","Entertainment",["6 hours (+$400)"]],["Videographer, 8 hours","Video",["Two videographers (+$1,199)"]],["Photographer, 8 hours","Photo",["Two photographers (+$1,199)"]],["Photo booth, 2 hours","Photo",["4 hours (+$400)"]]]},
+    {id:"dream",n:"Dream",p:12449,plate:"warm",inc:["MC and DJ, 6 hours","2 videographers, up to 10 hours","Up to 2 photographers","Photo booth, 4 hours","Choice of one add-on"],items:[["MC + DJ, 6 hours","Entertainment",["Dual DJ setup"]],["2 videographers","Video",["Add drone"]],["2 photographers","Photo",["Engagement session"]],["Photo booth, 4 hours","Photo",["360 booth"]]]},
+    {id:"plat",n:"The Platinum",p:18999,plate:"stone",inc:["Unlimited MC and DJ, dream setup","2 videographers, drone, trailer","2 photographers, albums","Photo booth, 6 hours","Clouds, CO2, cold sparks, planner, JP"],items:[["Everything","All in",[]]]}
+  ],
+  corporate:[
+    {id:"field",n:"Company Field Day",p:5999,plate:"",demo:true,inc:["Obstacle course + inflatable","Carnival games, dunk tank","2 fun food stations","Emcee and sound"],items:[["Obstacle course","Inflatable",["Add mechanical bull (+$800)"]],["Carnival games + dunk tank","Games",["Add casino (+$900)"]],["Emcee + sound","Production",["Live stream (+$1,200)"]]]},
+    {id:"holiday",n:"Holiday Party",p:6499,plate:"warm",demo:true,inc:["MC and DJ Essential tier","Uplighting and gobo monogram","Photo booth, 4 hours","Casino tables"],items:[["MC + DJ","Entertainment",["Dual DJ (+$2,200)"]],["Uplighting + monogram","Lighting",["Cold spark moment (+$1,499)"]],["Photo booth, 4 hours","Photo",["360 booth"]],["Casino tables","Games",["Extra table (+$449)"]]]},
+    {id:"gala",n:"Gala Production",p:9999,plate:"cool",demo:true,inc:["Full AV and lighting design","Corporate monogram","Complete-tier photography","Cold spark moment","Coordinator"],items:[["AV + lighting design","Production",["Live stream (+$1,200)"]],["Photography, Complete","Photo",["Ultimate tier (+$1,200)"]],["Cold spark moment","Effects",["Dance on the clouds (+$1,199)"]]]}
+  ]
+};
+const ADDONS = {
+  "Fun foods":[["Cotton Candy Station",199,"warm"],["Popcorn Station",179,""],["Snow Cone Station",199,"cool"],["Nacho Bar",299,"warm"],["Gelato Bar",399,"stone"]],
+  "Effects":[["Dance on the Clouds",1199,"cool"],["CO2 Blaster Gun",400,"stone"],["Cold Spark Show",1499,"warm"],["Bubbles",149,"cool"],["Snow Effect",249,"cool"]],
+  "Games":[["Corn Hole",99,""],["Giant Ladder Ball",99,""],["9-Hole Mini Golf",249,""],["Casino Table + Dealer",449,"stone"]],
+  "Photo":[["Photo Booth, 2 hrs",799,"stone"],["360 Booth",1999,"cool"],["Photographer, per hour",500,""]],
+  "Performers":[["Magician Hour",450,"warm"],["Balloon Artist",349,"warm"],["Face Painter",299,""],["Caricature Artist",399,"stone"]]
+};
+const GUESTS={kids:["10-15","15-20","20-25","25-30","30-40","40+"],adult:["10-20","20-30","30-40","40-60","60-80","80+"],wedding:["50-75","75-100","100-125","125-150","150-200","200+"],corporate:["25-50","50-100","100-150","150-250","250-400","400+"]};
+const TIMES={kids:[["Morning","10 AM"],["Midday","12 PM"],["Afternoon","2 PM"]],adult:[["Afternoon","3 PM"],["Evening","6 PM"],["Late","8 PM"]],wedding:[["Afternoon","2 PM"],["Golden hour","5 PM"],["Evening","7 PM"]],corporate:[["Morning","9 AM"],["Midday","12 PM"],["Evening","6 PM"]]};
+const BUDGETS={kids:[["Under $1,200",1200],["$1,200 to $2,000",2000],["$2,000 to $3,500",3500],["No ceiling",99999]],adult:[["Under $2,500",2500],["$2,500 to $4,000",4000],["$4,000 to $6,000",6000],["No ceiling",99999]],wedding:[["Under $6,000",6000],["$6,000 to $10,000",10000],["$10,000 to $15,000",15000],["$15,000 and up",99999]],corporate:[["Under $6,000",6000],["$6,000 to $8,000",8000],["$8,000 to $12,000",12000],["$12,000 and up",99999]]};
+const MONTHS=[["Sep",2026,8],["Oct",2026,9],["Nov",2026,10],["Dec",2026,11]];
+const fmt=n=>"$"+n.toLocaleString();
+const ICON={check:'<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>',spark:'<svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/></svg>'};
+
+/* ================= STATE ================= */
+let S={screen:"welcome",occ:null,month:0,date:null,time:null,guests:null,budget:null,pkg:null,swaps:{},addons:{},cat:"Fun foods",addr:"",venue:"Backyard",power:true,water:true,held:false};
+
+function plate(cls, spec, txt){return `<div class="plate ${cls}"><i class="corner c1"></i><i class="corner c2"></i><i class="corner c3"></i><i class="corner c4"></i>${spec?`<span class="spec">${spec}</span>`:""}${txt||""}</div>`;}
+function header(step){return `<div class="hdr"><div class="wordmark" onclick="goHome()"><b>GO!</b> EVENT GROUP</div>${step?`<div class="prog">${[1,2,3,4].map(i=>`<i class="${i<=step?"on":""}"></i>`).join("")}</div>`:""}</div>`;}
+function nav(on){document.querySelectorAll("#bnav button").forEach(b=>b.classList.toggle("on",b.dataset.nav===on));}
+
+/* ================= SCREENS ================= */
+const V={};
+
+V.welcome=()=>`
+  ${header()}
+  <div class="body rise">
+    ${plate("","MEL · 00 · HERO · 4:5",`<div class="txt"><small>FARMINGTON, CT</small><b>Party on. We'll handle it.</b></div>`).replace('class="plate ','class="plate hero ')}
+    <h1 style="margin-top:18px">Your party,<br>built in <em>two minutes.</em></h1>
+    <p class="p">Pick the occasion. We build it from what's actually in the warehouse. You tweak it. We show up.</p>
+    <div class="points">
+      <div class="card pt"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/></svg><div>Built for you<small>A real package, priced, in seconds</small></div></div>
+      <div class="card pt"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><div>Real dates<small>If you can pick it, we can make it</small></div></div>
+      <div class="card pt"><svg viewBox="0 0 24 24"><path d="M3 3h13v13H3zM16 8h4l3 3v5h-7z"/><circle cx="7" cy="19" r="2"/><circle cx="18" cy="19" r="2"/></svg><div>Door to door<small>Delivery, setup, the fun, teardown</small></div></div>
+    </div>
+  </div>
+  <div class="foot"><button class="btn" onclick="show('signin')">Let's go</button></div>`;
+
+V.signin=()=>`
+  ${header()}
+  <div class="body rise" style="display:flex;flex-direction:column;justify-content:center">
+    <h1>Welcome in.</h1>
+    <p class="p">Save the build, watch the countdown, add stuff later.</p>
+    <div style="margin-top:22px"><span class="f-lab">EMAIL</span><input class="input" placeholder="you@email.com"></div>
+    <div style="margin-top:10px"><button class="btn full" onclick="show('home')">Continue</button></div>
+    <div class="divider">OR</div>
+    <button class="btn ghost full" style="margin-bottom:8px" onclick="show('home')">Continue with Google</button>
+    <button class="btn ghost full" onclick="show('home')">Continue with Apple</button>
+    <p class="small" style="text-align:center;margin-top:16px">No password. We text you a link.<br>Click-through build: any button works.</p>
+  </div>`;
+
+V.home=()=>{
+  const recs=[PKGS.kids[3],PKGS.kids[2],PKGS.adult[3],PKGS.wedding[1]];
+  const occs=Object.entries(OCC).map(([id,o])=>`<button onclick="pick('${id}')">${plate(o.plate,"",`<div class="txt"><b>${o.label}</b></div>`)}</button>`).join("");
+  return `
+  ${header()}
+  <div class="body rise">
+    <span class="label">Hey Sarah</span>
+    <h1>What are we celebrating?</h1>
+    <div class="occ4">${occs}</div>
+    <button class="ai-line" onclick="openAsk('home')">${ICON.spark}Not sure? Describe the party<b>Ask GO</b></button>
+    <div class="sec"><span class="label">Recommended for you</span>
+      <div class="rail">${recs.map(p=>`<button class="card rcard" onclick="jump('${occOf(p)}','${p.id}')">${plate(p.plate,"")}<div class="bd"><b>${p.n}</b><span>${p.from?"from ":""}${fmt(p.p)}</span><small>${p.inc[0]}</small><span class="next">Next open ${nextOpen(occOf(p))}</span></div></button>`).join("")}</div>
+    </div>
+    <p class="small" style="margin-top:12px">Dates are live off the unit calendar. If it's open, it's real.</p>
+  </div>`;
+};
+
+V.date=()=>{
+  const o=OCC[S.occ];
+  const [mname,y,m]=MONTHS[S.month];
+  const days=[];const d=new Date(y,m,1);
+  while(d.getMonth()===m){
+    const wd=d.getDay();
+    if(wd===0||wd===6||wd===5){ // Fri Sat Sun only
+      const key=`${mname} ${d.getDate()}`;
+      const blocked=(d.getDate()%7===5)||(S.occ==="wedding"&&d.getDate()%3===0);
+      days.push(`<button class="day ${blocked?"blk":""} ${S.date===key?"on":""}" ${blocked?"disabled":""} onclick="setDate('${key}')"><small>${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][wd]}</small>${d.getDate()}<span class="dot"></span></button>`);
+    }
+    d.setDate(d.getDate()+1);
+  }
+  return `
+  ${header(1)}
+  <div class="body rise">
+    <span class="label">${o.label} · Step 1 of 4</span>
+    <h1>${o.q}</h1>
+    <div class="months">${MONTHS.map((mm,i)=>`<button class="${i===S.month?"on":""}" onclick="setMonth(${i})">${mm[0]}</button>`).join("")}</div>
+    <div class="days" id="days">${days.join("")}</div>
+    <div class="hint"><i></i>Open. Grayed days are booked solid, crew and gear included.</div>
+    <div class="reveal ${S.date?"open":""}" style="margin-top:14px"><span class="label" style="display:block;margin-bottom:8px">What time</span>
+      <div class="chips">${TIMES[S.occ].map(([l,t])=>`<button class="chip ${S.time===l?"on":""}" onclick="setT('${l}')">${l}<small>${t}</small></button>`).join("")}</div></div>
+    <div class="sec"><span class="label">How many people</span>
+      <div class="chips">${GUESTS[S.occ].map(g=>`<button class="chip ${S.guests===g?"on":""}" onclick="setG('${g}')">${g}</button>`).join("")}</div>
+      <p class="small" style="margin-top:8px">Rough is fine. You can change it up to a week out.</p></div>
+  </div>
+  <div class="foot"><button class="btn ghost" onclick="goHome()">Back</button><button class="btn" onclick="show('budget')">Next</button></div>`;
+};
+
+V.budget=()=>`
+  ${header(2)}
+  <div class="body rise">
+    <span class="label">${OCC[S.occ].label} · Step 2 of 4</span>
+    <h1>Ballpark?</h1>
+    <p class="p">No wrong answer. We build to the number and show what's possible.</p>
+    <div class="chips two" style="margin-top:16px">${BUDGETS[S.occ].map(([l,v])=>`<button class="chip ${S.budget===v?"on":""}" style="padding:16px 8px" onclick="setB(${v})">${l}</button>`).join("")}</div>
+  </div>
+  <div class="foot"><button class="btn ghost" onclick="show('date')">Back</button><button class="btn" onclick="suggest()">Show me</button></div>`;
+
+V.pkg=()=>{
+  const p=S.pkg;
+  return `
+  ${header(3)}
+  <div class="body rise">
+    <span class="label">${OCC[S.occ].label} · Step 3 of 4 ${p.demo?"· demo pricing":""}</span>
+    <h1>Here's your party.</h1>
+    ${plate(p.plate,`MEL · ${p.n.toUpperCase()} · 4:3`,`<div class="txt"><small>${S.date||"Date TBD"}${S.time?" · "+S.time:""}${S.guests?" · "+S.guests+" people":""}</small></div>`).replace('class="plate ','class="plate pkg-hero ')}
+    <div class="pkg-head"><h2>${p.n}</h2><div class="pr">${p.from?"from ":""}${fmt(p.p)}<small>before add-ons</small></div></div>
+    <div class="inc">${p.inc.map(i=>`<div>${ICON.check}${i}</div>`).join("")}</div>
+    <div class="select-wrap"><select class="select" onchange="swapPkg(this.value)">${PKGS[S.occ].map(x=>`<option value="${x.id}" ${x.id===p.id?"selected":""}>${x.n} · ${x.from?"from ":""}${fmt(x.p)}</option>`).join("")}</select></div>
+    <button class="ask" onclick="openAsk('pkg')">${ICON.spark}Ask about this package</button>
+  </div>
+  <div class="foot"><button class="btn ghost" onclick="show('detail')">What's in it</button><button class="btn" onclick="show('addons')">Make it mine</button></div>`;
+};
+
+V.detail=()=>{
+  const p=S.pkg;
+  return `
+  ${header(3)}
+  <div class="body rise">
+    <span class="label">${p.n}</span>
+    <h1>What's in it.</h1>
+    <p class="p">Swap anything. Price updates as you go.</p>
+    <div style="margin-top:14px">${p.items.map(([nm,cat,alts],i)=>{
+      const cur=S.swaps[i]||nm;
+      return `<div class="card item">${plate(["","warm","cool","stone"][i%4],"")}<div class="nm">${cur}<small>${cat}</small></div>${alts.length?`<button class="swap ${S.swapOpen===i?"on":""}" onclick="toggleSwap(${i})">Swap</button>`:""}</div>
+      <div class="swap-list ${S.swapOpen===i?"open":""}">${[nm,...alts].map(a=>`<button onclick="doSwap(${i},'${a.replace(/'/g,"&#39;")}')">${a}${a===cur?'<span>current</span>':''}</button>`).join("")}</div>`;
+    }).join("")}</div>
+  </div>
+  <div class="foot"><button class="btn ghost" onclick="show('pkg')">Back</button><button class="btn" onclick="show('addons')">Make it mine</button></div>`;
+};
+
+V.addons=()=>{
+  const list=ADDONS[S.cat].map(([n,pr,pl])=>`<div class="card addon ${S.addons[n]?"on":""}">${plate(pl,"")}<div class="nm">${n}<small>${S.cat}</small></div><div class="p">${fmt(pr)}</div><button class="add" onclick="toggleAddon('${n.replace(/'/g,"&#39;")}',${pr})">${S.addons[n]?"✓":"+"}</button></div>`).join("");
+  return `
+  ${header(4)}
+  <div class="body rise" style="padding-bottom:110px">
+    <span class="label">${S.pkg.n} · Step 4 of 4</span>
+    <h1>Make it yours.</h1>
+    <div class="cats">${Object.keys(ADDONS).map(c=>`<button class="${c===S.cat?"on":""}" onclick="setCat('${c}')">${c}</button>`).join("")}</div>
+    ${list}
+  </div>
+  <div class="sticky"><div class="in"><div><small>${S.pkg.n} + ${Object.keys(S.addons).length} add-on${Object.keys(S.addons).length===1?"":"s"}</small><b>${fmt(total())}</b></div><button class="btn" onclick="show('where')">Next</button></div></div>`;
+};
+
+V.where=()=>`
+  ${header(4)}
+  <div class="body rise">
+    <span class="label">Almost there</span>
+    <h1>Where's the party?</h1>
+    <div style="margin-top:14px"><span class="f-lab">ADDRESS</span><input class="input" placeholder="14 Maple Ln, Farmington" value="${S.addr}" oninput="S.addr=this.value"></div>
+    <div class="card map"><div class="road"></div><div class="pin"><svg viewBox="0 0 24 24"><path d="M12 22s7-7.5 7-12a7 7 0 0 0-14 0c0 4.5 7 12 7 12Z"/><circle cx="12" cy="10" r="2.5" fill="#fff"/></svg></div><span class="lab">MAP · PIN DROPS ON ADDRESS · DRIVE TIME FEEDS DISPATCH</span></div>
+    <div class="opts">${["Backyard","Venue","Park","Driveway"].map(v=>`<button class="chip ${S.venue===v?"on":""}" onclick="S.venue='${v}';render()">${v}</button>`).join("")}</div>
+    <div class="card toggle-row"><div>Power outlet within 100 ft<small>Blowers and stations need it</small></div><div class="sw ${S.power?"on":""}" onclick="S.power=!S.power;render()"></div></div>
+    <div class="card toggle-row"><div>Water spigot nearby<small>Only matters for slides</small></div><div class="sw ${S.water?"on":""}" onclick="S.water=!S.water;render()"></div></div>
+    <p class="small" style="margin-top:10px">Gate width, stairs, dogs: tell the crew on the next screen. We've seen it all.</p>
+  </div>
+  <div class="foot"><button class="btn ghost" onclick="show('addons')">Back</button><button class="btn" onclick="show('review')">Review</button></div>`;
+
+V.review=()=>{
+  const lines=[[S.pkg.n,S.pkg.p],...Object.entries(S.addons)];
+  return `
+  ${header(4)}
+  <div class="body rise">
+    <span class="label">Last look</span>
+    <h1>Look good?</h1>
+    <div class="meta">
+      <div class="card"><small>WHEN</small><b>${S.date||"Date TBD"}${S.time?", "+S.time:""}</b></div>
+      <div class="card"><small>WHO</small><b>${S.guests||"?"} people</b></div>
+      <div class="card"><small>WHERE</small><b>${S.addr||"Address TBD"}</b></div>
+      <div class="card"><small>SETUP</small><b>${S.venue}, ${S.power?"power ok":"no power"}</b></div>
+    </div>
+    <div class="card" style="padding:6px 16px 12px;margin-top:12px">
+      ${lines.map(([n,p])=>`<div class="line"><span>${n}</span><b>${fmt(p)}</b></div>`).join("")}
+      <div class="line total"><span>Total</span><b>${fmt(total())}</b></div>
+      <p class="small">$200 holds the date for 48 hours. Balance due a week out. Contract and receipt come by text.</p>
+    </div>
+  </div>
+  <div class="foot"><button class="btn ghost" onclick="show('where')">Back</button><button class="btn" onclick="hold()">Hold my date, $200</button></div>`;
+};
+
+V.held=()=>`
+  ${header()}
+  <div class="body rise held">
+    <div class="check">${ICON.check}</div>
+    <h1>Held. You're good.</h1>
+    <p class="p">${S.date||"Your date"} is yours for 48 hours. Contract and deposit link are on their way to your phone.</p>
+    <div class="card" style="padding:14px 16px;margin-top:20px;text-align:left">
+      <div class="line"><span>${S.pkg.n}</span><b>${fmt(S.pkg.p)}</b></div>
+      ${Object.entries(S.addons).map(([n,p])=>`<div class="line"><span>${n}</span><b>${fmt(p)}</b></div>`).join("")}
+      <div class="line total"><span>Total</span><b>${fmt(total())}</b></div>
+    </div>
+    <p class="small" style="margin-top:16px">Contract and payment run through our booking system. Reply STOP anytime to opt out of texts.</p>
+  </div>
+  <div class="foot"><button class="btn" onclick="show('party')">See my party</button></div>`;
+
+V.party=()=>S.held?`
+  ${header()}
+  <div class="body rise">
+    <span class="label">My party</span>
+    <h1>${S.pkg.n}</h1>
+    ${plate(S.pkg.plate,`MEL · ${S.pkg.n.toUpperCase()}`,`<div class="txt"><small>${S.date}${S.time?" · "+S.time:""}</small><b>16 days out</b></div>`).replace('class="plate ','class="plate pkg-hero ')}
+    <div class="meta">
+      <div class="card"><small>DEPOSIT</small><b>$200 paid</b></div>
+      <div class="card"><small>BALANCE</small><b>${fmt(total()-200)} due</b></div>
+    </div>
+    <p class="p">Add something anytime. Crew ETA shows here the morning of.</p>
+    <div style="margin-top:12px"><button class="btn ghost full" onclick="show('addons')">Add to my party</button></div>
+  </div>`:`
+  ${header()}
+  <div class="body rise" style="display:flex;flex-direction:column;justify-content:center;text-align:center">
+    <h1>Nothing here yet.</h1>
+    <p class="p">Build a party and it'll live here: countdown, balance, crew ETA.</p>
+    <div style="margin-top:18px"><button class="btn" onclick="goHome()">Build one</button></div>
+  </div>`;
+
+/* ================= LOGIC ================= */
+function occOf(p){for(const k in PKGS) if(PKGS[k].includes(p)) return k; return "kids";}
+function nextOpen(occ){return {kids:"Sat Sep 13",adult:"Fri Sep 19",wedding:"Oct 2026",corporate:"Sep 26"}[occ];}
+function total(){return (S.pkg?S.pkg.p:0)+Object.values(S.addons).reduce((a,b)=>a+b,0);}
+function render(){document.getElementById("app").innerHTML=V[S.screen]();}
+function show(s){S.screen=s;render();window.scrollTo(0,0);nav(s==="home"?"home":s==="party"?"party":["welcome","signin"].includes(s)?"":"book");}
+function goHome(){show("home");}
+function goBook(){if(!S.occ){show("home");toast("Pick an occasion first.");return;}show(S.pkg?"pkg":"date");}
+function pick(occ){S.occ=occ;S.date=null;S.time=null;S.guests=null;S.budget=null;S.pkg=null;S.addons={};S.swaps={};S.month=0;show("date");}
+function jump(occ,id){S.occ=occ;S.pkg=PKGS[occ].find(p=>p.id===id);S.addons={};S.swaps={};show("pkg");}
+function setMonth(i){S.month=i;S.date=null;S.time=null;render();}
+function setDate(k){S.date=k;S.time=null;render();setTimeout(()=>{const d=document.querySelector(".day.on");d&&d.scrollIntoView({inline:"center",block:"nearest",behavior:"smooth"});},0);}
+function setT(l){S.time=l;render();}
+function setG(g){S.guests=g;render();}
+function setB(v){S.budget=v;render();}
+function suggest(){const list=PKGS[S.occ];const b=S.budget||99999;S.pkg=[...list].reverse().find(p=>p.p<=b)||list[0];S.addons={};S.swaps={};show("pkg");}
+function swapPkg(id){S.pkg=PKGS[S.occ].find(p=>p.id===id);S.swaps={};render();}
+function toggleSwap(i){S.swapOpen=S.swapOpen===i?null:i;render();}
+function doSwap(i,a){S.swaps[i]=a;S.swapOpen=null;render();toast("Swapped.");}
+function setCat(c){S.cat=c;render();}
+function toggleAddon(n,p){if(S.addons[n])delete S.addons[n];else S.addons[n]=p;render();}
+function hold(){S.held=true;show("held");}
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1800);}
+
+/* ---------- Ask GO sheet (scripted) ---------- */
+const ASK={
+  home:{title:"What's the vibe?",open:"Tell me the party. I'll build it.",chips:[["Backyard bday, 25 kids, about $1,500","Kids Birthday Deluxe at $1,599. Bounce house, a magician hour, face painting, cotton candy and snow cones. Right at the number.","kids","deluxe"],["Guys' night, whiskey and cigars","Gentlemen's Lounge at $4,499. The cigar trailer, whiskey pairings, lounge set, uplighting. Or go lean with Cigar Lounge Night from $1,600.","adult","gents"],["Hot July weekend, lots of kids","Big Splash at $1,899. Water slide, two food stations, yard games, a speaker. Add snow cones. Done.","kids","splash"]]},
+  pkg:{title:"About this package",open:"Ask me anything about it.",chips:[["Does it fit in a normal backyard?","Yes. The biggest piece needs about 20 by 25 feet of flat grass and a standard outlet within 100 feet. If your yard's tight, swap to a smaller inflatable on the What's in it screen.",null,null],["What if it rains?","Dry inflatables run fine in light rain. Heavy rain or lightning, we call it by 7 AM and you pick a new date, no fee.",null,null],["Can I add a DJ?","Yes. Add-ons has a DJ line, or swap the speaker setup for a DJ on What's in it. About $700 for two hours.",null,null]]}
+};
+function openAsk(ctx){
+  const a=ASK[ctx];
+  document.getElementById("sheet").innerHTML=`<div class="in"><h3>${ICON.spark} ${a.title}<button onclick="closeSheet()" style="color:var(--mut);font-size:20px">✕</button></h3><div id="thread"><div class="bub">${a.open}</div></div><div class="qchips" id="qchips">${a.chips.map((c,i)=>`<button onclick="askChip('${ctx}',${i})">${c[0]}</button>`).join("")}</div><p class="small" style="margin-top:12px">Scripted in this build. Live version runs on Claude.</p></div>`;
+  document.getElementById("sheet").classList.remove("hide");document.getElementById("sheetBg").classList.remove("hide");
+}
+function askChip(ctx,i){
+  const [q,ans,occ,id]=ASK[ctx].chips[i];
+  document.getElementById("thread").innerHTML+=`<div class="bub you">${q}</div><div class="bub">${ans}</div>`;
+  document.getElementById("qchips").innerHTML=occ?`<button onclick="closeSheet();jump('${occ}','${id}')">Build that</button>`:`<button onclick="closeSheet()">Got it</button>`;
+}
+function closeSheet(){document.getElementById("sheet").classList.add("hide");document.getElementById("sheetBg").classList.add("hide");}
+
+render();
+</script>
+</body>
+</html>
