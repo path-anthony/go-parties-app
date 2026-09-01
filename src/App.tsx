@@ -4,6 +4,7 @@ import { AskProvider } from "@/state/ask"
 import Welcome from "@/pages/Welcome"
 import SignIn from "@/pages/SignIn"
 import Home from "@/pages/Home"
+import BookDate from "@/pages/BookDate"
 import Kit from "@/pages/Kit"
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
             <Route path="/" element={<Welcome />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/home" element={<Home />} />
+            <Route path="/book/date" element={<BookDate />} />
             <Route path="/kit" element={<Kit />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
