@@ -5,6 +5,7 @@ import Welcome from "@/pages/Welcome"
 import SignIn from "@/pages/SignIn"
 import Home from "@/pages/Home"
 import BookDate from "@/pages/BookDate"
+import BookBudget from "@/pages/BookBudget"
 import Kit from "@/pages/Kit"
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
             <Route path="/signin" element={<SignIn />} />
             <Route path="/home" element={<Home />} />
             <Route path="/book/date" element={<BookDate />} />
+            <Route path="/book/budget" element={<BookBudget />} />
             <Route path="/kit" element={<Kit />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
