@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+/* GO! Event Group tokens. Source of truth: docs/BRAND.md sections 3 and 4. */
+@theme {
+  --color-cream: #F9F7F3;
+  --color-white: #FFFFFF;
+  --color-line: #E8E2D9;
+  --color-charcoal: #211D1C;
+  --color-charcoal-soft: #4A4340;
+  --color-muted: #8C847C;
+  --color-taupe: #8B7355;
+  --color-orange: #F49B1F;
+  --color-orange-deep: #D9820A;
+  --color-orange-tint: #FDF1E0;
+  --color-good: #3E8E4A;
+
+  --font-sans: "Inter", system-ui, sans-serif;
+
+  /* Type scale, mobile. BRAND.md section 4. */
+  --text-hero: 32px;
+  --text-hero--line-height: 1.08;
+  --text-hero--letter-spacing: -0.015em;
+  --text-hero--font-weight: 900;
+  --text-screen: 26px;
+  --text-screen--line-height: 1.1;
+  --text-screen--letter-spacing: -0.015em;
+  --text-screen--font-weight: 900;
+  --text-section: 20px;
+  --text-section--font-weight: 800;
+  --text-price: 22px;
+  --text-price--font-weight: 900;
+  --text-card: 14px;
+  --text-card--font-weight: 700;
+  --text-body: 14.5px;
+  --text-body--line-height: 1.55;
+  --text-small: 12px;
+  --text-small--line-height: 1.5;
+  --text-label: 11px;
+  --text-label--letter-spacing: 0.14em;
+  --text-label--font-weight: 700;
+
+  --radius-card: 14px;
+  --shadow-float: 0 10px 30px rgba(33, 29, 28, 0.12);
+
+  /* shadcn semantic tokens mapped to the GO palette */
+  --color-background: #FFFFFF;
+  --color-foreground: #211D1C;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #211D1C;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #211D1C;
+  --color-primary: #F49B1F;
+  --color-primary-foreground: #211D1C;
+  --color-secondary: #211D1C;
+  --color-secondary-foreground: #FFFFFF;
+  --color-muted-foreground: #8C847C;
+  --color-accent: #FDF1E0;
+  --color-accent-foreground: #211D1C;
+  --color-destructive: #B4482F;
+  --color-destructive-foreground: #FFFFFF;
+  --color-border: #E8E2D9;
+  --color-input: #E8E2D9;
+  --color-ring: #211D1C;
+}
+
+/* Lock to light. OS dark mode must not flip the app. BRAND.md section 3. */
+:root {
+  color-scheme: light only;
+}
+html,
+body {
+  background: #F9F7F3 !important;
+  color: #211D1C !important;
+  min-height: 100%;
+}
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}

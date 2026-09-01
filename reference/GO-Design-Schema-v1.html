@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GO Parties | Design Schema</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#F9F7F3; --white:#FFFFFF; --line:#E8E2D9;
+  --char:#211D1C; --char-soft:#4A4340; --taupe:#8B7355; --mut:#8C847C;
+  --orange:#F49B1F; --orange-deep:#D9820A; --orange-tint:#FDF1E0;
+  --good:#3E8E4A; --warn:#C48A1B;
+  --font:'Montserrat',system-ui,sans-serif;
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--cream);color:var(--char);-webkit-font-smoothing:antialiased;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px;}
+
+/* ---------- page chrome ---------- */
+.top{display:flex;justify-content:space-between;align-items:center;padding:22px 0 10px;border-bottom:1px solid var(--line);}
+.wordmark{font-weight:900;letter-spacing:.1em;font-size:14px;}
+.wordmark b{color:var(--orange);}
+.toggle{display:flex;gap:4px;background:var(--white);border:1px solid var(--line);border-radius:20px;padding:3px;}
+.toggle button{padding:7px 14px;border-radius:16px;font-size:12px;font-weight:700;color:var(--mut);}
+.toggle button.on{background:var(--char);color:var(--white);}
+h1{font-size:clamp(28px,5vw,40px);font-weight:900;letter-spacing:-.01em;margin-top:26px;}
+.lead{color:var(--char-soft);font-size:15px;max-width:560px;margin-top:10px;line-height:1.6;}
+section{padding:36px 0 8px;}
+.label{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--taupe);text-transform:uppercase;}
+.sec-h{display:flex;align-items:baseline;gap:14px;margin-bottom:16px;}
+.sec-h h2{font-size:20px;font-weight:800;}
+.sec-h p{color:var(--mut);font-size:13px;}
+.mark{height:3px;width:34px;background:var(--orange);transform:skewX(-24deg);display:inline-block;}
+
+/* ---------- palette ---------- */
+.pal{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+@media(min-width:700px){.pal{grid-template-columns:repeat(5,1fr);}}
+.sw{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--white);}
+.sw i{display:block;height:64px;}
+.sw div{padding:9px 11px;font-size:11px;}
+.sw b{display:block;font-size:12px;}
+.sw span{color:var(--mut);}
+
+/* ---------- type ---------- */
+.type{display:grid;gap:14px;}
+.type .row{display:grid;grid-template-columns:110px 1fr;gap:14px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line);}
+.type .row small{font-size:11px;color:var(--mut);font-weight:600;}
+.t-hero{font-size:34px;font-weight:900;line-height:1.05;letter-spacing:-.01em;}
+.t-h2{font-size:22px;font-weight:800;line-height:1.15;}
+.t-card{font-size:16px;font-weight:700;}
+.t-body{font-size:15px;line-height:1.6;color:var(--char-soft);}
+.t-small{font-size:12.5px;color:var(--mut);}
+.t-price{font-size:18px;font-weight:800;}
+
+/* ---------- photo plate (placeholder system) ---------- */
+.plate{
+  position:relative;overflow:hidden;border-radius:var(--r);
+  background:
+    linear-gradient(180deg,rgba(33,29,28,0) 40%,rgba(33,29,28,.78) 100%),
+    repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 2px,transparent 2px 14px),
+    linear-gradient(160deg,#C9B8A3 0%,#8B7355 45%,#3E3532 100%);
+}
+.plate.cool{background:
+    linear-gradient(180deg,rgba(33,29,28,0) 40%,rgba(33,29,28,.78) 100%),
+    repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 2px,transparent 2px 14px),
+    linear-gradient(160deg,#B9C4C9 0%,#6E7E86 45%,#2F3538 100%);}
+.plate.warm{background:
+    linear-gradient(180deg,rgba(33,29,28,0) 40%,rgba(33,29,28,.78) 100%),
+    repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 2px,transparent 2px 14px),
+    linear-gradient(160deg,#F2C58A 0%,#C97F2B 45%,#5A3813 100%);}
+.plate .corner{position:absolute;width:14px;height:14px;border:1.5px solid rgba(255,255,255,.55);}
+.plate .c1{top:10px;left:10px;border-right:none;border-bottom:none;}
+.plate .c2{top:10px;right:10px;border-left:none;border-bottom:none;}
+.plate .c3{bottom:10px;left:10px;border-right:none;border-top:none;}
+.plate .c4{bottom:10px;right:10px;border-left:none;border-top:none;}
+.plate .spec{position:absolute;top:14px;left:50%;transform:translateX(-50%);font-size:9.5px;letter-spacing:.14em;font-weight:700;color:rgba(255,255,255,.75);white-space:nowrap;}
+.plate .txt{position:absolute;left:16px;right:16px;bottom:16px;color:var(--white);}
+.plate .txt small{display:block;font-size:10.5px;letter-spacing:.14em;font-weight:700;opacity:.8;margin-bottom:4px;}
+.plate .txt b{display:block;font-size:20px;font-weight:900;line-height:1.1;}
+.plate .txt p{font-size:12.5px;opacity:.85;margin-top:4px;}
+.plates{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(min-width:700px){.plates{grid-template-columns:2fr 1fr 1fr;}}
+.ratio-45{aspect-ratio:4/5;} .ratio-11{aspect-ratio:1/1;} .ratio-169{aspect-ratio:16/9;}
+
+/* ---------- icons ---------- */
+.icons{display:flex;flex-wrap:wrap;gap:12px;}
+.ic{display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--white);border:1px solid var(--line);border-radius:12px;padding:14px 12px;width:92px;font-size:10.5px;color:var(--mut);font-weight:600;}
+.ic svg{width:22px;height:22px;stroke:var(--char);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;}
+.ic.on svg{stroke:var(--orange);}
+
+/* ---------- components ---------- */
+.grid2{display:grid;gap:18px;grid-template-columns:1fr;}
+@media(min-width:900px){.grid2{grid-template-columns:1fr 1fr;}}
+.comp{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:18px;}
+.comp h4{font-size:12px;font-weight:700;color:var(--taupe);letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:14.5px;padding:14px 22px;border-radius:12px;background:var(--orange);color:var(--char);transition:.15s;}
+.btn:hover{background:var(--orange-deep);}
+.btn.dark{background:var(--char);color:var(--white);}
+.btn.ghost{background:var(--white);color:var(--char);border:1.5px solid var(--line);font-weight:700;}
+.btn.full{width:100%;}
+.btn.sm{padding:9px 14px;font-size:12.5px;border-radius:9px;}
+.row{display:flex;gap:10px;flex-wrap:wrap;}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.chip{padding:12px 6px;border-radius:12px;border:1.5px solid var(--line);background:var(--white);font-weight:700;font-size:13px;text-align:center;transition:.12s;}
+.chip small{display:block;color:var(--mut);font-weight:500;font-size:11px;margin-top:2px;}
+.chip.on{border-color:var(--orange);background:var(--orange-tint);}
+.chip:hover{border-color:var(--char);}
+.input{width:100%;padding:15px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--white);font-size:14.5px;font-family:inherit;color:var(--char);}
+.input:focus{outline:none;border-color:var(--char);}
+.f-lab{display:block;font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--taupe);margin-bottom:6px;}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.day{padding:10px 0;border-radius:10px;border:1.5px solid var(--line);background:var(--white);text-align:center;font-size:13px;font-weight:700;}
+.day small{display:block;font-size:9.5px;color:var(--mut);font-weight:600;margin-bottom:2px;}
+.day.blk{opacity:.35;text-decoration:line-through;}
+.day.on{border-color:var(--orange);background:var(--orange-tint);}
+.prog{display:flex;gap:6px;align-items:center;}
+.prog i{height:4px;flex:1;background:var(--line);border-radius:2px;transform:skewX(-24deg);}
+.prog i.on{background:var(--orange);}
+.pkg{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:10px;background:var(--white);}
+.pkg .plate{width:74px;height:74px;flex:none;border-radius:10px;}
+.pkg .plate .spec{font-size:7px;top:8px;}
+.pkg b{display:block;font-size:15px;}
+.pkg .pr{font-weight:800;font-size:14px;}
+.pkg small{display:block;color:var(--mut);font-size:12px;margin-top:2px;}
+.pkg .next{margin-left:auto;text-align:right;font-size:11px;font-weight:700;color:var(--good);line-height:1.4;white-space:nowrap;}
+.pkg .next small{color:var(--mut);font-size:10px;}
+.rail{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory;}
+.rail .card{flex:none;width:200px;scroll-snap-align:start;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--white);}
+.rail .plate{border-radius:0;aspect-ratio:5/4;}
+.rail .bd{padding:12px;}
+.rail .bd b{display:block;font-size:14px;}
+.rail .bd span{font-weight:800;font-size:13px;}
+.rail .bd small{display:block;color:var(--mut);font-size:11.5px;margin-top:2px;}
+.addon{display:flex;align-items:center;gap:12px;padding:12px 12px;border:1px solid var(--line);border-radius:12px;background:var(--white);margin-bottom:8px;}
+.addon .plate{width:44px;height:44px;border-radius:8px;flex:none;}
+.addon .plate .spec,.addon .plate .corner{display:none;}
+.addon .nm{flex:1;font-size:14px;font-weight:600;}
+.addon .nm small{display:block;color:var(--mut);font-weight:500;font-size:11.5px;}
+.addon .p{font-weight:800;font-size:13.5px;}
+.addon .add{width:34px;height:34px;border-radius:10px;border:1.5px solid var(--line);font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.addon.on{border-color:var(--orange);background:var(--orange-tint);}
+.addon.on .add{background:var(--orange);border-color:var(--orange);}
+.summary{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--white);box-shadow:0 8px 24px rgba(33,29,28,.08);}
+.summary small{display:block;color:var(--mut);font-size:11px;}
+.summary b{font-size:19px;font-weight:900;}
+.bnav{display:flex;justify-content:space-around;border-top:1px solid var(--line);padding:10px 0 4px;background:var(--white);border-radius:0 0 14px 14px;}
+.bnav div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--mut);}
+.bnav div.on{color:var(--char);}
+.bnav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;}
+.ai-line{display:flex;gap:10px;align-items:center;padding:12px 14px;border:1.5px dashed var(--line);border-radius:12px;background:var(--white);color:var(--mut);font-size:13.5px;}
+.ai-line svg{width:18px;height:18px;stroke:var(--orange);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none;}
+.ai-line b{color:var(--char);font-weight:700;margin-left:auto;font-size:12.5px;white-space:nowrap;}
+
+/* ---------- phone frames ---------- */
+.phones{display:grid;gap:22px;grid-template-columns:1fr;}
+@media(min-width:760px){.phones{grid-template-columns:repeat(2,1fr);}}
+@media(min-width:1100px){.phones{grid-template-columns:repeat(4,1fr);}}
+.phone{background:var(--white);border:1px solid var(--line);border-radius:30px;padding:10px;box-shadow:0 20px 50px rgba(33,29,28,.10);}
+.screen{background:var(--cream);border-radius:22px;overflow:hidden;height:600px;position:relative;display:flex;flex-direction:column;}
+.screen .sb{display:flex;justify-content:space-between;padding:10px 18px 0;font-size:11px;font-weight:700;}
+.screen .hdr{display:flex;justify-content:space-between;align-items:center;padding:14px 18px 0;}
+.screen .in{padding:16px 18px;flex:1;overflow:hidden;}
+.screen .in.center{display:flex;flex-direction:column;justify-content:center;}
+.screen .foot{padding:12px 18px 14px;}
+.cap{margin-top:12px;}
+.cap b{display:block;font-size:14px;}
+.cap p{font-size:12.5px;color:var(--mut);margin-top:3px;line-height:1.5;}
+.s-h{font-size:24px;font-weight:900;line-height:1.08;letter-spacing:-.01em;}
+.s-p{font-size:13px;color:var(--char-soft);margin-top:8px;line-height:1.55;}
+.occ4{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+.occ4 .plate{aspect-ratio:1/1;border-radius:12px;}
+.occ4 .plate .spec{display:none;}
+.occ4 .plate .txt{left:10px;right:10px;bottom:10px;}
+.occ4 .plate .txt b{font-size:14px;}
+.occ4 .plate .corner{display:none;}
+.mini-rail{display:flex;gap:8px;overflow:hidden;margin-top:8px;}
+.mini-rail .card{flex:none;width:120px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--white);}
+.mini-rail .plate{aspect-ratio:5/4;border-radius:0;}
+.mini-rail .plate .spec,.mini-rail .plate .corner,.mini-rail .plate .txt{display:none;}
+.mini-rail .bd{padding:8px;font-size:11px;}
+.mini-rail .bd b{display:block;font-size:11.5px;}
+.mini-rail .bd span{font-weight:800;}
+.times{margin-top:10px;}
+.divider{display:flex;align-items:center;gap:10px;color:var(--mut);font-size:11px;font-weight:700;margin:14px 0;}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line);}
+footer{padding:40px 0 60px;color:var(--mut);font-size:12px;line-height:1.7;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="wordmark"><b>GO!</b> EVENT GROUP <span style="color:var(--mut);font-weight:600;letter-spacing:0;margin-left:8px">Design schema v1</span></div>
+    <div class="toggle"><button class="on" onclick="setFont('Montserrat',this)">Montserrat</button><button onclick="setFont('Inter',this)">Inter</button></div>
+  </div>
+
+  <h1>Light, warm, one accent.</h1>
+  <p class="lead">Their site's lightness and contrast. lululemon's photo-forward components. Orange used once per screen. Toggle the font above to compare, then scroll to the four screens at the bottom.</p>
+
+  <!-- PALETTE -->
+  <section>
+    <div class="sec-h"><span class="mark"></span><h2>Palette</h2><p>Cream ground, white cards, charcoal type, taupe labels, orange only for the action.</p></div>
+    <div class="pal">
+      <div class="sw"><i style="background:#F9F7F3;border-bottom:1px solid var(--line)"></i><div><b>Cream</b><span>#F9F7F3 · ground</span></div></div>
+      <div class="sw"><i style="background:#FFFFFF;border-bottom:1px solid var(--line)"></i><div><b>White</b><span>#FFFFFF · cards</span></div></div>
+      <div class="sw"><i style="background:#211D1C"></i><div><b>Charcoal</b><span>#211D1C · type, photo moments</span></div></div>
+      <div class="sw"><i style="background:#8B7355"></i><div><b>Taupe</b><span>#8B7355 · labels, from their site</span></div></div>
+      <div class="sw"><i style="background:#F49B1F"></i><div><b>Orange</b><span>#F49B1F · the one accent</span></div></div>
+      <div class="sw"><i style="background:#4A4340"></i><div><b>Charcoal soft</b><span>#4A4340 · body copy</span></div></div>
+      <div class="sw"><i style="background:#8C847C"></i><div><b>Muted</b><span>#8C847C · secondary</span></div></div>
+      <div class="sw"><i style="background:#E8E2D9"></i><div><b>Line</b><span>#E8E2D9 · borders</span></div></div>
+      <div class="sw"><i style="background:#FDF1E0"></i><div><b>Orange tint</b><span>#FDF1E0 · selected state</span></div></div>
+      <div class="sw"><i style="background:#3E8E4A"></i><div><b>Good</b><span>#3E8E4A · availability, paid</span></div></div>
+    </div>
+  </section>
+
+  <!-- TYPE -->
+  <section>
+    <div class="sec-h"><span class="mark"></span><h2>Type</h2><p>One family. Weight does the work, never italics.</p></div>
+    <div class="type">
+      <div class="row"><small>HERO · 900</small><div class="t-hero">Your party, built in <span style="color:var(--orange)">two minutes.</span></div></div>
+      <div class="row"><small>SCREEN · 800</small><div class="t-h2">What are we celebrating?</div></div>
+      <div class="row"><small>CARD · 700</small><div class="t-card">Big Splash</div></div>
+      <div class="row"><small>PRICE · 800</small><div class="t-price">$1,899</div></div>
+      <div class="row"><small>BODY · 400</small><div class="t-body">Tell us the occasion. We build the whole thing from real inventory. You tweak it, we show up.</div></div>
+      <div class="row"><small>LABEL · 700</small><div class="label">Step 1 of 4</div></div>
+      <div class="row"><small>SMALL · 400</small><div class="t-small">Crossed-out dates are fully booked.</div></div>
+    </div>
+  </section>
+
+  <!-- PHOTO PLATES -->
+  <section>
+    <div class="sec-h"><span class="mark"></span><h2>Photo plates</h2><p>The placeholder system. Each plate names the shot Mel owes, its ratio, and carries the real gradient and type treatment so the swap is one file.</p></div>
+    <div class="plates">
+      <div class="plate ratio-45"><i class="corner c1"></i><i class="corner c2"></i><i class="corner c3"></i><i class="corner c4"></i><span class="spec">MEL · 01 · BACKYARD WIDE · 4:5</span>
+        <div class="txt"><small>KIDS PARTY</small><b>Big Splash</b><p>Water slide, fun foods, games</p></div></div>
+      <div class="plate cool ratio-11"><i class="corner c1"></i><i class="corner c2"></i><i class="corner c3"></i><i class="corner c4"></i><span class="spec">MEL · 07 · COLD SPARK · 1:1</span>
+        <div class="txt"><small>WEDDING</small><b>Dream</b></div></div>
+      <div class="plate warm ratio-11"><i class="corner c1"></i><i class="corner c2"></i><i class="corner c3"></i><i class="corner c4"></i><span class="spec">MEL · 12 · CIGAR TRAILER · 1:1</span>
+        <div class="txt"><small>ADULT PARTY</small><b>Gentlemen's Lounge</b></div></div>
+    </div>
+  </section>
+
+  <!-- ICONS -->
+  <section>
+    <div class="sec-h"><span class="mark"></span><h2>Icons</h2><p>One thin line set (Lucide). Charcoal at rest, orange when it's the active thing. No emoji anywhere.</p></div>
+    <div class="icons">
+      <div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Date</div>
+      <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Time</div>
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Guests</div>
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>Budget</div>
+      <div class="ic on"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/><path d="M19 17l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7Z"/></svg>Ask GO</div>
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Where</div>
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add</div>
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Done</div>
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>Next</div>
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>Home</div>
+    </div>
+  </section>
+
+  <!-- COMPONENTS -->
+  <section>
+    <div class="sec-h"><span class="mark"></span><h2>Components</h2><p>Everything the first ten screens need.</p></div>
+    <div class="grid2">
+      <div class="comp"><h4>Buttons</h4>
+        <div class="row"><button class="btn">Primary</button><button class="btn dark">Dark</button><button class="btn ghost">Ghost</button><button class="btn sm">Small</button></div>
+        <div style="margin-top:10px"><button class="btn full">Full width</button></div>
+      </div>
+      <div class="comp"><h4>Input + progress</h4>
+        <span class="f-lab">EMAIL</span><input class="input" placeholder="you@email.com">
+        <div class="prog" style="margin-top:16px"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+        <div class="t-small" style="margin-top:6px">Progress marker is the only diagonal in the system.</div>
+      </div>
+      <div class="comp"><h4>Chips</h4>
+        <div class="chips"><div class="chip">10-15<small>guests</small></div><div class="chip on">15-20<small>guests</small></div><div class="chip">20-25<small>guests</small></div></div>
+        <div class="chips" style="margin-top:8px"><div class="chip">Morning<small>10 AM</small></div><div class="chip">Midday<small>12 PM</small></div><div class="chip on">Afternoon<small>2 PM</small></div></div>
+      </div>
+      <div class="comp"><h4>Date picker</h4>
+        <div class="days">
+          <div class="day blk"><small>Sat</small>12</div><div class="day on"><small>Sun</small>13</div><div class="day"><small>Sat</small>19</div><div class="day"><small>Sun</small>20</div><div class="day"><small>Sat</small>26</div><div class="day"><small>Sun</small>27</div><div class="day"><small>Sat</small>3</div>
+        </div>
+        <div class="t-small" style="margin-top:8px">Tap a day, times slide in beneath it.</div>
+      </div>
+      <div class="comp"><h4>Package row (ready to book)</h4>
+        <div class="pkg"><div class="plate"><span class="spec">MEL 01</span></div><div><b>Big Splash</b><span class="pr">$1,899</span><small>Water slide, fun foods, games</small></div><div class="next">Next open<br>Sat Sep 13<small><br>2 Saturdays left</small></div></div>
+      </div>
+      <div class="comp"><h4>Recommended rail</h4>
+        <div class="rail">
+          <div class="card"><div class="plate"></div><div class="bd"><b>Kids Birthday Deluxe</b><span>$1,599</span><small>Bounce, magician, sweets</small></div></div>
+          <div class="card"><div class="plate warm"></div><div class="bd"><b>Casino Night</b><span>$3,499</span><small>Tables, lights, bites</small></div></div>
+          <div class="card"><div class="plate cool"></div><div class="bd"><b>Essential</b><span>$7,999</span><small>DJ, photo, video, booth</small></div></div>
+        </div>
+      </div>
+      <div class="comp"><h4>Add-on rows + summary</h4>
+        <div class="addon on"><div class="plate warm"></div><div class="nm">Cotton Candy Station<small>Fun foods</small></div><div class="p">$199</div><div class="add" style="color:var(--char)">✓</div></div>
+        <div class="addon"><div class="plate cool"></div><div class="nm">Cold Spark Show<small>Effects</small></div><div class="p">$1,499</div><div class="add">+</div></div>
+        <div class="summary"><div><small>Big Splash + 1 add-on</small><b>$2,098</b></div><button class="btn">Hold my date</button></div>
+      </div>
+      <div class="comp"><h4>The AI door (optional, never a popup)</h4>
+        <div class="ai-line"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/></svg>Not sure? Describe the party<b>Ask GO</b></div>
+        <div class="t-small" style="margin-top:10px">Lives on Home as a text field and on the package screen as "Ask about this package." Browse is the default; chat is a door.</div>
+        <div class="bnav" style="margin-top:14px;border:1px solid var(--line);border-radius:14px">
+          <div class="on"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Home</div>
+          <div><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Book</div>
+          <div><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/></svg>Ask</div>
+          <div><svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg>My party</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREENS -->
+  <section>
+    <div class="sec-h"><span class="mark"></span><h2>The first four screens</h2><p>Built only from the components above.</p></div>
+    <div class="phones">
+
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="plate" style="position:absolute;inset:0;border-radius:0;background:linear-gradient(180deg,rgba(33,29,28,.05) 0%,rgba(33,29,28,.15) 35%,rgba(33,29,28,.85) 100%),repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 2px,transparent 2px 14px),linear-gradient(160deg,#C9B8A3 0%,#8B7355 45%,#3E3532 100%)"><span class="spec">MEL · 00 · HERO, FULL BLEED · 9:19</span></div>
+          <div class="sb" style="color:#fff;position:relative">9:41<span>●●●</span></div>
+          <div class="hdr" style="position:relative;color:#fff"><div class="wordmark" style="color:#fff"><b>GO!</b> EVENT GROUP</div></div>
+          <div class="in center" style="position:relative;color:#fff;justify-content:flex-end">
+            <div class="label" style="color:rgba(255,255,255,.8)">Farmington, CT</div>
+            <div class="s-h" style="color:#fff;font-size:30px;margin-top:6px">Your party,<br>built in <span style="color:var(--orange)">two minutes.</span></div>
+            <div class="s-p" style="color:rgba(255,255,255,.85)">Tell us the occasion. We build it from real inventory. You tweak it, we show up.</div>
+          </div>
+          <div class="foot" style="position:relative"><button class="btn full">Let's build it</button><div class="t-small" style="text-align:center;color:rgba(255,255,255,.6);margin-top:10px">Weddings to backyards</div></div>
+        </div></div>
+        <div class="cap"><b>1 · Welcome</b><p>Full-bleed photo, one headline, one line, one button. The lululemon move.</p></div>
+      </div>
+
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="sb">9:41<span>●●●</span></div>
+          <div class="hdr"><div class="wordmark"><b>GO!</b> EVENT GROUP</div><div class="prog" style="width:70px"><i class="on"></i><i></i><i></i></div></div>
+          <div class="in center">
+            <div class="s-h">Welcome in.</div>
+            <div class="s-p">Save your build, track your party, add things later.</div>
+            <div style="margin-top:20px"><span class="f-lab">EMAIL</span><input class="input" placeholder="you@email.com"></div>
+            <div style="margin-top:10px"><button class="btn full">Continue</button></div>
+            <div class="divider">OR</div>
+            <button class="btn ghost full" style="margin-bottom:8px">Continue with Google</button>
+            <button class="btn ghost full">Continue with Apple</button>
+          </div>
+          <div class="foot"><div class="t-small" style="text-align:center">No password. We'll text a link.</div></div>
+        </div></div>
+        <div class="cap"><b>2 · Sign in</b><p>Three ways in, all one tap. Zero-auth in the click-through.</p></div>
+      </div>
+
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="sb">9:41<span>●●●</span></div>
+          <div class="hdr"><div class="wordmark"><b>GO!</b> EVENT GROUP</div><span class="t-small">Hi, Sarah</span></div>
+          <div class="in">
+            <div class="s-h" style="font-size:22px">What are we celebrating?</div>
+            <div class="occ4">
+              <div class="plate"><div class="txt"><b>Kids Party</b></div></div>
+              <div class="plate warm"><div class="txt"><b>Adult Party</b></div></div>
+              <div class="plate cool"><div class="txt"><b>Wedding</b></div></div>
+              <div class="plate" style="background:linear-gradient(180deg,rgba(33,29,28,0) 40%,rgba(33,29,28,.78) 100%),repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 2px,transparent 2px 14px),linear-gradient(160deg,#A9A39C 0%,#5E5853 45%,#2A2624 100%)"><div class="txt"><b>Corporate</b></div></div>
+            </div>
+            <div class="ai-line" style="margin-top:10px;padding:10px 12px;font-size:12px"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/></svg>Not sure? Describe the party<b>Ask GO</b></div>
+            <div class="label" style="margin-top:14px">Recommended for you</div>
+            <div class="mini-rail">
+              <div class="card"><div class="plate"></div><div class="bd"><b>Big Splash</b><span>$1,899</span></div></div>
+              <div class="card"><div class="plate warm"></div><div class="bd"><b>Deluxe</b><span>$1,599</span></div></div>
+              <div class="card"><div class="plate cool"></div><div class="bd"><b>Grad Bash</b><span>$2,299</span></div></div>
+            </div>
+          </div>
+          <div class="bnav">
+            <div class="on"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Home</div>
+            <div><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Book</div>
+            <div><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/></svg>Ask</div>
+            <div><svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg>My party</div>
+          </div>
+        </div></div>
+        <div class="cap"><b>3 · Home</b><p>Four photo cards, the optional AI door, a recommended rail. Storefront, not a laundry list.</p></div>
+      </div>
+
+      <div>
+        <div class="phone"><div class="screen">
+          <div class="sb">9:41<span>●●●</span></div>
+          <div class="hdr"><div class="wordmark"><b>GO!</b> EVENT GROUP</div><div class="prog" style="width:90px"><i class="on"></i><i></i><i></i><i></i></div></div>
+          <div class="in">
+            <div class="label">Kids party · Step 1 of 4</div>
+            <div class="s-h" style="font-size:22px;margin-top:6px">When's the party?</div>
+            <div class="days" style="margin-top:12px">
+              <div class="day blk"><small>Sat</small>12</div><div class="day on"><small>Sun</small>13</div><div class="day"><small>Sat</small>19</div><div class="day"><small>Sun</small>20</div><div class="day"><small>Sat</small>26</div><div class="day"><small>Sun</small>27</div><div class="day"><small>Sat</small>3</div>
+            </div>
+            <div class="times"><div class="label" style="margin-bottom:6px">What time</div>
+              <div class="chips"><div class="chip" style="padding:9px 4px;font-size:12px">Morning<small>10 AM</small></div><div class="chip on" style="padding:9px 4px;font-size:12px">Midday<small>12 PM</small></div><div class="chip" style="padding:9px 4px;font-size:12px">Afternoon<small>2 PM</small></div></div></div>
+            <div class="label" style="margin:14px 0 6px">How many guests</div>
+            <div class="chips"><div class="chip" style="padding:9px 4px;font-size:12px">10-15</div><div class="chip" style="padding:9px 4px;font-size:12px">15-20</div><div class="chip on" style="padding:9px 4px;font-size:12px">20-25</div><div class="chip" style="padding:9px 4px;font-size:12px">25-30</div><div class="chip" style="padding:9px 4px;font-size:12px">30-40</div><div class="chip" style="padding:9px 4px;font-size:12px">40+</div></div>
+            <div class="t-small" style="margin-top:10px">Crossed-out days are fully booked. A day only shows open if the gear and crew can get there.</div>
+          </div>
+          <div class="foot"><button class="btn full">Next</button></div>
+        </div></div>
+        <div class="cap"><b>4 · Date, time, guests</b><p>Availability-aware calendar, times reveal on tap, granular guest chips. One screen, one Next.</p></div>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>Schema v1 for review. Photo plates carry Mel's shot numbers; swapping a plate for a real image changes one file. Orange appears once per screen. No emoji, no italics.</footer>
+</div>
+
+<script>
+function setFont(f, btn){
+  document.documentElement.style.setProperty('--font', `'${f}',system-ui,sans-serif`);
+  document.querySelectorAll('.toggle button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+</script>
+</body>
+</html>
