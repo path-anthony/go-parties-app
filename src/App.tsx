@@ -9,6 +9,7 @@ import BookBudget from "@/pages/BookBudget"
 import BookPackage from "@/pages/BookPackage"
 import BookDetail from "@/pages/BookDetail"
 import BookAddons from "@/pages/BookAddons"
+import BookWhere from "@/pages/BookWhere"
 import Kit from "@/pages/Kit"
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
             <Route path="/book/package" element={<BookPackage />} />
             <Route path="/book/detail" element={<BookDetail />} />
             <Route path="/book/addons" element={<BookAddons />} />
+            <Route path="/book/where" element={<BookWhere />} />
             <Route path="/kit" element={<Kit />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
