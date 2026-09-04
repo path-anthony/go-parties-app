@@ -19,6 +19,7 @@ import { PackageHero } from "@/components/go/PackageHero"
 import { PackageSelect } from "@/components/go/PackageSelect"
 import { ItemRow, SwapList } from "@/components/go/ItemRow"
 import { AddonRow, StickyTotal } from "@/components/go/AddonRow"
+import { CategoryChips } from "@/components/go/CategoryChips"
 import { AiLine } from "@/components/go/AiLine"
 import { BottomNav } from "@/components/go/BottomNav"
 import { daysFor } from "@/lib/availability"
@@ -237,6 +238,7 @@ export default function Kit() {
       </Section>
 
       <Section label="13" title="Add-on rows and sticky total">
+        <CategoryChips categories={Object.keys(ADDONS)} active="Fun foods" onPick={() => {}} />
         {ADDONS["Fun foods"].slice(0, 3).map(([name, price, plate]) => (
           <AddonRow
             key={name}
