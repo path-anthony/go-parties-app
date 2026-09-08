@@ -53,7 +53,8 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch("http://localhost:3001/api/recommend", {
+      const apiUrl = import.meta.env.VITE_ADMIN_API_URL || "http://localhost:3001"
+      const response = await fetch(`${apiUrl}/api/recommend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ theme: userInput }),
