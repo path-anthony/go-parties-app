@@ -1,9 +1,7 @@
 import { useEffect, useState, useRef } from "react"
-import { useNavigate } from "react-router-dom"
 import { Sparkle, X, Send } from "lucide-react"
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
 import { ASK, type AskContext } from "@/data/ask"
-import { useBooking } from "@/state/booking"
 
 /* Ask GO. BRAND.md section 11: a knowledgeable crew member. It never opens
    itself: the dashed line on Home, "Ask about this package", the Ask tab.
@@ -22,8 +20,6 @@ interface RecommendationResponse {
 }
 
 export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
-  const navigate = useNavigate()
-  const { jump } = useBooking()
   const [asked, setAsked] = useState<number | null>(null)
   const [userInput, setUserInput] = useState("")
   const [loading, setLoading] = useState(false)
