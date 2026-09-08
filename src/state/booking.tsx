@@ -6,6 +6,7 @@ import { PKGS, type OccasionId, type Pkg } from "@/data/catalog"
 
 export interface BookingState {
   occ: OccasionId | null
+  subOcc: string | null
   month: number
   date: string | null
   time: string | null
@@ -24,6 +25,7 @@ export interface BookingState {
 
 const INITIAL: BookingState = {
   occ: null,
+  subOcc: null,
   month: 0,
   date: null,
   time: null,
@@ -62,7 +64,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       ...s,
       set,
       pick: (occ) =>
-        setS((prev) => ({ ...prev, occ, date: null, time: null, guests: null, budget: null, pkg: null, addons: {}, swaps: {}, month: 0 })),
+        setS((prev) => ({ ...prev, occ, subOcc: null, date: null, time: null, guests: null, budget: null, pkg: null, addons: {}, swaps: {}, month: 0 })),
       jump: (occ, id) =>
         setS((prev) => ({ ...prev, occ, pkg: PKGS[occ].find((p) => p.id === id) ?? null, addons: {}, swaps: {} })),
       suggest: () =>

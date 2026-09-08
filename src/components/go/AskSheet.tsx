@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react"
 import { Sparkle, X, Send } from "lucide-react"
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
 import { ASK, type AskContext } from "@/data/ask"
+import { useBooking } from "@/state/booking"
 
 /* Ask GO. BRAND.md section 11: a knowledgeable crew member. It never opens
    itself: the dashed line on Home, "Ask about this package", the Ask tab.
@@ -20,6 +21,7 @@ interface RecommendationResponse {
 }
 
 export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
+  const { subOcc } = useBooking()
   const [asked, setAsked] = useState<number | null>(null)
   const [userInput, setUserInput] = useState("")
   const [loading, setLoading] = useState(false)
@@ -50,10 +52,11 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
     setError(null)
     try {
       const apiUrl = import.meta.env.VITE_ADMIN_API_URL || "http://localhost:3001"
+      const theme = subOcc ? `${subOcc} party, ${userInput}` : userInput
       const response = await fetch(`${apiUrl}/api/recommend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: userInput }),
+        body: JSON.stringify({ theme }),
       })
       if (!response.ok) throw new Error("Server error")
       const data: RecommendationResponse = await response.json()

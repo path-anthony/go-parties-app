@@ -27,6 +27,13 @@ export const OCC: Record<OccasionId, { label: string; plate: PlateVariant; q: st
   corporate: { label: "Corporate", plate: "stone", q: "When's the event?" },
 }
 
+export const SUB_OCC: Record<OccasionId, string[]> = {
+  kids: ["Birthday", "Bar/Bat Mitzvah", "Sweet 16", "Baby shower", "Graduation", "Other"],
+  adult: ["Birthday", "Bachelor/Bachelorette", "Anniversary", "Retirement", "Housewarming", "Other"],
+  wedding: ["Ceremony + reception", "Reception only", "Engagement party", "Rehearsal dinner", "Bridal shower", "Other"],
+  corporate: ["Holiday party", "Team building", "Product launch", "Client appreciation", "Grand opening", "Other"],
+}
+
 const item = (name: string, cat: string, alts: string[]): PackageItem => ({ name, cat, alts })
 
 export const PKGS: Record<OccasionId, Pkg[]> = {
