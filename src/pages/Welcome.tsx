@@ -2,10 +2,17 @@ import { useNavigate } from "react-router-dom"
 import { Calendar, Sparkle, Truck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
-import { PhotoPlate, PlateText } from "@/components/go/PhotoPlate"
+import { HeroCarousel } from "@/components/go/HeroCarousel"
 
 /* Screen 1, Welcome. SCREENS.md: photo plate hero 4:5, headline, body, three
-   feature rows with Lucide icons, one primary button. */
+   feature rows with Lucide icons, one primary button. Hero is now a real-photo
+   carousel (wedding, adult party, corporate); everything below is unchanged. */
+
+const HERO_SLIDES = [
+  { src: "/photos/welcome/wedding.jpg", alt: "Wedding couple sharing a quiet moment", position: "56% center" },
+  { src: "/photos/welcome/adult-party.jpg", alt: "Adult party crowd celebrating on the dance floor", position: "center" },
+  { src: "/photos/welcome/corporate.jpg", alt: "Corporate event audience facing the stage", position: "center" },
+]
 
 const POINTS = [
   { Icon: Sparkle, title: "Built for you", line: "A real package, priced, in seconds" },
@@ -19,9 +26,7 @@ export default function Welcome() {
   return (
     <AppShell>
       <Body>
-        <PhotoPlate spec="MEL · 00 · HERO · 4:5" className="aspect-[4/5]">
-          <PlateText eyebrow="FARMINGTON, CT" title="Party on. We'll handle it." />
-        </PhotoPlate>
+        <HeroCarousel slides={HERO_SLIDES} eyebrow="FARMINGTON, CT" title="Party on. We'll handle it." />
         <h1 className="mt-[18px] text-hero text-charcoal">
           Your party,
           <br />

@@ -12,7 +12,7 @@ const GRADIENTS: Record<PlateVariant, string> = {
   stone: "linear-gradient(160deg,#A9A39C 0%,#5E5853 45%,#2A2624 100%)",
 }
 
-const SCRIM = "linear-gradient(180deg,rgba(33,29,28,0) 45%,rgba(33,29,28,.72) 100%)"
+export const SCRIM = "linear-gradient(180deg,rgba(33,29,28,0) 45%,rgba(33,29,28,.72) 100%)"
 const TEXTURE = "repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 2px,transparent 2px 14px)"
 
 interface PhotoPlateProps {
