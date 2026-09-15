@@ -25,4 +25,16 @@ Bottom nav: Home, Book, Ask, My party. Book routes to `/book/date` if an occasio
 
 Data: `data/catalog.js` holds occasions, packages (with inclusions and swappable items), add-ons, guest bands, time slots, budget bands. Copy the objects from the reference HTML exactly. Prices come from the offerings workbook; packages flagged `demo:true` show a "demo pricing" label.
 
-Availability: simulated in v1 (a deterministic function of date). Do not wire a backend.
+Availability: simulated in v1 (a deterministic function of date) for the package flow above. Only the direct item path below checks the admin live.
+
+## Direct item booking (added 2026-09-15)
+
+A second door, for a customer who wants one specific thing and not a package. It is not a fifth tab (BRAND.md section 8). It is entered from any item inside an Ask GO recommendation, via a "Just this" button on the row: that response already carries real admin item ids, names, and prices, and the admin has no public item list endpoint yet, so this is the one place the storefront can pick a real item today. Calls go to go-parties-admin at the same base URL Ask GO uses.
+
+| Route | Screen | Must have | Next |
+|---|---|---|---|
+| `/item/:id` | When do you need it? | Item card (name, category, price), month chips, day carousel (Fri Sat Sun, past days grayed), one live check per tapped day via `GET /api/items/:id/availability?date=`, result under the carousel, Back and Next (Next only when available) | `/item/:id/who` |
+| `/item/:id/who` | Who's booking? | What and when meta cards, name and contact inputs, "Hold my date" posting to `POST /api/bookings/direct`. A 409 `unavailable` (someone took the last unit first) shows the server's message plainly plus "Pick another date". A 409 `not-tracked` shows the server's message. | `/item/held` |
+| `/item/held` | Held | Same pattern as `/held`: check mark, "Held. You're good.", what and when, the line item, Done | `/home` |
+
+Store adds: item, itemMonth, itemDate, contactName, contact, direct. No payment is collected in this pass; depositPaid stays false on the admin side and the contract and deposit link follow by text.

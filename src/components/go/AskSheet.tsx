@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Sparkle, X, Send } from "lucide-react"
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
 import { ASK, type AskContext } from "@/data/ask"
-import { useBooking } from "@/state/booking"
+import { ADMIN_API } from "@/lib/adminApi"
+import { useBooking, type DirectItem } from "@/state/booking"
 
 /* Ask GO. BRAND.md section 11: a knowledgeable crew member. It never opens
    itself: the dashed line on Home, "Ask about this package", the Ask tab.
@@ -21,10 +23,25 @@ interface ChatMessage {
   content: string
 }
 
+/* An admin catalog row as /api/recommend returns it. price is a Prisma
+   Decimal, which arrives as a string. */
 interface RecommendItem {
+  id: string
   name: string
-  price?: number
+  category: string
+  price: number | string | null
+  priceUnit: string | null
 }
+
+const priceOf = (item: RecommendItem): number | null => (item.price === null || item.price === undefined ? null : Number(item.price))
+
+const toDirectItem = (item: RecommendItem): DirectItem => ({
+  id: item.id,
+  name: item.name,
+  category: item.category,
+  price: priceOf(item),
+  priceUnit: item.priceUnit ?? null,
+})
 
 interface AskApiResponse {
   ready: boolean
@@ -42,7 +59,8 @@ interface FinalRecommendation {
 const TEXTAREA_MAX_PX = 120
 
 export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
-  const { subOcc } = useBooking()
+  const navigate = useNavigate()
+  const { subOcc, pickItem } = useBooking()
   const [asked, setAsked] = useState<number | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState("")
@@ -90,8 +108,7 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
     setError(null)
 
     try {
-      const apiUrl = import.meta.env.VITE_ADMIN_API_URL || "http://localhost:3001"
-      const response = await fetch(`${apiUrl}/api/recommend`, {
+      const response = await fetch(`${ADMIN_API}/api/recommend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subOcc, messages: nextMessages }),
@@ -119,6 +136,13 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
       e.preventDefault()
       send()
     }
+  }
+
+  /* The second door into booking: one item from a recommendation, no package. */
+  const justThis = (item: RecommendItem) => {
+    pickItem(toDirectItem(item))
+    onClose()
+    navigate(`/item/${item.id}`)
   }
 
   const tryAnother = () => {
@@ -164,13 +188,22 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
                 )}
                 {finalRec && finalRec.items.length > 0 && (
                   <div className="rounded-[12px] border border-line bg-cream px-3.5 py-3 text-[13.5px] leading-normal text-charcoal">
-                    <div className="space-y-1">
-                      {finalRec.items.map((item, i) => (
-                        <div key={i} className="flex justify-between text-[12.5px]">
-                          <span>{item.name}</span>
-                          {item.price && <span>${item.price.toLocaleString()}</span>}
-                        </div>
-                      ))}
+                    <div className="space-y-1.5">
+                      {finalRec.items.map((item) => {
+                        const price = priceOf(item)
+                        return (
+                          <div key={item.id} className="flex items-center gap-2 text-[12.5px]">
+                            <span className="min-w-0 flex-1">{item.name}</span>
+                            {price !== null && <span className="flex-none">${price.toLocaleString()}</span>}
+                            <button
+                              className="flex-none rounded-[18px] border-[1.5px] border-line bg-white px-2.5 py-1 text-[11.5px] font-semibold text-charcoal hover:border-charcoal"
+                              onClick={() => justThis(item)}
+                            >
+                              Just this
+                            </button>
+                          </div>
+                        )
+                      })}
                     </div>
                     <div className="mt-2 border-t border-line pt-2 font-bold">
                       Total: ${finalRec.total.toLocaleString()}

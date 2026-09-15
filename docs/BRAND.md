@@ -109,6 +109,9 @@ Bank (use these, extend in this register)
 - Held: Held. You're good.
 - Empty: Nothing here yet. Build a party and it'll live here.
 - Error: That didn't go through. Try again, or text us.
+- Item (direct booking): When do you need it? / Tap a day. We check the calendar live. / Checking the calendar. / Open. 2 of 2 ready. / Booked solid that day. Try another date. / Who's booking? / Name and a number or email. That's it. / Nothing to pay right now. Contract and deposit link come by text.
+- Item held: Sat Oct 10 is yours. Contract and deposit link are on their way to your phone.
+- Item CTA: Just this / Hold my date / Pick another date / Done
 
 Don't
 - "Unforgettable", "elevate", "seamless", "one of a kind", "dream", "magical", "premier".

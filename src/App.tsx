@@ -13,6 +13,9 @@ import BookWhere from "@/pages/BookWhere"
 import BookReview from "@/pages/BookReview"
 import Held from "@/pages/Held"
 import MyParty from "@/pages/MyParty"
+import ItemDate from "@/pages/ItemDate"
+import ItemWho from "@/pages/ItemWho"
+import ItemHeld from "@/pages/ItemHeld"
 import Kit from "@/pages/Kit"
 
 function App() {
@@ -33,6 +36,9 @@ function App() {
             <Route path="/book/review" element={<BookReview />} />
             <Route path="/held" element={<Held />} />
             <Route path="/party" element={<MyParty />} />
+            <Route path="/item/held" element={<ItemHeld />} />
+            <Route path="/item/:id" element={<ItemDate />} />
+            <Route path="/item/:id/who" element={<ItemWho />} />
             <Route path="/kit" element={<Kit />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

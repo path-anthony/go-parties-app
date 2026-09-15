@@ -1,8 +1,20 @@
 import { createContext, useContext, useMemo, useState } from "react"
 import { PKGS, type OccasionId, type Pkg } from "@/data/catalog"
+import type { DirectBooking } from "@/lib/adminApi"
 
 /* Single booking store per docs/SCREENS.md: occ, month, date, time, guests,
-   budget, pkg, swaps, addons, cat, addr, venue, power, water, held. */
+   budget, pkg, swaps, addons, cat, addr, venue, power, water, held. The
+   direct item path (item, itemMonth, itemDate, contactName, contact, direct)
+   lives here too so one refresh rule applies everywhere. */
+
+/* One admin catalog item, as returned inside an Ask GO recommendation. */
+export interface DirectItem {
+  id: string
+  name: string
+  category: string
+  price: number | null
+  priceUnit: string | null
+}
 
 export interface BookingState {
   occ: OccasionId | null
@@ -21,6 +33,12 @@ export interface BookingState {
   power: boolean
   water: boolean
   held: boolean
+  item: DirectItem | null
+  itemMonth: number
+  itemDate: string | null
+  contactName: string
+  contact: string
+  direct: DirectBooking | null
 }
 
 const INITIAL: BookingState = {
@@ -40,11 +58,18 @@ const INITIAL: BookingState = {
   power: true,
   water: true,
   held: false,
+  item: null,
+  itemMonth: 0,
+  itemDate: null,
+  contactName: "",
+  contact: "",
+  direct: null,
 }
 
 interface BookingApi extends BookingState {
   set: <K extends keyof BookingState>(key: K, value: BookingState[K]) => void
   pick: (occ: OccasionId) => void
+  pickItem: (item: DirectItem) => void
   jump: (occ: OccasionId, id: string) => void
   suggest: () => void
   swapPkg: (id: string) => void
@@ -65,6 +90,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       set,
       pick: (occ) =>
         setS((prev) => ({ ...prev, occ, subOcc: null, date: null, time: null, guests: null, budget: null, pkg: null, addons: {}, swaps: {}, month: 0 })),
+      pickItem: (item) => setS((prev) => ({ ...prev, item, itemMonth: 0, itemDate: null, direct: null })),
       jump: (occ, id) =>
         setS((prev) => ({ ...prev, occ, pkg: PKGS[occ].find((p) => p.id === id) ?? null, addons: {}, swaps: {} })),
       suggest: () =>
