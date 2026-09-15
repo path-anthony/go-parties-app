@@ -1,5 +1,13 @@
 # GO! Event Group · project log
 
+## 2026-09-15
+
+**Where we are:** go-parties-admin went from nothing to a running command center and API in nine days (36 commits, 10 migrations): Railway Postgres, 167 items imported, Inventory, Leads board with n8n ingestion, Scheduling, Settings, shared-password gate, and a public API the storefront now uses for everything real. The storefront's Ask GO is a real multi-turn conversation that recommends by item id and logs a lead only when it commits. Direct booking is live end to end: checkboxes on a recommendation, live availability per item, address and time (both skippable), phone and email as two fields, one or several items booked in one request. Customer accounts and a portal are live: sign up, sign in, a real bookings list, cancel, reschedule, change of item. The Welcome hero runs Mel's real photos. The package and theme flow is still the static catalog, because Package and Theme are not in the database. Only one real item has units.
+
+**What we decided:** No double booking is a database constraint (unique unit and date on booking_units) backed by a SKIP LOCKED transaction, not a code path; several items book atomically or not at all, and a refusal names every item that failed. A lead is written only when Ask GO commits to a recommendation, never on a clarifying turn. Contact is phone plus email, both required, never skippable; signed-in customers are not asked again. Customer sessions are a separate signed cookie from the admin's. Ask GO is the storefront's item browser until a browse door exists. The storefront deploys to Railway, not Vercel. Every table carries account_id from day one. The docs now describe what is built, with anything unverifiable from code marked as an open question.
+
+**What's next:** Unit counts from Andy, still the blocker. A browse door on the storefront using the new public catalog endpoint. Return item names on cancelled bookings. Verify production: URLs, NODE_ENV, allowed origins, the storefront's API URL. Clean the week's test data out of the real database. Then Package and Theme tables and the package flow onto real data, deposits, contracts, CSV export for every table.
+
 ## 2026-09-05
 
 **Where we are:** All 12 customer screens complete on mock data. Moving into real backend work.
