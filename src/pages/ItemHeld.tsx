@@ -6,9 +6,10 @@ import { MetaCard } from "@/components/go/MetaCard"
 import { LineItems } from "@/components/go/LineItems"
 import { labelForIso } from "@/lib/availability"
 import { useBooking } from "@/state/booking"
+import { itemClock as clockFor } from "@/data/catalog"
 
 /* Direct item booking, confirmation. Same pattern as Held (screen 11): check
-   mark, "Held. You're good.", what and when, the line item, one button. */
+   mark, "Held. You're good.", what, when and where, the line item, one button. */
 
 export default function ItemHeld() {
   const navigate = useNavigate()
@@ -16,7 +17,10 @@ export default function ItemHeld() {
 
   if (!b.direct || !b.item) return <Navigate to="/home" replace />
   const { direct, item } = b
-  const when = labelForIso(direct.eventDate)
+  const day = labelForIso(direct.eventDate)
+  const clock = clockFor(b.itemTime)
+  const when = clock ? `${day}, ${clock}` : day
+  const where = b.addressLater || b.address.trim() === "" ? "We'll text you for it" : b.address.trim()
 
   return (
     <AppShell>
@@ -26,11 +30,14 @@ export default function ItemHeld() {
         </div>
         <h1 className="text-hero text-charcoal">Held. You're good.</h1>
         <p className="mt-2 text-body text-charcoal-soft">
-          {when} is yours. Contract and deposit link are on their way to your phone.
+          {day} is yours. Contract and deposit link are on their way to your phone.
         </p>
         <div className="mt-5 grid grid-cols-2 gap-2 text-left">
           <MetaCard label="What" value={direct.item.name} />
           <MetaCard label="When" value={when} />
+          <div className="col-span-2">
+            <MetaCard label="Where" value={where} />
+          </div>
         </div>
         {item.price !== null && (
           <div className="mt-2.5 text-left">

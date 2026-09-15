@@ -3,16 +3,18 @@ import { Navigate, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
+import { Chip } from "@/components/go/Chip"
 import { MonthChips, DayCarousel, Reveal } from "@/components/go/DatePicker"
 import { daysForItem } from "@/lib/availability"
 import { checkAvailability, type Availability } from "@/lib/adminApi"
-import { fmt } from "@/data/catalog"
+import { ITEM_TIMES, fmt } from "@/data/catalog"
 import { useBooking } from "@/state/booking"
 
-/* Direct item booking, step 1 of 2. One item, one date. Availability is
-   checked live against go-parties-admin the moment a day is tapped, one
-   request per tap, never prefetched for the whole month. Entered from an
-   item in an Ask GO recommendation. */
+/* Direct item booking, step 1 of 2. One item, one date, a time. Availability
+   is checked live against go-parties-admin the moment a day is tapped, one
+   request per tap, never prefetched for the whole month. Time is the same
+   chip pattern as the package flow; "Decide later" is the explicit skip.
+   Entered from an item in an Ask GO recommendation. */
 
 type Check = { iso: string; state: "loading" | "done" | "error"; result?: Availability }
 
@@ -50,6 +52,7 @@ export default function ItemDate() {
   const selectedKey = days.find((d) => d.iso === b.itemDate)?.key ?? null
   const current = check && check.iso === b.itemDate ? check : null
   const available = current?.state === "done" && current.result?.available === true
+  const timeSettled = b.itemTime !== null || b.itemTimeLater
 
   return (
     <AppShell>
@@ -95,10 +98,38 @@ export default function ItemDate() {
             {current?.state === "done" && current.result?.directBooking && !current.result.available && "Booked solid that day. Try another date."}
           </div>
         </Reveal>
+        <Reveal open={available} className="mt-3.5">
+          <GoLabel className="mb-2">What time</GoLabel>
+          <div className="grid grid-cols-3 gap-2">
+            {ITEM_TIMES.map(([label, t]) => (
+              <Chip
+                key={label}
+                selected={b.itemTime === label}
+                sub={t}
+                onClick={() => {
+                  b.set("itemTime", label)
+                  b.set("itemTimeLater", false)
+                }}
+              >
+                {label}
+              </Chip>
+            ))}
+            <Chip
+              selected={b.itemTimeLater}
+              sub="No rush"
+              onClick={() => {
+                b.set("itemTime", null)
+                b.set("itemTimeLater", true)
+              }}
+            >
+              Decide later
+            </Chip>
+          </div>
+        </Reveal>
       </Body>
       <Foot>
         <Button variant="ghost" onClick={() => navigate("/home")}>Back</Button>
-        <Button disabled={!available} onClick={() => navigate(`/item/${item.id}/who`)}>Next</Button>
+        <Button disabled={!available || !timeSettled} onClick={() => navigate(`/item/${item.id}/who`)}>Next</Button>
       </Foot>
     </AppShell>
   )

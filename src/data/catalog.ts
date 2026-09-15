@@ -88,6 +88,20 @@ export const TIMES: Record<OccasionId, [label: string, time: string][]> = {
   corporate: [["Morning", "9 AM"], ["Midday", "12 PM"], ["Evening", "6 PM"]],
 }
 
+/* Time chips for the direct item path. Same chip pattern as TIMES, one set
+   for every item, and the sixth chip is the explicit skip. */
+export const ITEM_TIMES: [label: string, time: string][] = [
+  ["Morning", "9 AM"],
+  ["Midday", "12 PM"],
+  ["Afternoon", "2 PM"],
+  ["Evening", "6 PM"],
+  ["Late", "8 PM"],
+]
+
+/* Chip label ("Afternoon") to clock time ("2 PM", BRAND.md section 10). The
+   store holds the label; the admin and the customer see the clock. */
+export const itemClock = (label: string | null): string | null => ITEM_TIMES.find(([l]) => l === label)?.[1] ?? null
+
 export const BUDGETS: Record<OccasionId, [label: string, ceiling: number][]> = {
   kids: [["Under $1,500", 1500], ["$1,500-$3,000", 3000], ["$3,000-$5,000", 5000], ["$5,000+", 99999]],
   adult: [["Under $3,000", 3000], ["$3,000-$6,000", 6000], ["$6,000-$10,000", 10000], ["$10,000+", 99999]],

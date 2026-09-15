@@ -33,8 +33,8 @@ A second door, for a customer who wants one specific thing and not a package. It
 
 | Route | Screen | Must have | Next |
 |---|---|---|---|
-| `/item/:id` | When do you need it? | Item card (name, category, price), month chips, day carousel (Fri Sat Sun, past days grayed), one live check per tapped day via `GET /api/items/:id/availability?date=`, result under the carousel, Back and Next (Next only when available) | `/item/:id/who` |
-| `/item/:id/who` | Who's booking? | What and when meta cards, name and contact inputs, "Hold my date" posting to `POST /api/bookings/direct`. A 409 `unavailable` (someone took the last unit first) shows the server's message plainly plus "Pick another date". A 409 `not-tracked` shows the server's message. | `/item/held` |
-| `/item/held` | Held | Same pattern as `/held`: check mark, "Held. You're good.", what and when, the line item, Done | `/home` |
+| `/item/:id` | When do you need it? | Item card (name, category, price), month chips, day carousel (Fri Sat Sun, past days grayed), one live check per tapped day via `GET /api/items/:id/availability?date=`, result under the carousel. Once a day is open, time chips (same pattern as the package flow, from ITEM_TIMES) plus a "Decide later" chip. Back and Next (Next only when available and a time or Decide later is picked) | `/item/:id/who` |
+| `/item/:id/who` | Who's booking? | What and when meta cards, name and contact inputs (always required, the hard line), plain-text address input with an "Add the address later" switch, "Hold my date" posting to `POST /api/bookings/direct` with `address` and `eventTime` (null when skipped). A 409 `unavailable` (someone took the last unit first) shows the server's message plainly plus "Pick another date". A 409 `not-tracked` shows the server's message. | `/item/held` |
+| `/item/held` | Held | Same pattern as `/held`: check mark, "Held. You're good.", what, when and where, the line item, Done | `/home` |
 
-Store adds: item, itemMonth, itemDate, contactName, contact, direct. No payment is collected in this pass; depositPaid stays false on the admin side and the contract and deposit link follow by text.
+Store adds: item, itemMonth, itemDate, itemTime, itemTimeLater, contactName, contact, address, addressLater, direct. No payment is collected in this pass; depositPaid stays false on the admin side and the contract and deposit link follow by text.

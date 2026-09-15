@@ -2,18 +2,22 @@ import { useState } from "react"
 import { Navigate, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { MetaCard } from "@/components/go/MetaCard"
 import { labelForIso } from "@/lib/availability"
 import { bookDirect, type DirectReason } from "@/lib/adminApi"
+import { itemClock as clockFor } from "@/data/catalog"
 import { useBooking } from "@/state/booking"
 
-/* Direct item booking, step 2 of 2. Name and contact, then one POST that
-   locks a unit on the admin side. No payment in this pass: depositPaid stays
-   false and the contract and deposit link follow by text. A 409 from the race
-   (someone took the last unit between the check and this tap) is shown as the
-   server says it, with a way back to the calendar, never a generic error. */
+/* Direct item booking, step 2 of 2. Name and contact are the hard line,
+   always required. Address is plain text, no validation service, and can be
+   skipped with the "Add the address later" switch. Then one POST that locks a
+   unit on the admin side. No payment in this pass: depositPaid stays false and
+   the contract and deposit link follow by text. A 409 from the race (someone
+   took the last unit between the check and this tap) is shown as the server
+   says it, with a way back to the calendar, never a generic error. */
 
 type Notice = { reason: DirectReason; message: string }
 
@@ -29,7 +33,8 @@ export default function ItemWho() {
   const item = b.item
   const iso = b.itemDate
 
-  const canSubmit = b.contactName.trim() !== "" && b.contact.trim() !== "" && !submitting
+  const addressSettled = b.address.trim() !== "" || b.addressLater
+  const canSubmit = b.contactName.trim() !== "" && b.contact.trim() !== "" && addressSettled && !submitting
 
   const submit = async () => {
     if (!canSubmit) return
@@ -41,6 +46,8 @@ export default function ItemWho() {
         eventDate: iso,
         customerName: b.contactName.trim(),
         contact: b.contact.trim(),
+        address: b.addressLater ? null : b.address.trim() || null,
+        eventTime: clockFor(b.itemTime),
       })
       if (result.ok) {
         b.set("direct", result.booking)
@@ -55,6 +62,9 @@ export default function ItemWho() {
     }
   }
 
+  const clock = clockFor(b.itemTime)
+  const when = clock ? `${labelForIso(iso)}, ${clock}` : labelForIso(iso)
+
   return (
     <AppShell>
       <Body>
@@ -63,7 +73,7 @@ export default function ItemWho() {
         <p className="mt-2 text-body text-charcoal-soft">Name and a number or email. That's it.</p>
         <div className="mt-3.5 grid grid-cols-2 gap-2">
           <MetaCard label="What" value={item.name} />
-          <MetaCard label="When" value={labelForIso(iso)} />
+          <MetaCard label="When" value={when} />
         </div>
         <div className="mt-3.5">
           <GoLabel className="mb-1.5 tracking-[.1em]">Name</GoLabel>
@@ -82,6 +92,29 @@ export default function ItemWho() {
             inputMode="email"
             value={b.contact}
             onChange={(e) => b.set("contact", e.target.value)}
+          />
+        </div>
+        <div className="mt-2.5">
+          <GoLabel className="mb-1.5 tracking-[.1em]">Address</GoLabel>
+          <Input
+            placeholder="14 Maple Ln, Farmington"
+            autoComplete="street-address"
+            value={b.address}
+            disabled={b.addressLater}
+            onChange={(e) => b.set("address", e.target.value)}
+          />
+        </div>
+        <div className="mt-2 flex items-center justify-between rounded-[14px] border border-line bg-white px-3.5 py-[13px] text-sm font-semibold text-charcoal">
+          <div>
+            Add the address later
+            <small className="block text-[11.5px] font-medium text-muted">We'll text you for it.</small>
+          </div>
+          <Switch
+            checked={b.addressLater}
+            onCheckedChange={(v) => {
+              b.set("addressLater", v)
+              if (v) b.set("address", "")
+            }}
           />
         </div>
         {notice && (

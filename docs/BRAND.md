@@ -111,6 +111,7 @@ Bank (use these, extend in this register)
 - Error: That didn't go through. Try again, or text us.
 - Item (direct booking): When do you need it? / Tap a day. We check the calendar live. / Checking the calendar. / Open. 2 of 2 ready. / Booked solid that day. Try another date. / Who's booking? / Name and a number or email. That's it. / Nothing to pay right now. Contract and deposit link come by text.
 - Item held: Sat Oct 10 is yours. Contract and deposit link are on their way to your phone.
+- Item, fill in later: Decide later (time chip, sub "No rush") / Add the address later. We'll text you for it. / Where: We'll text you for it
 - Item CTA: Just this / Hold my date / Pick another date / Done
 
 Don't

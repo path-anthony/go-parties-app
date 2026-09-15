@@ -35,11 +35,16 @@ export type DirectResult = { ok: true; booking: DirectBooking } | { ok: false; r
 
 const FALLBACK = "That didn't go through. Try again, or text us."
 
+/* address and eventTime are optional on the storefront ("fill in later") and
+   travel as null when skipped. The admin route ignores keys it doesn't know
+   yet, so they're safe to send before it stores them. */
 export async function bookDirect(input: {
   itemId: string
   eventDate: string
   customerName: string
   contact: string
+  address: string | null
+  eventTime: string | null
 }): Promise<DirectResult> {
   const res = await fetch(`${ADMIN_API}/api/bookings/direct`, {
     method: "POST",

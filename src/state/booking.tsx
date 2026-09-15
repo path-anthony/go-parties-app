@@ -36,8 +36,12 @@ export interface BookingState {
   item: DirectItem | null
   itemMonth: number
   itemDate: string | null
+  itemTime: string | null
+  itemTimeLater: boolean
   contactName: string
   contact: string
+  address: string
+  addressLater: boolean
   direct: DirectBooking | null
 }
 
@@ -61,8 +65,12 @@ const INITIAL: BookingState = {
   item: null,
   itemMonth: 0,
   itemDate: null,
+  itemTime: null,
+  itemTimeLater: false,
   contactName: "",
   contact: "",
+  address: "",
+  addressLater: false,
   direct: null,
 }
 
@@ -90,7 +98,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       set,
       pick: (occ) =>
         setS((prev) => ({ ...prev, occ, subOcc: null, date: null, time: null, guests: null, budget: null, pkg: null, addons: {}, swaps: {}, month: 0 })),
-      pickItem: (item) => setS((prev) => ({ ...prev, item, itemMonth: 0, itemDate: null, direct: null })),
+      pickItem: (item) =>
+        setS((prev) => ({ ...prev, item, itemMonth: 0, itemDate: null, itemTime: null, itemTimeLater: false, direct: null })),
       jump: (occ, id) =>
         setS((prev) => ({ ...prev, occ, pkg: PKGS[occ].find((p) => p.id === id) ?? null, addons: {}, swaps: {} })),
       suggest: () =>
