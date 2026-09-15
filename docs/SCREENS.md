@@ -37,4 +37,16 @@ A second door, for a customer who wants one specific thing and not a package. It
 | `/item/:id/who` | Who's booking? | What and when meta cards, name and contact inputs (always required, the hard line), plain-text address input with an "Add the address later" switch, "Hold my date" posting to `POST /api/bookings/direct` with `address` and `eventTime` (null when skipped). A 409 `unavailable` (someone took the last unit first) shows the server's message plainly plus "Pick another date". A 409 `not-tracked` shows the server's message. | `/item/held` |
 | `/item/held` | Held | Same pattern as `/held`: check mark, "Held. You're good.", what, when and where, the line item, Done | `/home` |
 
-Store adds: item, itemMonth, itemDate, itemTime, itemTimeLater, contactName, contact, address, addressLater, direct. No payment is collected in this pass; depositPaid stays false on the admin side and the contract and deposit link follow by text.
+Store adds: item, itemMonth, itemDate, itemTime, itemTimeLater, contactName, phone, email, address, addressLater, direct, changeFor. Phone and email are two required inputs (the admin stores them separately); signed in, name, phone and email come from the account and are not asked again. No payment is collected in this pass; depositPaid stays false on the admin side and the contract and deposit link follow by text.
+
+## Customer portal (added 2026-09-15)
+
+My party (the existing tab) is the door. Every call goes to go-parties-admin's `/api/customer/*` with `credentials: "include"`; the customer_session cookie is SameSite=None in production and is silently not sent otherwise. A `CustomerProvider` checks `/api/customer/me` once on load.
+
+| Route | Screen | Must have | Next |
+|---|---|---|---|
+| `/party` | My party | Signed out: "Your bookings live here.", Sign in, Create account. Signed in: "Hey {first name}", one card per booking (items, date and time, address, status), Reschedule, Change item, Cancel (asks inline first, never a popup), Sign out. Empty: the bank's empty line and Build one. | |
+| `/party/signin` | Welcome in. | Phone or email, password, the admin's message on failure, link to sign up, Back and Sign in | `/party` |
+| `/party/signup` | New here. | Name (optional), phone, email, password, the admin's message on failure, link to sign in, Back and Create account | `/party` |
+| `/party/:id/reschedule` | When instead? | What and Now cards, the same ItemWhen picker as `/item/:id` checked against the booking's item, Move it. A 409 shows the admin's sentence plainly and the booking is unchanged. | `/party` |
+| `/party/:id/change` | Something else instead? | Now and When cards, an Ask GO door. While this screen is open the item button in a recommendation reads "Switch to this" and calls change-item for the same date; a 409 is shown inside the sheet. There is no public item list on the admin yet, so Ask GO is the only item browser. | `/party` |

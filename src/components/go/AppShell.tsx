@@ -12,7 +12,7 @@ import { useAsk } from "@/state/ask"
 
 function activeTab(path: string): NavTab | null {
   if (path === "/home") return "home"
-  if (path === "/party") return "party"
+  if (path.startsWith("/party")) return "party"
   if (path === "/" || path === "/signin") return null
   return "book"
 }

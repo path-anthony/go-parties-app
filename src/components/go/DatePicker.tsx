@@ -60,7 +60,7 @@ export function DayCarousel({ days, selected, onPick }: { days: DayCell[]; selec
 export function Reveal({ open, className, children }: { open: boolean; className?: string; children: React.ReactNode }) {
   return (
     <div
-      className={cn("overflow-hidden transition-[max-height] duration-300 ease-in-out", open ? "max-h-40" : "max-h-0", className)}
+      className={cn("overflow-hidden transition-[max-height] duration-300 ease-in-out", open ? "max-h-96" : "max-h-0", className)}
     >
       {children}
     </div>

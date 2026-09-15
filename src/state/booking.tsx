@@ -39,10 +39,12 @@ export interface BookingState {
   itemTime: string | null
   itemTimeLater: boolean
   contactName: string
-  contact: string
+  phone: string
+  email: string
   address: string
   addressLater: boolean
   direct: DirectBooking | null
+  changeFor: { bookingId: string; itemName: string; eventDate: string } | null
 }
 
 const INITIAL: BookingState = {
@@ -68,10 +70,12 @@ const INITIAL: BookingState = {
   itemTime: null,
   itemTimeLater: false,
   contactName: "",
-  contact: "",
+  phone: "",
+  email: "",
   address: "",
   addressLater: false,
   direct: null,
+  changeFor: null,
 }
 
 interface BookingApi extends BookingState {

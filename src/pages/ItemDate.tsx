@@ -1,57 +1,24 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Navigate, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
-import { Chip } from "@/components/go/Chip"
-import { MonthChips, DayCarousel, Reveal } from "@/components/go/DatePicker"
-import { daysForItem } from "@/lib/availability"
-import { checkAvailability, type Availability } from "@/lib/adminApi"
-import { ITEM_TIMES, fmt } from "@/data/catalog"
+import { ItemWhen } from "@/components/go/ItemWhen"
+import { fmt } from "@/data/catalog"
 import { useBooking } from "@/state/booking"
 
-/* Direct item booking, step 1 of 2. One item, one date, a time. Availability
-   is checked live against go-parties-admin the moment a day is tapped, one
-   request per tap, never prefetched for the whole month. Time is the same
-   chip pattern as the package flow; "Decide later" is the explicit skip.
-   Entered from an item in an Ask GO recommendation. */
-
-type Check = { iso: string; state: "loading" | "done" | "error"; result?: Availability }
+/* Direct item booking, step 1 of 2. One item, one date, a time, all held in
+   the booking store; ItemWhen does the live check. Entered from an item in an
+   Ask GO recommendation. */
 
 export default function ItemDate() {
   const navigate = useNavigate()
   const { id } = useParams()
   const b = useBooking()
-  const [check, setCheck] = useState<Check | null>(null)
-  const itemId = b.item?.id
-
-  useEffect(() => {
-    if (!b.itemDate || !itemId) {
-      setCheck(null)
-      return
-    }
-    const iso = b.itemDate
-    let cancelled = false
-    setCheck({ iso, state: "loading" })
-    checkAvailability(itemId, iso)
-      .then((result) => {
-        if (!cancelled) setCheck({ iso, state: "done", result })
-      })
-      .catch(() => {
-        if (!cancelled) setCheck({ iso, state: "error" })
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [b.itemDate, itemId])
+  const [available, setAvailable] = useState(false)
 
   if (!b.item || b.item.id !== id) return <Navigate to="/home" replace />
   const item = b.item
-
-  const days = daysForItem(b.itemMonth)
-  const selectedKey = days.find((d) => d.iso === b.itemDate)?.key ?? null
-  const current = check && check.iso === b.itemDate ? check : null
-  const available = current?.state === "done" && current.result?.available === true
   const timeSettled = b.itemTime !== null || b.itemTimeLater
 
   return (
@@ -71,61 +38,18 @@ export default function ItemDate() {
             </div>
           )}
         </div>
-        <MonthChips
-          active={b.itemMonth}
-          onPick={(i) => {
-            b.set("itemMonth", i)
-            b.set("itemDate", null)
-          }}
+        <ItemWhen
+          itemId={item.id}
+          month={b.itemMonth}
+          onMonth={(i) => b.set("itemMonth", i)}
+          iso={b.itemDate}
+          onIso={(iso) => b.set("itemDate", iso)}
+          time={b.itemTime}
+          onTime={(label) => b.set("itemTime", label)}
+          timeLater={b.itemTimeLater}
+          onTimeLater={(v) => b.set("itemTimeLater", v)}
+          onAvailable={setAvailable}
         />
-        <DayCarousel
-          days={days}
-          selected={selectedKey}
-          onPick={(key) => b.set("itemDate", days.find((d) => d.key === key)?.iso ?? null)}
-        />
-        <p className="mt-1 text-[11.5px] text-muted">Tap a day. We check the calendar live.</p>
-        <Reveal open={!!current} className="mt-3.5">
-          <div className="rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
-            {current?.state === "loading" && <span className="text-muted">Checking the calendar.</span>}
-            {current?.state === "error" && "That didn't go through. Try again, or text us."}
-            {current?.state === "done" && current.result && !current.result.directBooking && current.result.message}
-            {current?.state === "done" && current.result?.directBooking && current.result.available && (
-              <span className="flex items-center gap-2.5">
-                <i className="inline-block size-1.5 flex-none rounded-full bg-good" />
-                Open. {current.result.freeUnits} of {current.result.totalUnits} ready.
-              </span>
-            )}
-            {current?.state === "done" && current.result?.directBooking && !current.result.available && "Booked solid that day. Try another date."}
-          </div>
-        </Reveal>
-        <Reveal open={available} className="mt-3.5">
-          <GoLabel className="mb-2">What time</GoLabel>
-          <div className="grid grid-cols-3 gap-2">
-            {ITEM_TIMES.map(([label, t]) => (
-              <Chip
-                key={label}
-                selected={b.itemTime === label}
-                sub={t}
-                onClick={() => {
-                  b.set("itemTime", label)
-                  b.set("itemTimeLater", false)
-                }}
-              >
-                {label}
-              </Chip>
-            ))}
-            <Chip
-              selected={b.itemTimeLater}
-              sub="No rush"
-              onClick={() => {
-                b.set("itemTime", null)
-                b.set("itemTimeLater", true)
-              }}
-            >
-              Decide later
-            </Chip>
-          </div>
-        </Reveal>
       </Body>
       <Foot>
         <Button variant="ghost" onClick={() => navigate("/home")}>Back</Button>

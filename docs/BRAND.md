@@ -109,7 +109,13 @@ Bank (use these, extend in this register)
 - Held: Held. You're good.
 - Empty: Nothing here yet. Build a party and it'll live here.
 - Error: That didn't go through. Try again, or text us.
-- Item (direct booking): When do you need it? / Tap a day. We check the calendar live. / Checking the calendar. / Open. 2 of 2 ready. / Booked solid that day. Try another date. / Who's booking? / Name and a number or email. That's it. / Nothing to pay right now. Contract and deposit link come by text.
+- Item (direct booking): When do you need it? / Tap a day. We check the calendar live. / Checking the calendar. / Open. 2 of 2 ready. / Booked solid that day. Try another date. / Who's booking? / Name, phone, and email. That's it. / Signed in: We've got your details. Just the address. / Booking as / Nothing to pay right now. Contract and deposit link come by text.
+- Portal, signed out: Your bookings live here. / Sign in and they'll show up. / Sign in / Create account
+- Portal sign in: Welcome in. / Phone or email, then your password. / New here? Create an account
+- Portal sign up: New here. / Phone, email, a password. That's it. / 8 characters or more. / Have an account? Sign in
+- Portal bookings: Hey Sarah / Your bookings / Confirmed / Cancelled / Completed / Reschedule / Change item / Cancel / Cancel this booking? The date opens back up. / Keep it / Cancel it / Cancelled. / Sign out
+- Portal reschedule: When instead? / Now (label) / Move it / Moved.
+- Portal change item: Something else instead? / Tell Ask GO what you'd rather have, then tap Switch to this on the item. Same date. / What would you rather have? / Switch to this / Switched.
 - Item held: Sat Oct 10 is yours. Contract and deposit link are on their way to your phone.
 - Item, fill in later: Decide later (time chip, sub "No rush") / Add the address later. We'll text you for it. / Where: We'll text you for it
 - Item CTA: Just this / Hold my date / Pick another date / Done

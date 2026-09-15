@@ -10,14 +10,16 @@ import { labelForIso } from "@/lib/availability"
 import { bookDirect, type DirectReason } from "@/lib/adminApi"
 import { itemClock as clockFor } from "@/data/catalog"
 import { useBooking } from "@/state/booking"
+import { useCustomer } from "@/state/customer"
 
-/* Direct item booking, step 2 of 2. Name and contact are the hard line,
-   always required. Address is plain text, no validation service, and can be
-   skipped with the "Add the address later" switch. Then one POST that locks a
-   unit on the admin side. No payment in this pass: depositPaid stays false and
-   the contract and deposit link follow by text. A 409 from the race (someone
-   took the last unit between the check and this tap) is shown as the server
-   says it, with a way back to the calendar, never a generic error. */
+/* Direct item booking, step 2 of 2. Name, phone and email are the hard line,
+   always required, never skippable. Signed in, they come from the account
+   and aren't asked again (only a name, if the account has none yet).
+   Address is plain text, no validation service, skippable with the "Add the
+   address later" switch. Then one POST that locks a unit on the admin side.
+   No payment in this pass. A 409 from the race (someone took the last unit
+   between the check and this tap) is shown as the server says it, with a
+   way back to the calendar, never a generic error. */
 
 type Notice = { reason: DirectReason; message: string }
 
@@ -25,6 +27,7 @@ export default function ItemWho() {
   const navigate = useNavigate()
   const { id } = useParams()
   const b = useBooking()
+  const { customer } = useCustomer()
   const [submitting, setSubmitting] = useState(false)
   const [notice, setNotice] = useState<Notice | null>(null)
 
@@ -33,8 +36,12 @@ export default function ItemWho() {
   const item = b.item
   const iso = b.itemDate
 
+  const onFile = customer !== null
+  const needsName = !customer?.name
   const addressSettled = b.address.trim() !== "" || b.addressLater
-  const canSubmit = b.contactName.trim() !== "" && b.contact.trim() !== "" && addressSettled && !submitting
+  const contactSettled = onFile ? true : b.phone.trim() !== "" && b.email.trim() !== ""
+  const nameSettled = needsName ? b.contactName.trim() !== "" : true
+  const canSubmit = nameSettled && contactSettled && addressSettled && !submitting
 
   const submit = async () => {
     if (!canSubmit) return
@@ -44,8 +51,9 @@ export default function ItemWho() {
       const result = await bookDirect({
         itemId: item.id,
         eventDate: iso,
-        customerName: b.contactName.trim(),
-        contact: b.contact.trim(),
+        customerName: needsName ? b.contactName.trim() : null,
+        phone: onFile ? null : b.phone.trim(),
+        email: onFile ? null : b.email.trim(),
         address: b.addressLater ? null : b.address.trim() || null,
         eventTime: clockFor(b.itemTime),
       })
@@ -70,30 +78,56 @@ export default function ItemWho() {
       <Body>
         <GoLabel>Just this · Step 2 of 2</GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">Who's booking?</h1>
-        <p className="mt-2 text-body text-charcoal-soft">Name and a number or email. That's it.</p>
+        <p className="mt-2 text-body text-charcoal-soft">
+          {onFile ? "We've got your details. Just the address." : "Name, phone, and email. That's it."}
+        </p>
         <div className="mt-3.5 grid grid-cols-2 gap-2">
           <MetaCard label="What" value={item.name} />
           <MetaCard label="When" value={when} />
         </div>
-        <div className="mt-3.5">
-          <GoLabel className="mb-1.5 tracking-[.1em]">Name</GoLabel>
-          <Input
-            placeholder="Sarah Lin"
-            autoComplete="name"
-            value={b.contactName}
-            onChange={(e) => b.set("contactName", e.target.value)}
-          />
-        </div>
-        <div className="mt-2.5">
-          <GoLabel className="mb-1.5 tracking-[.1em]">Phone or email</GoLabel>
-          <Input
-            placeholder="860 555 0134 or you@email.com"
-            autoComplete="on"
-            inputMode="email"
-            value={b.contact}
-            onChange={(e) => b.set("contact", e.target.value)}
-          />
-        </div>
+        {onFile && customer && (
+          <div className="mt-3.5 rounded-[14px] border border-line bg-white px-4 py-3.5">
+            <small className="block text-[10.5px] font-bold tracking-[.1em] text-taupe uppercase">Booking as</small>
+            {customer.name && <b className="mt-[3px] block text-sm text-charcoal">{customer.name}</b>}
+            <span className="block text-small text-charcoal-soft">{customer.phone}</span>
+            <span className="block text-small text-charcoal-soft">{customer.email}</span>
+          </div>
+        )}
+        {needsName && (
+          <div className="mt-3.5">
+            <GoLabel className="mb-1.5 tracking-[.1em]">Name</GoLabel>
+            <Input
+              placeholder="Sarah Lin"
+              autoComplete="name"
+              value={b.contactName}
+              onChange={(e) => b.set("contactName", e.target.value)}
+            />
+          </div>
+        )}
+        {!onFile && (
+          <>
+            <div className="mt-2.5">
+              <GoLabel className="mb-1.5 tracking-[.1em]">Phone</GoLabel>
+              <Input
+                placeholder="860 555 0134"
+                autoComplete="tel"
+                inputMode="tel"
+                value={b.phone}
+                onChange={(e) => b.set("phone", e.target.value)}
+              />
+            </div>
+            <div className="mt-2.5">
+              <GoLabel className="mb-1.5 tracking-[.1em]">Email</GoLabel>
+              <Input
+                placeholder="you@email.com"
+                autoComplete="email"
+                inputMode="email"
+                value={b.email}
+                onChange={(e) => b.set("email", e.target.value)}
+              />
+            </div>
+          </>
+        )}
         <div className="mt-2.5">
           <GoLabel className="mb-1.5 tracking-[.1em]">Address</GoLabel>
           <Input

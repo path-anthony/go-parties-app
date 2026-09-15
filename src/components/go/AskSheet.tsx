@@ -4,6 +4,8 @@ import { Sparkle, X, Send } from "lucide-react"
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
 import { ASK, type AskContext } from "@/data/ask"
 import { ADMIN_API } from "@/lib/adminApi"
+import { customerApi } from "@/lib/customerApi"
+import { useToast } from "@/hooks/use-toast"
 import { useBooking, type DirectItem } from "@/state/booking"
 
 /* Ask GO. BRAND.md section 11: a knowledgeable crew member. It never opens
@@ -60,8 +62,11 @@ const TEXTAREA_MAX_PX = 120
 
 export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
   const navigate = useNavigate()
-  const { subOcc, pickItem } = useBooking()
+  const { toast } = useToast()
+  const { subOcc, pickItem, changeFor, set } = useBooking()
   const [asked, setAsked] = useState<number | null>(null)
+  const [switching, setSwitching] = useState(false)
+  const [switchNotice, setSwitchNotice] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
@@ -145,6 +150,24 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
     navigate(`/item/${item.id}`)
   }
 
+  /* Armed by the portal's Change item screen: swap an existing booking onto
+     this item for the same date. A taken date is shown as the admin says it. */
+  const switchTo = async (item: RecommendItem) => {
+    if (!changeFor || switching) return
+    setSwitching(true)
+    setSwitchNotice(null)
+    const result = await customerApi.changeItem(changeFor.bookingId, item.id)
+    setSwitching(false)
+    if (result.ok) {
+      toast({ title: "Switched." })
+      set("changeFor", null)
+      onClose()
+      navigate("/party")
+      return
+    }
+    setSwitchNotice(result.message)
+  }
+
   const tryAnother = () => {
     setMessages([])
     setInput("")
@@ -196,15 +219,17 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
                             <span className="min-w-0 flex-1">{item.name}</span>
                             {price !== null && <span className="flex-none">${price.toLocaleString()}</span>}
                             <button
-                              className="flex-none rounded-[18px] border-[1.5px] border-line bg-white px-2.5 py-1 text-[11.5px] font-semibold text-charcoal hover:border-charcoal"
-                              onClick={() => justThis(item)}
+                              className="flex-none rounded-[18px] border-[1.5px] border-line bg-white px-2.5 py-1 text-[11.5px] font-semibold text-charcoal hover:border-charcoal disabled:opacity-50"
+                              disabled={switching}
+                              onClick={() => (changeFor ? switchTo(item) : justThis(item))}
                             >
-                              Just this
+                              {changeFor ? "Switch to this" : "Just this"}
                             </button>
                           </div>
                         )
                       })}
                     </div>
+                    {switchNotice && <p className="mt-2 border-t border-line pt-2 text-[12.5px]">{switchNotice}</p>}
                     <div className="mt-2 border-t border-line pt-2 font-bold">
                       Total: ${finalRec.total.toLocaleString()}
                     </div>

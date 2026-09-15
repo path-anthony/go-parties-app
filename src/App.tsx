@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { BookingProvider } from "@/state/booking"
+import { CustomerProvider } from "@/state/customer"
 import { AskProvider } from "@/state/ask"
 import Welcome from "@/pages/Welcome"
 import SignIn from "@/pages/SignIn"
@@ -13,6 +14,10 @@ import BookWhere from "@/pages/BookWhere"
 import BookReview from "@/pages/BookReview"
 import Held from "@/pages/Held"
 import MyParty from "@/pages/MyParty"
+import PartySignIn from "@/pages/PartySignIn"
+import PartySignUp from "@/pages/PartySignUp"
+import PartyReschedule from "@/pages/PartyReschedule"
+import PartyChange from "@/pages/PartyChange"
 import ItemDate from "@/pages/ItemDate"
 import ItemWho from "@/pages/ItemWho"
 import ItemHeld from "@/pages/ItemHeld"
@@ -21,6 +26,7 @@ import Kit from "@/pages/Kit"
 function App() {
   return (
     <BookingProvider>
+      <CustomerProvider>
       <BrowserRouter>
         <AskProvider>
           <Routes>
@@ -36,6 +42,10 @@ function App() {
             <Route path="/book/review" element={<BookReview />} />
             <Route path="/held" element={<Held />} />
             <Route path="/party" element={<MyParty />} />
+            <Route path="/party/signin" element={<PartySignIn />} />
+            <Route path="/party/signup" element={<PartySignUp />} />
+            <Route path="/party/:id/reschedule" element={<PartyReschedule />} />
+            <Route path="/party/:id/change" element={<PartyChange />} />
             <Route path="/item/held" element={<ItemHeld />} />
             <Route path="/item/:id" element={<ItemDate />} />
             <Route path="/item/:id/who" element={<ItemWho />} />
@@ -44,6 +54,7 @@ function App() {
           </Routes>
         </AskProvider>
       </BrowserRouter>
+      </CustomerProvider>
     </BookingProvider>
   )
 }
