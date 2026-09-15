@@ -33,7 +33,7 @@ export interface BookingState {
   power: boolean
   water: boolean
   held: boolean
-  item: DirectItem | null
+  items: DirectItem[]
   itemMonth: number
   itemDate: string | null
   itemTime: string | null
@@ -64,7 +64,7 @@ const INITIAL: BookingState = {
   power: true,
   water: true,
   held: false,
-  item: null,
+  items: [],
   itemMonth: 0,
   itemDate: null,
   itemTime: null,
@@ -81,7 +81,7 @@ const INITIAL: BookingState = {
 interface BookingApi extends BookingState {
   set: <K extends keyof BookingState>(key: K, value: BookingState[K]) => void
   pick: (occ: OccasionId) => void
-  pickItem: (item: DirectItem) => void
+  pickItems: (items: DirectItem[]) => void
   jump: (occ: OccasionId, id: string) => void
   suggest: () => void
   swapPkg: (id: string) => void
@@ -102,8 +102,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       set,
       pick: (occ) =>
         setS((prev) => ({ ...prev, occ, subOcc: null, date: null, time: null, guests: null, budget: null, pkg: null, addons: {}, swaps: {}, month: 0 })),
-      pickItem: (item) =>
-        setS((prev) => ({ ...prev, item, itemMonth: 0, itemDate: null, itemTime: null, itemTimeLater: false, direct: null })),
+      pickItems: (items) =>
+        setS((prev) => ({ ...prev, items, itemMonth: 0, itemDate: null, itemTime: null, itemTimeLater: false, direct: null })),
       jump: (occ, id) =>
         setS((prev) => ({ ...prev, occ, pkg: PKGS[occ].find((p) => p.id === id) ?? null, addons: {}, swaps: {} })),
       suggest: () =>

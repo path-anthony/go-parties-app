@@ -19,15 +19,21 @@ export async function checkAvailability(itemId: string, iso: string): Promise<Av
   return res.json()
 }
 
+/* item and unit are the single-item shape; items is the multi-item shape. A
+   response carries one or the other. */
 export interface DirectBooking {
   bookingId: string
   leadId: string
   eventDate: string
   status: string
   depositPaid: boolean
-  item: { id: string; name: string }
-  unit: { id: string; label: string }
+  item?: { id: string; name: string }
+  unit?: { id: string; label: string }
+  items?: Array<{ id: string; name: string; unit: { id: string; label: string } }>
 }
+
+export const bookedNames = (b: DirectBooking): string[] =>
+  b.items ? b.items.map((i) => i.name) : b.item ? [b.item.name] : []
 
 export type DirectReason = "unavailable" | "not-tracked" | "error"
 
@@ -40,9 +46,11 @@ const FALLBACK = "That didn't go through. Try again, or text us."
    a signed-in customer's account supplies them: the keys are left out
    entirely, because sending phone or email means the admin requires both.
    credentials: "include" carries the customer_session cookie so the booking
-   attaches to the account. */
+   attaches to the account. One item goes as itemId (the original contract);
+   two or more go only as itemIds, so an admin without multi-item support
+   refuses the whole request instead of quietly booking the first one. */
 export async function bookDirect(input: {
-  itemId: string
+  itemIds: string[]
   eventDate: string
   customerName: string | null
   phone: string | null
@@ -50,8 +58,10 @@ export async function bookDirect(input: {
   address: string | null
   eventTime: string | null
 }): Promise<DirectResult> {
-  const { customerName, phone, email, ...rest } = input
+  const { customerName, phone, email, itemIds, ...rest } = input
   const body: Record<string, unknown> = { ...rest }
+  if (itemIds.length === 1) body.itemId = itemIds[0]
+  else body.itemIds = itemIds
   if (customerName) body.customerName = customerName
   if (phone && email) {
     body.phone = phone

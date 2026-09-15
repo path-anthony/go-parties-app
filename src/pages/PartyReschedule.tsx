@@ -58,7 +58,7 @@ export default function PartyReschedule() {
 
   if (ready && !customer) return <Navigate to="/party/signin" replace />
   if (booking === null) return <Navigate to="/party" replace />
-  const itemId = booking?.units[0]?.itemId
+  const whenItems = booking ? [...new Map(booking.units.map((u) => [u.itemId, { id: u.itemId, name: u.itemName }])).values()] : []
 
   const timeSettled = time !== null || timeLater
   const canSubmit = !!booking && !!iso && available && timeSettled && !busy
@@ -88,9 +88,9 @@ export default function PartyReschedule() {
             <MetaCard label="Now" value={whenOf(booking)} />
           </div>
         )}
-        {booking && itemId && (
+        {booking && whenItems.length > 0 && (
           <ItemWhen
-            itemId={itemId}
+            items={whenItems}
             month={month}
             onMonth={setMonth}
             iso={iso}

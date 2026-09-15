@@ -29,7 +29,7 @@ Availability: simulated in v1 (a deterministic function of date) for the package
 
 ## Direct item booking (added 2026-09-15)
 
-A second door, for a customer who wants one specific thing and not a package. It is not a fifth tab (BRAND.md section 8). It is entered from any item inside an Ask GO recommendation, via a "Just this" button on the row: that response already carries real admin item ids, names, and prices, and the admin has no public item list endpoint yet, so this is the one place the storefront can pick a real item today. Calls go to go-parties-admin at the same base URL Ask GO uses.
+A second door, for a customer who wants specific things and not a package. It is not a fifth tab (BRAND.md section 8). It is entered from an Ask GO recommendation: each recommended item has a checkbox, and one shared button ("Just this" for one, "Just these (2)" for more) carries every checked item into the same screens below on one date. The request goes as `itemId` for one item and `itemIds` for several, so an admin without multi-item support refuses the whole request rather than booking the first one. That response already carries real admin item ids, names, and prices, so it is the place the storefront picks real items. Calls go to go-parties-admin at the same base URL Ask GO uses.
 
 | Route | Screen | Must have | Next |
 |---|---|---|---|

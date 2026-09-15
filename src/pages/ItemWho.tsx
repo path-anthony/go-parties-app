@@ -31,9 +31,10 @@ export default function ItemWho() {
   const [submitting, setSubmitting] = useState(false)
   const [notice, setNotice] = useState<Notice | null>(null)
 
-  if (!b.item || b.item.id !== id) return <Navigate to="/home" replace />
-  if (!b.itemDate) return <Navigate to={`/item/${b.item.id}`} replace />
-  const item = b.item
+  if (b.items.length === 0 || b.items[0].id !== id) return <Navigate to="/home" replace />
+  if (!b.itemDate) return <Navigate to={`/item/${b.items[0].id}`} replace />
+  const items = b.items
+  const firstId = items[0].id
   const iso = b.itemDate
 
   const onFile = customer !== null
@@ -49,7 +50,7 @@ export default function ItemWho() {
     setNotice(null)
     try {
       const result = await bookDirect({
-        itemId: item.id,
+        itemIds: items.map((i) => i.id),
         eventDate: iso,
         customerName: needsName ? b.contactName.trim() : null,
         phone: onFile ? null : b.phone.trim(),
@@ -76,13 +77,13 @@ export default function ItemWho() {
   return (
     <AppShell>
       <Body>
-        <GoLabel>Just this · Step 2 of 2</GoLabel>
+        <GoLabel>{items.length === 1 ? "Just this" : "Just these"} · Step 2 of 2</GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">Who's booking?</h1>
         <p className="mt-2 text-body text-charcoal-soft">
           {onFile ? "We've got your details. Just the address." : "Name, phone, and email. That's it."}
         </p>
         <div className="mt-3.5 grid grid-cols-2 gap-2">
-          <MetaCard label="What" value={item.name} />
+          <MetaCard label="What" value={items.map((i) => i.name).join(", ")} />
           <MetaCard label="When" value={when} />
         </div>
         {onFile && customer && (
@@ -161,7 +162,7 @@ export default function ItemWho() {
                 className="mt-2.5 block"
                 onClick={() => {
                   b.set("itemDate", null)
-                  navigate(`/item/${item.id}`)
+                  navigate(`/item/${firstId}`)
                 }}
               >
                 Pick another date
@@ -172,7 +173,7 @@ export default function ItemWho() {
         <p className="mt-2.5 text-small text-muted">Nothing to pay right now. Contract and deposit link come by text.</p>
       </Body>
       <Foot>
-        <Button variant="ghost" onClick={() => navigate(`/item/${item.id}`)}>Back</Button>
+        <Button variant="ghost" onClick={() => navigate(`/item/${firstId}`)}>Back</Button>
         <Button disabled={!canSubmit} onClick={submit}>Hold my date</Button>
       </Foot>
     </AppShell>

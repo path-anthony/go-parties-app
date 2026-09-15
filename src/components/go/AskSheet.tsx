@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Sparkle, X, Send } from "lucide-react"
+import { Check, Sparkle, X, Send } from "lucide-react"
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
 import { ASK, type AskContext } from "@/data/ask"
 import { ADMIN_API } from "@/lib/adminApi"
@@ -63,8 +63,9 @@ const TEXTAREA_MAX_PX = 120
 export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { subOcc, pickItem, changeFor, set } = useBooking()
+  const { subOcc, pickItems, changeFor, set } = useBooking()
   const [asked, setAsked] = useState<number | null>(null)
+  const [picked, setPicked] = useState<string[]>([])
   const [switching, setSwitching] = useState(false)
   const [switchNotice, setSwitchNotice] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -83,6 +84,7 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
       setInput("")
       setError(null)
       setFinalRec(null)
+      setPicked([])
       if (ctx === "home") {
         setTimeout(() => textareaRef.current?.focus(), 100)
       }
@@ -123,6 +125,7 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
       setMessages((prev) => [...prev, { role: "assistant", content: data.message }])
       if (data.ready) {
         setFinalRec({ message: data.message, items: data.items ?? [], total: data.total ?? 0 })
+        setPicked([])
       }
     } catch {
       setError("That didn't go through. Try again, or text us.")
@@ -143,11 +146,16 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
     }
   }
 
-  /* The second door into booking: one item from a recommendation, no package. */
-  const justThis = (item: RecommendItem) => {
-    pickItem(toDirectItem(item))
+  /* The second door into booking: the checked items from a recommendation,
+     booked together on one date, no package. The route carries the first id. */
+  const togglePick = (id: string) => setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  const justThese = () => {
+    if (!finalRec) return
+    const chosen = finalRec.items.filter((i) => picked.includes(i.id)).map(toDirectItem)
+    if (chosen.length === 0) return
+    pickItems(chosen)
     onClose()
-    navigate(`/item/${item.id}`)
+    navigate(`/item/${chosen[0].id}`)
   }
 
   /* Armed by the portal's Change item screen: swap an existing booking onto
@@ -173,6 +181,7 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
     setInput("")
     setError(null)
     setFinalRec(null)
+    setPicked([])
     textareaRef.current?.focus()
   }
 
@@ -214,17 +223,31 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
                     <div className="space-y-1.5">
                       {finalRec.items.map((item) => {
                         const price = priceOf(item)
+                        const on = picked.includes(item.id)
                         return (
-                          <div key={item.id} className="flex items-center gap-2 text-[12.5px]">
+                          <div key={item.id} className="flex items-center gap-2.5 text-[12.5px]">
+                            {!changeFor && (
+                              <button
+                                role="checkbox"
+                                aria-checked={on}
+                                aria-label={`Pick ${item.name}`}
+                                className={`flex size-5 flex-none items-center justify-center rounded-[6px] border-[1.5px] ${on ? "border-orange bg-orange-tint" : "border-line bg-white hover:border-charcoal"}`}
+                                onClick={() => togglePick(item.id)}
+                              >
+                                {on && <Check className="size-3.5 stroke-orange" strokeWidth={2.5} />}
+                              </button>
+                            )}
                             <span className="min-w-0 flex-1">{item.name}</span>
                             {price !== null && <span className="flex-none">${price.toLocaleString()}</span>}
-                            <button
-                              className="flex-none rounded-[18px] border-[1.5px] border-line bg-white px-2.5 py-1 text-[11.5px] font-semibold text-charcoal hover:border-charcoal disabled:opacity-50"
-                              disabled={switching}
-                              onClick={() => (changeFor ? switchTo(item) : justThis(item))}
-                            >
-                              {changeFor ? "Switch to this" : "Just this"}
-                            </button>
+                            {changeFor && (
+                              <button
+                                className="flex-none rounded-[18px] border-[1.5px] border-line bg-white px-2.5 py-1 text-[11.5px] font-semibold text-charcoal hover:border-charcoal disabled:opacity-50"
+                                disabled={switching}
+                                onClick={() => switchTo(item)}
+                              >
+                                Switch to this
+                              </button>
+                            )}
                           </div>
                         )
                       })}
@@ -251,12 +274,15 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
                     >
                       Try another
                     </button>
-                    <button
-                      className="rounded-[18px] border-[1.5px] border-line bg-white px-3 py-[9px] text-[12.5px] font-semibold text-charcoal hover:border-charcoal"
-                      onClick={onClose}
-                    >
-                      Build that
-                    </button>
+                    {!changeFor && (
+                      <button
+                        className="rounded-[18px] border-[1.5px] border-line bg-white px-3 py-[9px] text-[12.5px] font-semibold text-charcoal hover:border-charcoal disabled:opacity-50"
+                        disabled={picked.length === 0}
+                        onClick={justThese}
+                      >
+                        {picked.length === 1 ? "Just this" : `Just these${picked.length > 1 ? ` (${picked.length})` : ""}`}
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <form onSubmit={handleSubmit} className="flex items-end gap-2">
