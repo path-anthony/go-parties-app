@@ -13,6 +13,33 @@ export interface Availability {
   message?: string
 }
 
+/* The public catalog, as the admin exposes it: name search (partial, case
+   insensitive), exact category, and whether the item has units, which is
+   what makes it directly bookable. */
+export interface PublicItem {
+  id: string
+  name: string
+  category: string
+  price: number | null
+  priceUnit: string | null
+  photoUrl: string | null
+  hasUnits: boolean
+}
+
+export async function publicItems(
+  q: string,
+  category: string,
+  signal?: AbortSignal
+): Promise<{ items: PublicItem[]; categories: string[] }> {
+  const params = new URLSearchParams()
+  if (q.trim()) params.set("q", q.trim())
+  if (category) params.set("category", category)
+  const qs = params.toString()
+  const res = await fetch(`${ADMIN_API}/api/items/public${qs ? `?${qs}` : ""}`, { signal })
+  if (!res.ok) throw new Error(`public items ${res.status}`)
+  return res.json()
+}
+
 export async function checkAvailability(itemId: string, iso: string): Promise<Availability> {
   const res = await fetch(`${ADMIN_API}/api/items/${encodeURIComponent(itemId)}/availability?date=${iso}`)
   if (!res.ok) throw new Error(`availability ${res.status}`)

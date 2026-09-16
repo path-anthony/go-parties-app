@@ -5,6 +5,7 @@ import { AskProvider } from "@/state/ask"
 import Welcome from "@/pages/Welcome"
 import SignIn from "@/pages/SignIn"
 import Home from "@/pages/Home"
+import Browse from "@/pages/Browse"
 import BookDate from "@/pages/BookDate"
 import BookBudget from "@/pages/BookBudget"
 import BookPackage from "@/pages/BookPackage"
@@ -34,6 +35,7 @@ function App() {
             <Route path="/" element={<Welcome />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/home" element={<Home />} />
+            <Route path="/browse" element={<Browse />} />
             <Route path="/book/date" element={<BookDate />} />
             <Route path="/book/budget" element={<BookBudget />} />
             <Route path="/book/package" element={<BookPackage />} />

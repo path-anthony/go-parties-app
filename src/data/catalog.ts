@@ -34,6 +34,47 @@ export const SUB_OCC: Record<OccasionId, string[]> = {
   corporate: ["Holiday party", "Team building", "Product launch", "Client appreciation", "Grand opening", "Other"],
 }
 
+/* Which packages fit a sub-occasion, by package id within its occasion.
+   Editorial, chosen from the package inclusions; nothing in the reference
+   spreadsheet maps these. A sub-occasion with no entry, or "Other", gets the
+   occasion's whole list. */
+export const SUB_RECS: Record<OccasionId, Record<string, string[]>> = {
+  kids: {
+    Birthday: ["deluxe", "theme", "starter", "splash"],
+    "Bar/Bat Mitzvah": ["grad", "splash", "deluxe"],
+    "Sweet 16": ["splash", "grad"],
+    "Baby shower": ["starter", "theme"],
+    Graduation: ["grad", "splash"],
+  },
+  adult: {
+    Birthday: ["cocktail", "casino", "block"],
+    "Bachelor/Bachelorette": ["gents", "casino", "cigar"],
+    Anniversary: ["cocktail", "cigar"],
+    Retirement: ["cigar", "gents", "cocktail"],
+    Housewarming: ["cocktail", "block"],
+  },
+  wedding: {
+    "Ceremony + reception": ["ess", "dream", "plat"],
+    "Reception only": ["basic", "ess"],
+    "Engagement party": ["basic", "ess"],
+    "Rehearsal dinner": ["basic"],
+    "Bridal shower": ["basic"],
+  },
+  corporate: {
+    "Holiday party": ["holiday", "gala"],
+    "Team building": ["field"],
+    "Product launch": ["gala", "holiday"],
+    "Client appreciation": ["gala", "holiday"],
+    "Grand opening": ["gala", "field"],
+  },
+}
+
+export function recsFor(occ: OccasionId, subOcc: string | null): Pkg[] {
+  const ids = subOcc ? SUB_RECS[occ][subOcc] : undefined
+  if (!ids) return PKGS[occ]
+  return ids.map((id) => PKGS[occ].find((p) => p.id === id)).filter((p): p is Pkg => p !== undefined)
+}
+
 const item = (name: string, cat: string, alts: string[]): PackageItem => ({ name, cat, alts })
 
 export const PKGS: Record<OccasionId, Pkg[]> = {

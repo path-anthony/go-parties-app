@@ -8,7 +8,8 @@ Routes are React Router (or equivalent). State lives in a single `useBooking()` 
 |---|---|---|---|---|
 | 1 | `/` | Welcome | Photo plate hero 4:5 with "Party on. We'll handle it.", headline, body, three feature rows with Lucide icons, one primary button | `/signin` |
 | 2 | `/signin` | Sign in | Email input, Continue, OR divider, Google, Apple. All buttons continue (click-through). | `/home` |
-| 3 | `/home` | Home | Label "Hey Sarah", "What are we celebrating?", four 1:1 occasion plates, Ask GO dashed line, Recommended rail (4 cards with next open date), small availability note | occasion → `/book/date`; rail → `/book/package` |
+| 3 | `/home` | Home | Label "Hey Sarah", "What are we celebrating?", a search row ("Just need one thing? Search the warehouse."), four 1:1 occasion plates. Tapping a plate reveals sub-occasion Chips beneath it (same Reveal as times under a day, 2 per row, nothing overlays the page); picking one reveals a "Recommended for {sub-occasion}" rail scoped by SUB_RECS in catalog.ts, then Continue. Ask GO dashed line, the general Recommended rail (4 cards with next open date), small availability note | search → `/browse`; Continue → `/book/date`; either rail → `/book/package` |
+| 3a | `/browse` | Find one thing. | Search input and category chips over `GET /api/items/public` (name search, exact category, debounced, live). One row per item with name, category, price line. Items with units show "Book" and start the direct booking; items without show "Not online yet. Text us." No bottom tab is active here. | row → `/item/:id` |
 | 4 | `/book/date` | Date, time, guests | Month chips, day carousel (Fri Sat Sun, snap, open dot, booked grayed), time chips reveal on tap, guest chips 3 per row, Back and Next | `/book/budget` |
 | 5 | `/book/budget` | Budget | Four chips 2 per row, Back and Show me | `/book/package` |
 | 6 | `/book/package` | Your package | Package hero 4:3 with date/time/guests overlay, name + price + "before add-ons", inclusions with checks, native select to switch packages, "Ask about this package" | What's in it → `/book/detail`; Make it mine → `/book/addons` |
@@ -22,6 +23,8 @@ Routes are React Router (or equivalent). State lives in a single `useBooking()` 
 Ask GO sheet: scripted responses from `data/ask.js` in v1. Two contexts: home (three vibe chips → package) and package (three questions → answers). Opens as a bottom sheet (Vaul / shadcn Drawer).
 
 Bottom nav: Home, Book, Ask, My party. Book routes to `/book/date` if an occasion is chosen, otherwise Home with a toast.
+
+Header: the wordmark on the left (tap goes Home), the progress marker on booking screens, and a menu button (Lucide Menu, charcoal) on the right of every screen. The menu is a bottom sheet, never a popup: signed out it offers My party, Sign in and Create account; signed in it shows who is signed in, My party and Sign out.
 
 Data: `data/catalog.js` holds occasions, packages (with inclusions and swappable items), add-ons, guest bands, time slots, budget bands. Copy the objects from the reference HTML exactly. Prices come from the offerings workbook; packages flagged `demo:true` show a "demo pricing" label.
 

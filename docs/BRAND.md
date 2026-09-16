@@ -95,7 +95,9 @@ Bank (use these, extend in this register)
 - Welcome headline: Your party, built in two minutes.
 - Welcome body: Pick the occasion. We build it from what's actually in the warehouse. You tweak it. We show up.
 - Sign in: Welcome in. / No password. We text you a link.
-- Home: What are we celebrating? / Not sure? Describe the party.
+- Home: What are we celebrating? / Not sure? Describe the party. / Just need one thing? Search the warehouse. / What kind (label) / Recommended for Birthday (label, the sub-occasion) / Continue
+- Browse: Find one thing. / Bounce house, DJ, snow cones (placeholder) / All (category chip) / Checking the warehouse. / 167 items / Nothing by that name. Try another word, or Ask GO. / Book / Not online yet. Text us. / Text us for a price
+- Menu: Menu / Signed in as / My party / Sign in / Create account / Sign out
 - Date: When's the party? / When's the night? / When's the big day? / When's the event?
 - Availability hint: Grayed days are booked solid, crew and gear included.
 - Guests: How many people. Rough is fine.
