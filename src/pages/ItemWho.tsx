@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { MetaCard } from "@/components/go/MetaCard"
+import { CartItems } from "@/components/go/CartItems"
 import { labelForIso } from "@/lib/availability"
 import { bookDirect, type DirectReason } from "@/lib/adminApi"
 import { directInput } from "@/lib/directInput"
@@ -33,7 +34,8 @@ export default function ItemWho() {
   const [submitting, setSubmitting] = useState(false)
   const [notice, setNotice] = useState<Notice | null>(null)
 
-  if (b.items.length === 0 || b.items[0].id !== id) return <Navigate to="/home" replace />
+  if (b.items.length === 0) return <Navigate to="/browse" replace />
+  if (b.items[0].id !== id) return <Navigate to={`/item/${b.items[0].id}/who`} replace />
   if (!b.itemDate) return <Navigate to={`/item/${b.items[0].id}`} replace />
   const items = b.items
   const firstId = items[0].id
@@ -47,6 +49,8 @@ export default function ItemWho() {
   const canSubmit = nameSettled && contactSettled && addressSettled && !submitting
 
   const steps = onFile ? 2 : 3
+
+  const removeItem = (rid: string) => b.set("items", items.filter((i) => i.id !== rid))
 
   const submit = async () => {
     if (!canSubmit) return
@@ -82,9 +86,11 @@ export default function ItemWho() {
         <p className="mt-2 text-body text-charcoal-soft">
           {onFile ? "We've got your details. Just the address." : "Name, phone, and email. That's it."}
         </p>
-        <div className="mt-3.5 grid grid-cols-2 gap-2">
-          <MetaCard label="What" value={items.map((i) => i.name).join(", ")} />
+        <div className="mt-3.5">
           <MetaCard label="When" value={when} />
+        </div>
+        <div className="mt-2">
+          <CartItems items={items} onRemove={removeItem} showTotal={items.length > 1} />
         </div>
         {onFile && customer && (
           <div className="mt-3.5 rounded-[14px] border border-line bg-white px-4 py-3.5">

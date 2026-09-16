@@ -5,6 +5,7 @@ import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { Chip } from "@/components/go/Chip"
 import { MetaCard } from "@/components/go/MetaCard"
+import { CartItems } from "@/components/go/CartItems"
 import { Reveal } from "@/components/go/DatePicker"
 import { SignUpFields } from "@/components/go/SignUpFields"
 import { labelForIso } from "@/lib/availability"
@@ -36,7 +37,8 @@ export default function ItemAccount() {
   const [booking, setBooking] = useState(false)
   const [notice, setNotice] = useState<Notice | null>(null)
 
-  if (b.items.length === 0 || b.items[0].id !== id) return <Navigate to="/home" replace />
+  if (b.items.length === 0) return <Navigate to="/browse" replace />
+  if (b.items[0].id !== id) return <Navigate to={`/item/${b.items[0].id}/account`} replace />
   const firstId = b.items[0].id
   if (!b.itemDate) return <Navigate to={`/item/${firstId}`} replace />
   if (ready && customer) return <Navigate to={`/item/${firstId}/who`} replace />
@@ -46,6 +48,8 @@ export default function ItemAccount() {
   const clock = itemClock(b.itemTime)
   const when = clock ? `${labelForIso(iso)}, ${clock}` : labelForIso(iso)
   const busy = signingUp || booking
+
+  const removeItem = (rid: string) => b.set("items", b.items.filter((i) => i.id !== rid))
   const canHold = !busy && (choice === "guest" || (choice === "account" && canSignUp(values)))
 
   const hold = async () => {
@@ -82,9 +86,11 @@ export default function ItemAccount() {
         <GoLabel>{b.items.length === 1 ? "Just this" : "Just these"} · Step 3 of 3</GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">Make an account?</h1>
         <p className="mt-2 text-body text-charcoal-soft">Sign in later to move it or cancel it. No account needed either way.</p>
-        <div className="mt-3.5 grid grid-cols-2 gap-2">
-          <MetaCard label="What" value={b.items.map((i) => i.name).join(", ")} />
+        <div className="mt-3.5">
           <MetaCard label="When" value={when} />
+        </div>
+        <div className="mt-2">
+          <CartItems items={b.items} onRemove={removeItem} showTotal={b.items.length > 1} />
         </div>
         <div className="mt-3.5 grid grid-cols-2 gap-2">
           <Chip selected={choice === "account"} sub="Phone, email, a password" onClick={() => setChoice("account")}>

@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Check, Plus } from "lucide-react"
+import { Check, Plus, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { AppShell, Body } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { MonthChips, DayCarousel, Reveal } from "@/components/go/DatePicker"
@@ -121,9 +120,13 @@ export default function Browse() {
                 <span>
                   {i.name} isn't open {dayLabel}.
                 </span>
-                <Button variant="ghost" size="sm" onClick={() => remove(i.id)}>
-                  Remove
-                </Button>
+                <button
+                  aria-label={`Remove ${i.name}`}
+                  className="flex size-9 flex-none items-center justify-center rounded-[10px] border-[1.5px] border-line bg-white hover:border-charcoal"
+                  onClick={() => remove(i.id)}
+                >
+                  <Trash2 className="size-4 stroke-charcoal" strokeWidth={1.75} />
+                </button>
               </div>
             ))}
             <p className="pt-1 text-charcoal-soft">Remove it or pick another day.</p>

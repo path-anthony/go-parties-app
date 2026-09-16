@@ -1,12 +1,12 @@
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
-import { fmt } from "@/data/catalog"
+import { CartItems } from "@/components/go/CartItems"
 import type { DirectItem } from "@/state/booking"
 
 /* The cart, as a bottom sheet (BRAND.md section 8, never a popup). One row
-   per item with Remove; anything not open on the chosen day is named and
-   must be removed before checkout. */
+   per item with a trash can; anything not open on the chosen day is named
+   and must be removed before checkout. */
 export function CartSheet({
   open,
   onClose,
@@ -24,7 +24,6 @@ export function CartSheet({
   onRemove: (id: string) => void
   onCheckout: () => void
 }) {
-  const total = items.reduce((sum, i) => sum + (i.price ?? 0), 0)
   const blocked = items.some((i) => unavailable.has(i.id))
 
   return (
@@ -42,28 +41,12 @@ export function CartSheet({
           {items.length === 0 ? (
             <p className="mt-2.5 text-body text-charcoal-soft">Nothing in it yet.</p>
           ) : (
-            <div className="mt-2.5 rounded-[14px] border border-line bg-white px-4 py-1">
-              {items.map((i) => {
-                const out = unavailable.has(i.id)
-                return (
-                  <div key={i.id} className="flex items-center justify-between gap-3 border-b border-line py-2.5 text-sm last:border-b-0">
-                    <div className="min-w-0">
-                      <span className="block text-charcoal">{i.name}</span>
-                      {out && dayLabel && <small className="block text-[11.5px] font-bold text-charcoal">Not open {dayLabel}. Remove it or pick another day.</small>}
-                    </div>
-                    <div className="flex flex-none items-center gap-2">
-                      <b className="text-charcoal">{i.price !== null ? fmt(i.price) : ""}</b>
-                      <Button variant="ghost" size="sm" onClick={() => onRemove(i.id)}>
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                )
-              })}
-              <div className="flex justify-between py-3 text-base">
-                <span className="text-charcoal-soft">Total</span>
-                <b className="text-price text-charcoal">{fmt(total)}</b>
-              </div>
+            <div className="mt-2.5">
+              <CartItems
+                items={items}
+                onRemove={onRemove}
+                flag={(i) => (unavailable.has(i.id) && dayLabel ? `Not open ${dayLabel}. Remove it or pick another day.` : null)}
+              />
             </div>
           )}
           {items.length > 0 && (

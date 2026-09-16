@@ -14,6 +14,17 @@ import { cn } from "@/lib/utils"
    first, inline, never a popup). Signed out: the doors to sign in or sign
    up. */
 
+/* Moved here from Home. A stub until real personalization exists: no logic,
+   just the place where picks will show up. */
+function RecommendedStub({ className = "" }: { className?: string }) {
+  return (
+    <div className={className}>
+      <GoLabel>Recommended for you</GoLabel>
+      <p className="mt-1.5 text-body text-charcoal-soft">Book a few things and picks for you show up here.</p>
+    </div>
+  )
+}
+
 function Status({ status }: { status: string }) {
   const confirmed = status === "Confirmed"
   return (
@@ -129,6 +140,7 @@ export default function MyParty() {
             <Button onClick={() => navigate("/party/signin")}>Sign in</Button>
             <Button variant="ghost" onClick={() => navigate("/party/signup")}>Create account</Button>
           </div>
+          <RecommendedStub className="mt-8" />
         </Body>
       </AppShell>
     )
@@ -178,6 +190,7 @@ export default function MyParty() {
         >
           Sign out
         </Button>
+        <RecommendedStub className="mt-8" />
       </Body>
     </AppShell>
   )

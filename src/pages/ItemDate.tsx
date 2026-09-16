@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { ItemWhen } from "@/components/go/ItemWhen"
-import { fmt } from "@/data/catalog"
+import { CartItems } from "@/components/go/CartItems"
 import { useBooking } from "@/state/booking"
 import { useCustomer } from "@/state/customer"
 
@@ -19,30 +19,24 @@ export default function ItemDate() {
   const { customer } = useCustomer()
   const [available, setAvailable] = useState(false)
 
-  if (b.items.length === 0 || b.items[0].id !== id) return <Navigate to="/home" replace />
+  // The route carries the first item's id. If that item was just removed,
+  // the URL follows the new first item rather than bouncing out.
+  // An empty cart goes back to Browse; the guard does it, so removing the
+  // last item needs no navigation of its own.
+  if (b.items.length === 0) return <Navigate to="/browse" replace />
+  if (b.items[0].id !== id) return <Navigate to={`/item/${b.items[0].id}`} replace />
   const items = b.items
   const timeSettled = b.itemTime !== null || b.itemTimeLater
+
+  const removeItem = (rid: string) => b.set("items", items.filter((i) => i.id !== rid))
 
   return (
     <AppShell>
       <Body>
         <GoLabel>{items.length === 1 ? "Just this" : "Just these"} · Step 1 of {customer ? 2 : 3}</GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">When do you need {items.length === 1 ? "it" : "them"}?</h1>
-        <div className="mt-3.5 grid gap-2">
-          {items.map((item) => (
-            <div key={item.id} className="flex items-center justify-between gap-3 rounded-[14px] border border-line bg-white px-4 py-3.5">
-              <div className="min-w-0">
-                <b className="block text-sm text-charcoal">{item.name}</b>
-                <small className="block text-small text-muted">{item.category}</small>
-              </div>
-              {item.price !== null && (
-                <div className="flex-none text-right">
-                  <b className="block text-price text-charcoal">{fmt(item.price)}</b>
-                  {item.priceUnit && <small className="block text-[11px] text-muted">{item.priceUnit}</small>}
-                </div>
-              )}
-            </div>
-          ))}
+        <div className="mt-3.5">
+          <CartItems items={items} onRemove={removeItem} showTotal={items.length > 1} />
         </div>
         <ItemWhen
           items={items}

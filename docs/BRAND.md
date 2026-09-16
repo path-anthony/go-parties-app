@@ -95,7 +95,9 @@ Bank (use these, extend in this register)
 - Welcome headline: Your party, built in two minutes.
 - Welcome body: Pick the occasion. We build it from what's actually in the warehouse. You tweak it. We show up.
 - Sign in: Welcome in. / No password. We text you a link.
-- Home: What are we celebrating? / Not sure? Describe the party. / Pick a day. See what's open. (browse row, right label Browse) / What kind (label) / Recommended for Birthday (label, the sub-occasion) / Continue
+- Home: What are we celebrating? / Ask GO (label) / The AI event builder. / Tell it the party. It builds one from what's actually in the warehouse, real items, real prices. / Build it with Ask GO / Build your own. Pick a day, add what's open. (row, right label Build) / Or pick the occasion (label) / What kind (label) / Recommended for Birthday (label, the sub-occasion) / Continue
+- My party, recommended stub: Recommended for you / Book a few things and picks for you show up here.
+- Cart rows (every checkout step): trash can per item, aria "Remove {item}" / Total
 - Browse: Pick a day. See what's open. / Tap a day. We show only what's open. / Open Sat Dec 5 (label) / 12 items / Bounce house, DJ, snow cones (placeholder) / All (category chip) / Checking the calendar. / Nothing open by that name Sat Dec 5. Try another word, or another day. / 2 open / Add / Added / Text us for a price
 - Cart: 3 items · Sat Dec 5 (sticky line) / 1 not open / Check out / In the cart / Nothing in it yet. / Remove / Total / Snow Cone Station isn't open Sat Dec 5. / Not open Sat Dec 5. Remove it or pick another day.
 - Menu: Menu / Signed in as / My party / Sign in / Create account / Sign out
