@@ -8,16 +8,18 @@ import { GoLabel } from "@/components/go/GoLabel"
 import { MetaCard } from "@/components/go/MetaCard"
 import { labelForIso } from "@/lib/availability"
 import { bookDirect, type DirectReason } from "@/lib/adminApi"
+import { directInput } from "@/lib/directInput"
 import { itemClock as clockFor } from "@/data/catalog"
 import { useBooking } from "@/state/booking"
 import { useCustomer } from "@/state/customer"
 
-/* Direct item booking, step 2 of 2. Name, phone and email are the hard line,
+/* Direct item booking, step 2. Name, phone and email are the hard line,
    always required, never skippable. Signed in, they come from the account
-   and aren't asked again (only a name, if the account has none yet).
+   and aren't asked again (only a name, if the account has none yet), and
+   this is the last step: "Hold my date" posts here. A guest goes on to the
+   account step (make one, or continue as a guest) before the date is held.
    Address is plain text, no validation service, skippable with the "Add the
-   address later" switch. Then one POST that locks a unit on the admin side.
-   No payment in this pass. A 409 from the race (someone took the last unit
+   address later" switch. A 409 from the race (someone took the last unit
    between the check and this tap) is shown as the server says it, with a
    way back to the calendar, never a generic error. */
 
@@ -44,20 +46,18 @@ export default function ItemWho() {
   const nameSettled = needsName ? b.contactName.trim() !== "" : true
   const canSubmit = nameSettled && contactSettled && addressSettled && !submitting
 
+  const steps = onFile ? 2 : 3
+
   const submit = async () => {
     if (!canSubmit) return
+    if (!onFile) {
+      navigate(`/item/${firstId}/account`)
+      return
+    }
     setSubmitting(true)
     setNotice(null)
     try {
-      const result = await bookDirect({
-        itemIds: items.map((i) => i.id),
-        eventDate: iso,
-        customerName: needsName ? b.contactName.trim() : null,
-        phone: onFile ? null : b.phone.trim(),
-        email: onFile ? null : b.email.trim(),
-        address: b.addressLater ? null : b.address.trim() || null,
-        eventTime: clockFor(b.itemTime),
-      })
+      const result = await bookDirect(directInput(b, customer))
       if (result.ok) {
         b.set("direct", result.booking)
         navigate("/item/held")
@@ -77,7 +77,7 @@ export default function ItemWho() {
   return (
     <AppShell>
       <Body>
-        <GoLabel>{items.length === 1 ? "Just this" : "Just these"} · Step 2 of 2</GoLabel>
+        <GoLabel>{items.length === 1 ? "Just this" : "Just these"} · Step 2 of {steps}</GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">Who's booking?</h1>
         <p className="mt-2 text-body text-charcoal-soft">
           {onFile ? "We've got your details. Just the address." : "Name, phone, and email. That's it."}
@@ -174,7 +174,7 @@ export default function ItemWho() {
       </Body>
       <Foot>
         <Button variant="ghost" onClick={() => navigate(`/item/${firstId}`)}>Back</Button>
-        <Button disabled={!canSubmit} onClick={submit}>Hold my date</Button>
+        <Button disabled={!canSubmit} onClick={submit}>{onFile ? "Hold my date" : "Next"}</Button>
       </Foot>
     </AppShell>
   )

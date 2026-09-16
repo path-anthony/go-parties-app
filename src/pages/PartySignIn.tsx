@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
@@ -12,6 +12,9 @@ import { useCustomer } from "@/state/customer"
 
 export default function PartySignIn() {
   const navigate = useNavigate()
+  const location = useLocation()
+  // A booking in progress can send someone here to sign in and come back.
+  const returnTo = typeof (location.state as { returnTo?: unknown } | null)?.returnTo === "string" ? (location.state as { returnTo: string }).returnTo : "/party"
   const { setCustomer } = useCustomer()
   const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
@@ -29,7 +32,7 @@ export default function PartySignIn() {
     setBusy(false)
     if (result.ok) {
       setCustomer(result.data.customer)
-      navigate("/party")
+      navigate(returnTo)
       return
     }
     setNotice(result.message)

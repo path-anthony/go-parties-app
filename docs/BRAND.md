@@ -118,7 +118,8 @@ Bank (use these, extend in this register)
 - Portal change item: Something else instead? / Tell Ask GO what you'd rather have, then tap Switch to this on the item. Same date. / What would you rather have? / Switch to this / Switched.
 - Item held: Sat Oct 10 is yours. Contract and deposit link are on their way to your phone.
 - Item, fill in later: Decide later (time chip, sub "No rush") / Add the address later. We'll text you for it. / Where: We'll text you for it
-- Item CTA: Just this / Just these (2) / Hold my date / Pick another date / Done
+- Item account step (guests only): Make an account? / Sign in later to move it or cancel it. No account needed either way. / Create account (chip, sub "Phone, email, a password") / Continue as guest (chip, sub "No account needed")
+- Item CTA: Just this / Just these (2) / Next / Hold my date / Pick another date / Done
 - Items together: When do you need them? / Snow Cone Station: Open, 2 of 2. / Test Gladiator Bounce House: Booked solid that day. / Try another date.
 
 Don't
