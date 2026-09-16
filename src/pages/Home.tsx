@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Search } from "lucide-react"
 import { AppShell, Body } from "@/components/go/AppShell"
@@ -8,21 +9,26 @@ import { Chip } from "@/components/go/Chip"
 import { Reveal } from "@/components/go/DatePicker"
 import { AskCard } from "@/components/go/AskCard"
 import { Rail } from "@/components/go/Rail"
-import { RailCard } from "@/components/go/RailCard"
+import { PackageCard } from "@/components/go/PackageCard"
 import { Button } from "@/components/ui/button"
-import { useBooking } from "@/state/booking"
+import { publicPackages, type PublicPackage } from "@/lib/adminApi"
+import { useBooking, type DirectItem } from "@/state/booking"
 import { useCustomer } from "@/state/customer"
 import { useAsk } from "@/state/ask"
-import { NEXT_OPEN, OCC, SUB_OCC, occOf, recsFor, type OccasionId, type Pkg } from "@/data/catalog"
+import { OCC, SUB_OCC, type OccasionId } from "@/data/catalog"
 
 /* Home, one continuous screen at both "/" and "/home". The photo carousel
    sits on top (the old Welcome hero; its value props now ride the captions),
    then the greeting and the three doors in this order: Ask GO as a card (the
    AI event builder), the Build-your-own row (date first, then a cart,
-   /browse), and the occasion cards (sub-occasion chips reveal beneath, then a
-   rail scoped to that pick, then Continue). No gate in front of any of it;
-   sign in lives in the header menu and on My party. "Recommended for you"
-   lives on My party. Nothing here overlays anything else. */
+   /browse), and the occasion cards (sub-occasion chips reveal beneath, then
+   the packages the admin has published for that sub-occasion, live from
+   GET /api/packages/public, then Continue). A package is a pre-filled cart
+   of its real items: tapping one hands them to the same /item/:id checkout
+   every other door uses. No packages for a sub-occasion says so plainly.
+   No gate in front of any of it; sign in lives in the header menu and on
+   My party. "Recommended for you" lives on My party. Nothing here overlays
+   anything else. */
 
 const HERO_SLIDES: Slide[] = [
   {
@@ -46,18 +52,47 @@ const HERO_SLIDES: Slide[] = [
   },
 ]
 
+type Packages = { status: "loading" } | { status: "ready"; list: PublicPackage[] } | { status: "failed" }
+
 export default function Home() {
   const navigate = useNavigate()
-  const { occ, subOcc, pick, jump, set } = useBooking()
+  const { occ, subOcc, pick, pickItems, set } = useBooking()
   const { customer } = useCustomer()
   const { openAsk } = useAsk()
-  const scoped = occ && subOcc ? recsFor(occ, subOcc) : []
+  const [packages, setPackages] = useState<Packages | null>(null)
   const first = customer?.name?.trim().split(/\s+/)[0]
   const greeting = first ? `Hey ${first}` : "Hey there"
 
-  const openPackage = (p: Pkg) => {
-    jump(occOf(p), p.id)
-    navigate("/book/package")
+  // Live packages for the tapped sub-occasion, and nothing else: the reveal
+  // is empty until the admin answers, and shows only what it answered.
+  useEffect(() => {
+    if (!subOcc) {
+      setPackages(null)
+      return
+    }
+    const controller = new AbortController()
+    setPackages({ status: "loading" })
+    publicPackages(subOcc, controller.signal)
+      .then((list) => setPackages({ status: "ready", list }))
+      .catch((err) => {
+        if ((err as { name?: string }).name !== "AbortError") setPackages({ status: "failed" })
+      })
+    return () => controller.abort()
+  }, [subOcc])
+
+  // The package is its items. The cart carries each item once; the direct
+  // booking holds one unit per item.
+  const openPackage = (p: PublicPackage) => {
+    const items: DirectItem[] = p.items.map((i) => ({
+      id: i.itemId,
+      name: i.name,
+      category: i.category,
+      price: i.price,
+      priceUnit: i.priceUnit,
+    }))
+    if (items.length === 0) return
+    pickItems(items)
+    navigate(`/item/${items[0].id}`)
   }
 
   return (
@@ -94,13 +129,20 @@ export default function Home() {
               ))}
           </div>
         </Reveal>
-        <Reveal open={scoped.length > 0} className="mt-5">
-          <GoLabel>Recommended for {subOcc}</GoLabel>
-          <Rail>
-            {scoped.map((p) => (
-              <RailCard key={p.id} pkg={p} nextOpen={NEXT_OPEN[occOf(p)]} onClick={() => openPackage(p)} />
-            ))}
-          </Rail>
+        <Reveal open={!!subOcc && packages !== null} className="mt-5">
+          <GoLabel>Packages for {subOcc}</GoLabel>
+          {packages?.status === "loading" && <p className="mt-2 text-body text-muted">Finding packages.</p>}
+          {packages?.status === "failed" && <p className="mt-2 text-body text-charcoal">That didn't go through. Try again, or text us.</p>}
+          {packages?.status === "ready" && packages.list.length === 0 && (
+            <p className="mt-2 text-body text-charcoal-soft">No packages for {subOcc} yet. Ask GO can build one, or build your own.</p>
+          )}
+          {packages?.status === "ready" && packages.list.length > 0 && occ && (
+            <Rail>
+              {packages.list.map((p) => (
+                <PackageCard key={p.id} pkg={p} plate={OCC[occ].plate} onClick={() => openPackage(p)} />
+              ))}
+            </Rail>
+          )}
         </Reveal>
         {occ && (
           <Button className="mt-3.5 w-full" onClick={() => navigate("/book/date")}>

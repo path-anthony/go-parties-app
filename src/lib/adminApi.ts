@@ -109,3 +109,34 @@ export async function bookDirect(input: {
   const reason: DirectReason = data.reason === "unavailable" || data.reason === "not-tracked" ? data.reason : "error"
   return { ok: false, reason, message: typeof data.error === "string" ? data.error : FALLBACK }
 }
+
+/* Published packages for one sub-occasion, as the admin exposes them: a
+   curated bundle of real catalog items with one manual price (not a sum).
+   The storefront treats a package as a pre-filled cart of its items. */
+export interface PublicPackageItem {
+  itemId: string
+  name: string
+  category: string
+  price: number | null
+  priceUnit: string | null
+  quantity: number
+}
+
+export interface PublicPackage {
+  id: string
+  name: string
+  description: string | null
+  price: number
+  theme: string | null
+  occasion: string
+  photoUrl: string | null
+  items: PublicPackageItem[]
+}
+
+export async function publicPackages(occasion: string, signal?: AbortSignal): Promise<PublicPackage[]> {
+  const params = new URLSearchParams({ occasion })
+  const res = await fetch(`${ADMIN_API}/api/packages/public?${params}`, { signal })
+  if (!res.ok) throw new Error(`packages ${res.status}`)
+  const data = (await res.json()) as { packages: PublicPackage[] }
+  return data.packages
+}
