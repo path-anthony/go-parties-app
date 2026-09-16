@@ -81,8 +81,8 @@ export default function Browse() {
   }, [iso, openIds, cart])
 
   const inCart = (id: string) => cart.some((i) => i.id === id)
-  const add = (item: PublicItem) => b.set("items", inCart(item.id) ? cart.filter((i) => i.id !== item.id) : [...cart, toDirect(item)])
-  const remove = (id: string) => b.set("items", cart.filter((i) => i.id !== id))
+  const add = (item: PublicItem) => b.setItems(inCart(item.id) ? cart.filter((i) => i.id !== item.id) : [...cart, toDirect(item)])
+  const remove = (id: string) => b.setItems(cart.filter((i) => i.id !== id))
   const total = cart.reduce((sum, i) => sum + (i.price ?? 0), 0)
   const checkout = () => {
     if (cart.length === 0 || unavailable.size > 0) return

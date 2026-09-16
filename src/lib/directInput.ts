@@ -11,6 +11,7 @@ export function directInput(b: BookingState, customer: Customer | null) {
   const needsName = !customer?.name
   return {
     itemIds: b.items.map((i) => i.id),
+    packageId: b.bundle?.id ?? null,
     eventDate: b.itemDate ?? "",
     customerName: needsName ? b.contactName.trim() || null : null,
     phone: onFile ? null : b.phone.trim(),

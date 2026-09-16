@@ -16,6 +16,8 @@ import { ITEM_TIMES } from "@/data/catalog"
 export interface WhenItem {
   id: string
   name: string
+  /* Units needed that day; missing means one. */
+  quantity?: number
 }
 
 type Check = { iso: string; state: "loading" | "done" | "error"; results?: Availability[] }
@@ -33,7 +35,8 @@ export interface ItemWhenProps {
   onAvailable: (available: boolean) => void
 }
 
-const isOpen = (r: Availability) => r.directBooking && r.available
+const needOf = (item: WhenItem) => item.quantity ?? 1
+const isOpen = (r: Availability, need = 1) => r.directBooking && r.available && (r.freeUnits ?? 1) >= need
 
 export function ItemWhen({ items, month, onMonth, iso, onIso, time, onTime, timeLater, onTimeLater, onAvailable }: ItemWhenProps) {
   const [check, setCheck] = useState<Check | null>(null)
@@ -64,7 +67,7 @@ export function ItemWhen({ items, month, onMonth, iso, onIso, time, onTime, time
   const selectedKey = days.find((d) => d.iso === iso)?.key ?? null
   const current = check && check.iso === iso ? check : null
   const results = current?.state === "done" ? (current.results ?? []) : []
-  const available = current?.state === "done" && results.length === items.length && results.every(isOpen)
+  const available = current?.state === "done" && results.length === items.length && results.every((r, i) => isOpen(r, needOf(items[i])))
 
   useEffect(() => {
     onAvailable(available)
@@ -88,13 +91,15 @@ export function ItemWhen({ items, month, onMonth, iso, onIso, time, onTime, time
           {current?.state === "loading" && <span className="text-muted">Checking the calendar.</span>}
           {current?.state === "error" && "That didn't go through. Try again, or text us."}
           {current?.state === "done" && single && results[0] && !results[0].directBooking && results[0].message}
-          {current?.state === "done" && single && results[0] && isOpen(results[0]) && (
+          {current?.state === "done" && single && results[0] && isOpen(results[0], needOf(items[0])) && (
             <span className="flex items-center gap-2.5">
               <i className="inline-block size-1.5 flex-none rounded-full bg-good" />
               Open. {results[0].freeUnits} of {results[0].totalUnits} ready.
             </span>
           )}
           {current?.state === "done" && single && results[0]?.directBooking && !results[0].available && "Booked solid that day. Try another date."}
+          {current?.state === "done" && single && results[0]?.directBooking && results[0].available && !isOpen(results[0], needOf(items[0])) &&
+            `Only ${results[0].freeUnits} open that day, this needs ${needOf(items[0])}. Try another date.`}
           {current?.state === "done" && !single && (
             <div className="space-y-1.5">
               {items.map((item, i) => {
@@ -102,9 +107,17 @@ export function ItemWhen({ items, month, onMonth, iso, onIso, time, onTime, time
                 if (!r) return null
                 return (
                   <div key={item.id} className="flex items-start gap-2.5">
-                    <i className={`mt-[7px] inline-block size-1.5 flex-none rounded-full ${isOpen(r) ? "bg-good" : "bg-line"}`} />
+                    <i className={`mt-[7px] inline-block size-1.5 flex-none rounded-full ${isOpen(r, needOf(item)) ? "bg-good" : "bg-line"}`} />
                     <span>
-                      {item.name}: {!r.directBooking ? r.message : r.available ? `Open, ${r.freeUnits} of ${r.totalUnits}.` : "Booked solid that day."}
+                      {item.name}
+                      {needOf(item) > 1 ? ` x ${needOf(item)}` : ""}:{" "}
+                      {!r.directBooking
+                        ? r.message
+                        : !r.available
+                          ? "Booked solid that day."
+                          : isOpen(r, needOf(item))
+                            ? `Open, ${r.freeUnits} of ${r.totalUnits}.`
+                            : `Only ${r.freeUnits} open, this needs ${needOf(item)}.`}
                     </span>
                   </div>
                 )

@@ -49,7 +49,7 @@ export default function ItemAccount() {
   const when = clock ? `${labelForIso(iso)}, ${clock}` : labelForIso(iso)
   const busy = signingUp || booking
 
-  const removeItem = (rid: string) => b.set("items", b.items.filter((i) => i.id !== rid))
+  const removeItem = (rid: string) => b.setItems(b.items.filter((i) => i.id !== rid))
   const canHold = !busy && (choice === "guest" || (choice === "account" && canSignUp(values)))
 
   const hold = async () => {
@@ -90,7 +90,7 @@ export default function ItemAccount() {
           <MetaCard label="When" value={when} />
         </div>
         <div className="mt-2">
-          <CartItems items={b.items} onRemove={removeItem} showTotal={b.items.length > 1} />
+          <CartItems items={b.items} bundle={b.bundle} onRemove={removeItem} showTotal={b.items.length > 1 || b.bundle !== null} />
         </div>
         <div className="mt-3.5 grid grid-cols-2 gap-2">
           <Chip selected={choice === "account"} sub="Phone, email, a password" onClick={() => setChoice("account")}>

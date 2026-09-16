@@ -6,6 +6,7 @@ import { MetaCard } from "@/components/go/MetaCard"
 import { LineItems } from "@/components/go/LineItems"
 import { labelForIso } from "@/lib/availability"
 import { bookedNames } from "@/lib/adminApi"
+import { cartTotal, lineTotal, qtyOf } from "@/components/go/CartItems"
 import { useBooking } from "@/state/booking"
 import { itemClock as clockFor } from "@/data/catalog"
 
@@ -24,9 +25,11 @@ export default function ItemHeld() {
   const when = clock ? `${day}, ${clock}` : day
   const where = b.addressLater || b.address.trim() === "" ? "We'll text you for it" : b.address.trim()
   const names = bookedNames(direct)
-  const priced = items.filter((i): i is typeof i & { price: number } => i.price !== null)
-  const lines: [string, number][] = priced.map((i) => [i.name, i.price])
-  const total = priced.reduce((sum, i) => sum + i.price, 0)
+  const priced = items.filter((i) => i.price !== null)
+  const lines: [string, number][] = priced.map((i) => [qtyOf(i) > 1 ? `${i.name} x ${qtyOf(i)}` : i.name, lineTotal(i)])
+  // The admin's total is the truth (the package's bundle price, or the
+  // items times quantity); the cart's own sum only fills in if it's absent.
+  const total = direct.total ?? cartTotal(items, b.bundle)
 
   return (
     <AppShell>
@@ -47,7 +50,7 @@ export default function ItemHeld() {
         </div>
         {lines.length > 0 && (
           <div className="mt-2.5 text-left">
-            <LineItems lines={lines} total={total} />
+            <LineItems lines={lines} total={total} note={b.bundle ? `Package price, ${b.bundle.name}.` : undefined} />
           </div>
         )}
         <p className="mt-4 text-small text-muted">
@@ -58,7 +61,7 @@ export default function ItemHeld() {
         <Button
           onClick={() => {
             // The booking is made; an emptied cart means Browse starts clean.
-            b.set("items", [])
+            b.setItems([])
             b.set("direct", null)
             navigate("/home")
           }}

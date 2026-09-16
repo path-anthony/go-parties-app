@@ -7,13 +7,24 @@ import type { DirectBooking } from "@/lib/adminApi"
    direct item path (item, itemMonth, itemDate, contactName, contact, direct)
    lives here too so one refresh rule applies everywhere. */
 
-/* One admin catalog item, as returned inside an Ask GO recommendation. */
+/* One admin catalog item, as returned inside an Ask GO recommendation or a
+   package. quantity is how many units to hold; missing means one. */
 export interface DirectItem {
   id: string
   name: string
   category: string
   price: number | null
   priceUnit: string | null
+  quantity?: number
+}
+
+/* The package a cart came from, when it did. Its bundle price is the total
+   and its id travels with the booking. Any change to the cart's items
+   clears it: a package with something added or removed is not the package. */
+export interface Bundle {
+  id: string
+  name: string
+  price: number
 }
 
 export interface BookingState {
@@ -34,6 +45,7 @@ export interface BookingState {
   water: boolean
   held: boolean
   items: DirectItem[]
+  bundle: Bundle | null
   itemMonth: number
   itemDate: string | null
   itemTime: string | null
@@ -65,6 +77,7 @@ const INITIAL: BookingState = {
   water: true,
   held: false,
   items: [],
+  bundle: null,
   itemMonth: 0,
   itemDate: null,
   itemTime: null,
@@ -81,7 +94,8 @@ const INITIAL: BookingState = {
 interface BookingApi extends BookingState {
   set: <K extends keyof BookingState>(key: K, value: BookingState[K]) => void
   pick: (occ: OccasionId) => void
-  pickItems: (items: DirectItem[]) => void
+  pickItems: (items: DirectItem[], bundle?: Bundle) => void
+  setItems: (items: DirectItem[]) => void
   jump: (occ: OccasionId, id: string) => void
   suggest: () => void
   swapPkg: (id: string) => void
@@ -102,8 +116,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       set,
       pick: (occ) =>
         setS((prev) => ({ ...prev, occ, subOcc: null, date: null, time: null, guests: null, budget: null, pkg: null, addons: {}, swaps: {}, month: 0 })),
-      pickItems: (items) =>
-        setS((prev) => ({ ...prev, items, itemMonth: 0, itemDate: null, itemTime: null, itemTimeLater: false, direct: null })),
+      pickItems: (items, bundle) =>
+        setS((prev) => ({ ...prev, items, bundle: bundle ?? null, itemMonth: 0, itemDate: null, itemTime: null, itemTimeLater: false, direct: null })),
+      setItems: (items) => setS((prev) => ({ ...prev, items, bundle: null })),
       jump: (occ, id) =>
         setS((prev) => ({ ...prev, occ, pkg: PKGS[occ].find((p) => p.id === id) ?? null, addons: {}, swaps: {} })),
       suggest: () =>

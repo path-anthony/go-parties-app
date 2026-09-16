@@ -97,7 +97,7 @@ Bank (use these, extend in this register)
 - Sign in: see Portal sign in. There is no gate; it lives in the Menu and on My party.
 - Home: What are we celebrating? / Ask GO (label) / The AI event builder. / Tell it the party. It builds one from what's actually in the warehouse, real items, real prices. / Build it with Ask GO / Build your own. Pick a day, add what's open. (row, right label Build) / Or pick the occasion (label) / What kind (label) / Packages for Birthday (label, the sub-occasion) / Finding packages. / No packages for Birthday yet. Ask GO can build one, or build your own. / 3 items, all real (card line) / Continue
 - My party, recommended stub: Recommended for you / Book a few things and picks for you show up here.
-- Cart rows (every checkout step): trash can per item, aria "Remove {item}" / Total
+- Cart rows (every checkout step): trash can per item, aria "Remove {item}" / Snow Cone Station x 2 (quantity on the row) / Total / Package price, Backyard Bash. (under the total when the cart is a package)
 - Browse: Pick a day. See what's open. / Tap a day. We show only what's open. / Open Sat Dec 5 (label) / 12 items / Bounce house, DJ, snow cones (placeholder) / All (category chip) / Checking the calendar. / Nothing open by that name Sat Dec 5. Try another word, or another day. / 2 open / Add / Added / Text us for a price
 - Cart: 3 items · Sat Dec 5 (sticky line) / 1 not open / Check out / In the cart / Nothing in it yet. / Remove / Total / Snow Cone Station isn't open Sat Dec 5. / Not open Sat Dec 5. Remove it or pick another day.
 - Menu: Menu / Signed in as / My party / Sign in / Create account / Sign out
@@ -114,7 +114,7 @@ Bank (use these, extend in this register)
 - Held: Held. You're good.
 - Empty: Nothing here yet. Build a party and it'll live here.
 - Error: That didn't go through. Try again, or text us.
-- Item (direct booking): When do you need it? / Tap a day. We check the calendar live. / Checking the calendar. / Open. 2 of 2 ready. / Booked solid that day. Try another date. / Who's booking? / Name, phone, and email. That's it. / Signed in: We've got your details. Just the address. / Booking as / Nothing to pay right now. Contract and deposit link come by text.
+- Item (direct booking): When do you need it? / Tap a day. We check the calendar live. / Checking the calendar. / Open. 2 of 2 ready. / Booked solid that day. Try another date. / Only 1 open that day, this needs 2. Try another date. / Only 1 open, this needs 2. (per-item line) / Who's booking? / Name, phone, and email. That's it. / Signed in: We've got your details. Just the address. / Booking as / Nothing to pay right now. Contract and deposit link come by text.
 - Portal, signed out: Your bookings live here. / Sign in and they'll show up. / Sign in / Create account
 - Portal sign in: Welcome in. / Phone or email, then your password. / New here? Create an account
 - Portal sign up: New here. / Phone, email, a password. That's it. / 8 characters or more. / Have an account? Sign in

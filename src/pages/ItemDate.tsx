@@ -28,7 +28,7 @@ export default function ItemDate() {
   const items = b.items
   const timeSettled = b.itemTime !== null || b.itemTimeLater
 
-  const removeItem = (rid: string) => b.set("items", items.filter((i) => i.id !== rid))
+  const removeItem = (rid: string) => b.setItems(items.filter((i) => i.id !== rid))
 
   return (
     <AppShell>
@@ -36,7 +36,7 @@ export default function ItemDate() {
         <GoLabel>{items.length === 1 ? "Just this" : "Just these"} · Step 1 of {customer ? 2 : 3}</GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">When do you need {items.length === 1 ? "it" : "them"}?</h1>
         <div className="mt-3.5">
-          <CartItems items={items} onRemove={removeItem} showTotal={items.length > 1} />
+          <CartItems items={items} bundle={b.bundle} onRemove={removeItem} showTotal={items.length > 1 || b.bundle !== null} />
         </div>
         <ItemWhen
           items={items}

@@ -58,13 +58,19 @@ export interface DirectBooking {
   eventDate: string
   status: string
   depositPaid: boolean
+  /* What the admin quoted: the package's bundle price, or the items times
+     quantity. Null when nothing had a price. */
+  total: number | null
+  packageId: string | null
+  package: { id: string; name: string; price: number } | null
   item?: { id: string; name: string }
   unit?: { id: string; label: string }
+  /* One entry per unit held, so an item wanted twice appears twice. */
   items?: Array<{ id: string; name: string; unit: { id: string; label: string } }>
 }
 
 export const bookedNames = (b: DirectBooking): string[] =>
-  b.items ? b.items.map((i) => i.name) : b.item ? [b.item.name] : []
+  b.items ? [...new Set(b.items.map((i) => i.name))] : b.item ? [b.item.name] : []
 
 export type DirectReason = "unavailable" | "not-tracked" | "error"
 
@@ -79,9 +85,13 @@ const FALLBACK = "That didn't go through. Try again, or text us."
    credentials: "include" carries the customer_session cookie so the booking
    attaches to the account. One item goes as itemId (the original contract);
    two or more go only as itemIds, so an admin without multi-item support
-   refuses the whole request instead of quietly booking the first one. */
+   refuses the whole request instead of quietly booking the first one.
+   packageId goes along when the cart is a package as published: the admin
+   checks the items match, holds the package's quantities, and charges its
+   bundle price. */
 export async function bookDirect(input: {
   itemIds: string[]
+  packageId: string | null
   eventDate: string
   customerName: string | null
   phone: string | null
@@ -89,10 +99,11 @@ export async function bookDirect(input: {
   address: string | null
   eventTime: string | null
 }): Promise<DirectResult> {
-  const { customerName, phone, email, itemIds, ...rest } = input
+  const { customerName, phone, email, itemIds, packageId, ...rest } = input
   const body: Record<string, unknown> = { ...rest }
   if (itemIds.length === 1) body.itemId = itemIds[0]
   else body.itemIds = itemIds
+  if (packageId) body.packageId = packageId
   if (customerName) body.customerName = customerName
   if (phone && email) {
     body.phone = phone

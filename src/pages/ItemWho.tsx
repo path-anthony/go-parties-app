@@ -50,7 +50,7 @@ export default function ItemWho() {
 
   const steps = onFile ? 2 : 3
 
-  const removeItem = (rid: string) => b.set("items", items.filter((i) => i.id !== rid))
+  const removeItem = (rid: string) => b.setItems(items.filter((i) => i.id !== rid))
 
   const submit = async () => {
     if (!canSubmit) return
@@ -90,7 +90,7 @@ export default function ItemWho() {
           <MetaCard label="When" value={when} />
         </div>
         <div className="mt-2">
-          <CartItems items={items} onRemove={removeItem} showTotal={items.length > 1} />
+          <CartItems items={items} bundle={b.bundle} onRemove={removeItem} showTotal={items.length > 1 || b.bundle !== null} />
         </div>
         {onFile && customer && (
           <div className="mt-3.5 rounded-[14px] border border-line bg-white px-4 py-3.5">

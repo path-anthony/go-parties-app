@@ -80,8 +80,8 @@ export default function Home() {
     return () => controller.abort()
   }, [subOcc])
 
-  // The package is its items. The cart carries each item once; the direct
-  // booking holds one unit per item.
+  // The package is its items, each with its quantity, plus the bundle: the
+  // admin holds that many units of each and charges the bundle price.
   const openPackage = (p: PublicPackage) => {
     const items: DirectItem[] = p.items.map((i) => ({
       id: i.itemId,
@@ -89,9 +89,10 @@ export default function Home() {
       category: i.category,
       price: i.price,
       priceUnit: i.priceUnit,
+      quantity: i.quantity,
     }))
     if (items.length === 0) return
-    pickItems(items)
+    pickItems(items, { id: p.id, name: p.name, price: p.price })
     navigate(`/item/${items[0].id}`)
   }
 
