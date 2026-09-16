@@ -11,4 +11,12 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Production serves dist/ through `npm start` (vite preview). It is a single
+  // page app, so every path has to fall back to index.html for React Router;
+  // preview does that on its own. Railway fronts it with its own hostname, so
+  // the host check is off, or every request there is refused.
+  preview: {
+    host: true,
+    allowedHosts: true,
+  },
 })

@@ -15,9 +15,9 @@ import { useAsk } from "@/state/ask"
    more air; no desktop layout. */
 
 function activeTab(path: string): NavTab | null {
-  if (path === "/home") return "home"
+  if (path === "/" || path === "/home") return "home"
   if (path.startsWith("/party")) return "party"
-  if (path === "/" || path === "/signin" || path === "/browse") return null
+  if (path === "/browse") return null
   return "book"
 }
 

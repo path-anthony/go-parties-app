@@ -3,15 +3,19 @@ import { cn } from "@/lib/utils"
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel"
 import { SCRIM } from "@/components/go/PhotoPlate"
 
-/* Welcome hero carousel. Real photos replace the placeholder plate: BRAND.md
+/* Home hero carousel. Real photos replace the placeholder plate: BRAND.md
    section 6's "Photo treatment" (bottom gradient to charcoal at 72%) is all
    that carries over, not the placeholder-only corner marks, texture, or spec
-   line. Auto-advances, pauses while the user is dragging, dot indicators. */
+   line. Auto-advances, pauses while the user is dragging, dot indicators.
+   Each slide can carry its own caption (eyebrow and title); the component
+   level eyebrow and title are the fallback for slides without one. */
 
-interface Slide {
+export interface Slide {
   src: string
   alt: string
   position?: string
+  eyebrow?: string
+  title?: string
 }
 
 const AUTOPLAY_MS = 4500
@@ -60,6 +64,10 @@ export function HeroCarousel({
     return () => clearInterval(id)
   }, [api, paused])
 
+  const current = slides[selected]
+  const captionEyebrow = current?.eyebrow ?? eyebrow
+  const captionTitle = current?.title ?? title
+
   return (
     <div className="relative aspect-[4/5] overflow-hidden rounded-[14px]">
       <Carousel setApi={setApi} className="h-full">
@@ -78,8 +86,11 @@ export function HeroCarousel({
             <span key={s.src} className={cn("h-1.5 rounded-full transition-all duration-300", i === selected ? "w-4 bg-white" : "w-1.5 bg-white/40")} />
           ))}
         </div>
-        {eyebrow && <small className="mb-[3px] block text-[10px] font-bold tracking-[.14em] opacity-80">{eyebrow}</small>}
-        {title && <b className="block text-lg leading-[1.1] font-black">{title}</b>}
+        {/* Keyed on the slide so the caption re-mounts and fades in with each advance. */}
+        <div key={selected} className="rise">
+          {captionEyebrow && <small className="mb-[3px] block text-[10px] font-bold tracking-[.14em] opacity-80">{captionEyebrow}</small>}
+          {captionTitle && <b className="block text-lg leading-[1.1] font-black">{captionTitle}</b>}
+        </div>
       </div>
     </div>
   )

@@ -2,8 +2,6 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { BookingProvider } from "@/state/booking"
 import { CustomerProvider } from "@/state/customer"
 import { AskProvider } from "@/state/ask"
-import Welcome from "@/pages/Welcome"
-import SignIn from "@/pages/SignIn"
 import Home from "@/pages/Home"
 import Browse from "@/pages/Browse"
 import BookDate from "@/pages/BookDate"
@@ -32,9 +30,11 @@ function App() {
       <BrowserRouter>
         <AskProvider>
           <Routes>
-            <Route path="/" element={<Welcome />} />
-            <Route path="/signin" element={<SignIn />} />
+            {/* Welcome and Home are one screen; both paths render it so old links keep working. */}
+            <Route path="/" element={<Home />} />
             <Route path="/home" element={<Home />} />
+            {/* The old click-through gate is gone; sign in is the portal's. */}
+            <Route path="/signin" element={<Navigate to="/party/signin" replace />} />
             <Route path="/browse" element={<Browse />} />
             <Route path="/book/date" element={<BookDate />} />
             <Route path="/book/budget" element={<BookBudget />} />

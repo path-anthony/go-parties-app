@@ -92,9 +92,9 @@ Punctuation and format
 - Times as 10 AM, 2 PM. Dates as Sat Sep 13.
 
 Bank (use these, extend in this register)
-- Welcome headline: Your party, built in two minutes.
-- Welcome body: Pick the occasion. We build it from what's actually in the warehouse. You tweak it. We show up.
-- Sign in: Welcome in. / No password. We text you a link.
+- Hero captions (Home carousel): FARMINGTON, CT / Party on. We'll handle it. / REAL DATES / If you can pick it, we can make it. / DOOR TO DOOR / Delivery, setup, the fun, teardown.
+- Greeting (label): Hey Sarah (signed in, first name) / Hey there (signed out, or no name on the account)
+- Sign in: see Portal sign in. There is no gate; it lives in the Menu and on My party.
 - Home: What are we celebrating? / Ask GO (label) / The AI event builder. / Tell it the party. It builds one from what's actually in the warehouse, real items, real prices. / Build it with Ask GO / Build your own. Pick a day, add what's open. (row, right label Build) / Or pick the occasion (label) / What kind (label) / Recommended for Birthday (label, the sub-occasion) / Continue
 - My party, recommended stub: Recommended for you / Book a few things and picks for you show up here.
 - Cart rows (every checkout step): trash can per item, aria "Remove {item}" / Total

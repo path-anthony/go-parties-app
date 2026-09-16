@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom"
 import { Search } from "lucide-react"
 import { AppShell, Body } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
+import { HeroCarousel, type Slide } from "@/components/go/HeroCarousel"
 import { OccasionCard } from "@/components/go/OccasionCard"
 import { Chip } from "@/components/go/Chip"
 import { Reveal } from "@/components/go/DatePicker"
@@ -10,20 +11,49 @@ import { Rail } from "@/components/go/Rail"
 import { RailCard } from "@/components/go/RailCard"
 import { Button } from "@/components/ui/button"
 import { useBooking } from "@/state/booking"
+import { useCustomer } from "@/state/customer"
 import { useAsk } from "@/state/ask"
 import { NEXT_OPEN, OCC, SUB_OCC, occOf, recsFor, type OccasionId, type Pkg } from "@/data/catalog"
 
-/* Screen 3, Home. Three doors, in this order: Ask GO as a card near the top
-   (the AI event builder), the Build-your-own row (date first, then a cart,
+/* Home, one continuous screen at both "/" and "/home". The photo carousel
+   sits on top (the old Welcome hero; its value props now ride the captions),
+   then the greeting and the three doors in this order: Ask GO as a card (the
+   AI event builder), the Build-your-own row (date first, then a cart,
    /browse), and the occasion cards (sub-occasion chips reveal beneath, then a
-   rail scoped to that pick, then Continue). "Recommended for you" lives on My
-   party now. Nothing here overlays anything else. */
+   rail scoped to that pick, then Continue). No gate in front of any of it;
+   sign in lives in the header menu and on My party. "Recommended for you"
+   lives on My party. Nothing here overlays anything else. */
+
+const HERO_SLIDES: Slide[] = [
+  {
+    src: "/photos/welcome/wedding.jpg",
+    alt: "Wedding couple sharing a quiet moment",
+    position: "56% center",
+    eyebrow: "FARMINGTON, CT",
+    title: "Party on. We'll handle it.",
+  },
+  {
+    src: "/photos/welcome/adult-party.jpg",
+    alt: "Adult party crowd celebrating on the dance floor",
+    eyebrow: "REAL DATES",
+    title: "If you can pick it, we can make it.",
+  },
+  {
+    src: "/photos/welcome/corporate.jpg",
+    alt: "Corporate event audience facing the stage",
+    eyebrow: "DOOR TO DOOR",
+    title: "Delivery, setup, the fun, teardown.",
+  },
+]
 
 export default function Home() {
   const navigate = useNavigate()
   const { occ, subOcc, pick, jump, set } = useBooking()
+  const { customer } = useCustomer()
   const { openAsk } = useAsk()
   const scoped = occ && subOcc ? recsFor(occ, subOcc) : []
+  const first = customer?.name?.trim().split(/\s+/)[0]
+  const greeting = first ? `Hey ${first}` : "Hey there"
 
   const openPackage = (p: Pkg) => {
     jump(occOf(p), p.id)
@@ -33,7 +63,8 @@ export default function Home() {
   return (
     <AppShell>
       <Body>
-        <GoLabel>Hey Sarah</GoLabel>
+        <HeroCarousel slides={HERO_SLIDES} />
+        <GoLabel className="mt-[18px]">{greeting}</GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">What are we celebrating?</h1>
         <AskCard onClick={() => openAsk("home")} />
         <button

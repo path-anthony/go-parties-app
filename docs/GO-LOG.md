@@ -1,5 +1,13 @@
 # GO! Event Group · project log
 
+## 2026-09-16
+
+**Where we are:** Welcome and Home are one screen at `/` and `/home`: the photo carousel on top with the value props as per-slide captions, then the greeting and the three doors. The old click-through sign-in gate is gone; `/signin` redirects to the portal's sign in, which is reachable from the header Menu and My party at any time. The greeting is real: the customer's first name when signed in, "Hey there" otherwise. Production deep links were a real 404 because the repo had no server of its own and Railway served `dist/` as static files with no history fallback; the Vercel rewrite that once covered this only ever applied to Vercel and was deleted for the Railway move with nothing in its place. The repo now declares how it is served: `npm start` runs Vite's preview server over `dist/` (single page fallback built in, no new dependency) and `railway.json` pins the build and start commands and a health check on `/home`.
+
+**What we decided:** No gate in front of the product; sign in is a door, never a step. Value props that the screen already makes (a real package in seconds, the Ask GO card) are cut rather than repeated; the ones about dates and delivery ride the captions. The deploy fix lives in the repo, not in a dashboard setting, so it survives a rebuild.
+
+**What's next:** Confirm on Railway that the service picked up `railway.json` (start command `npm start`, and `VITE_ADMIN_API_URL` set at build time). Everything from 2026-09-15 still stands.
+
 ## 2026-09-15
 
 **Where we are:** go-parties-admin went from nothing to a running command center and API in nine days (36 commits, 10 migrations): Railway Postgres, 167 items imported, Inventory, Leads board with n8n ingestion, Scheduling, Settings, shared-password gate, and a public API the storefront now uses for everything real. The storefront's Ask GO is a real multi-turn conversation that recommends by item id and logs a lead only when it commits. Direct booking is live end to end: checkboxes on a recommendation, live availability per item, address and time (both skippable), phone and email as two fields, one or several items booked in one request. Customer accounts and a portal are live: sign up, sign in, a real bookings list, cancel, reschedule, change of item. The Welcome hero runs Mel's real photos. The package and theme flow is still the static catalog, because Package and Theme are not in the database. Only one real item has units.
