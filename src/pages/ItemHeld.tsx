@@ -55,7 +55,16 @@ export default function ItemHeld() {
         </p>
       </Body>
       <Foot>
-        <Button onClick={() => navigate("/home")}>Done</Button>
+        <Button
+          onClick={() => {
+            // The booking is made; an emptied cart means Browse starts clean.
+            b.set("items", [])
+            b.set("direct", null)
+            navigate("/home")
+          }}
+        >
+          Done
+        </Button>
       </Foot>
     </AppShell>
   )

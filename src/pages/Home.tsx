@@ -41,8 +41,8 @@ export default function Home() {
           onClick={() => navigate("/browse")}
         >
           <Search className="size-[18px] flex-none stroke-charcoal" strokeWidth={1.75} />
-          Just need one thing? Search the warehouse.
-          <b className="ml-auto text-[12.5px] font-bold whitespace-nowrap text-charcoal">Search</b>
+          Pick a day. See what's open.
+          <b className="ml-auto text-[12.5px] font-bold whitespace-nowrap text-charcoal">Browse</b>
         </button>
         <div className="mt-3.5 grid grid-cols-2 gap-2.5">
           {(Object.keys(OCC) as OccasionId[]).map((id) => (

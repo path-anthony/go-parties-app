@@ -14,8 +14,9 @@ export interface Availability {
 }
 
 /* The public catalog, as the admin exposes it: name search (partial, case
-   insensitive), exact category, and whether the item has units, which is
-   what makes it directly bookable. */
+   insensitive), exact category, and whether the item has units. With a
+   date, only items with a free unit that day come back, each with
+   freeUnits, in one request for the whole catalog. */
 export interface PublicItem {
   id: string
   name: string
@@ -24,16 +25,19 @@ export interface PublicItem {
   priceUnit: string | null
   photoUrl: string | null
   hasUnits: boolean
+  freeUnits?: number
 }
 
 export async function publicItems(
   q: string,
   category: string,
+  date: string | null,
   signal?: AbortSignal
 ): Promise<{ items: PublicItem[]; categories: string[] }> {
   const params = new URLSearchParams()
   if (q.trim()) params.set("q", q.trim())
   if (category) params.set("category", category)
+  if (date) params.set("date", date)
   const qs = params.toString()
   const res = await fetch(`${ADMIN_API}/api/items/public${qs ? `?${qs}` : ""}`, { signal })
   if (!res.ok) throw new Error(`public items ${res.status}`)

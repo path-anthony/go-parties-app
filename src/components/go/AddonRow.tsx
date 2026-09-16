@@ -44,16 +44,42 @@ export function AddonRow({ name, cat, price, plate, selected, onToggle }: AddonR
   )
 }
 
-/* Sticky total. BRAND.md section 8: the live total floats above the nav. */
-export function StickyTotal({ line, total, action, onAction }: { line: string; total: number; action: string; onAction: () => void }) {
+/* Sticky total. BRAND.md section 8: the live total floats above the nav.
+   With onDetails the left side is a button (the cart opens its sheet). */
+export function StickyTotal({
+  line,
+  total,
+  action,
+  onAction,
+  onDetails,
+  disabled,
+}: {
+  line: string
+  total: number
+  action: string
+  onAction: () => void
+  onDetails?: () => void
+  disabled?: boolean
+}) {
+  const left = (
+    <>
+      <small className="block text-[11px] text-muted">{line}</small>
+      <b className="text-[19px] font-black text-charcoal">{fmt(total)}</b>
+    </>
+  )
   return (
     <div className="fixed right-0 bottom-[calc(64px+env(safe-area-inset-bottom))] left-0 z-30 px-5 py-2.5">
       <div className="mx-auto flex max-w-[480px] items-center justify-between gap-3 rounded-[14px] border border-line bg-white py-3 pr-3 pl-4 shadow-float min-[900px]:max-w-[560px]">
-        <div>
-          <small className="block text-[11px] text-muted">{line}</small>
-          <b className="text-[19px] font-black text-charcoal">{fmt(total)}</b>
-        </div>
-        <Button onClick={onAction}>{action}</Button>
+        {onDetails ? (
+          <button className="min-w-0 text-left" onClick={onDetails}>
+            {left}
+          </button>
+        ) : (
+          <div>{left}</div>
+        )}
+        <Button onClick={onAction} disabled={disabled}>
+          {action}
+        </Button>
       </div>
     </div>
   )

@@ -1,35 +1,57 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { Check, Plus } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { AppShell, Body } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
+import { MonthChips, DayCarousel, Reveal } from "@/components/go/DatePicker"
 import { CategoryChips } from "@/components/go/CategoryChips"
+import { StickyTotal } from "@/components/go/AddonRow"
+import { CartSheet } from "@/components/go/CartSheet"
+import { daysForItem, labelForIso } from "@/lib/availability"
 import { publicItems, type PublicItem } from "@/lib/adminApi"
 import { fmt } from "@/data/catalog"
-import { useBooking } from "@/state/booking"
+import { useBooking, type DirectItem } from "@/state/booking"
+import { cn } from "@/lib/utils"
 
-/* Browse. The direct "just find one item" door, separate from the occasion
-   flow and from Ask GO. Live search and category filter on the admin's
-   public catalog, same shape as the admin's own Inventory filter. Tapping a
-   bookable item starts the same direct booking every other door uses. */
+/* Browse. Date first: the same month chips and day carousel as the direct
+   booking, then only what is actually open that day, from one request to
+   the admin's public catalog with the date. Search and category filter the
+   open items. Add builds a cart (the booking store's items) with a sticky
+   running total; changing the day re-checks the cart and names anything no
+   longer open. Check out hands the cart to the same ItemDate, who, account
+   and held screens every other door uses. */
 
 const ALL = "All"
 
+const toDirect = (i: PublicItem): DirectItem => ({ id: i.id, name: i.name, category: i.category, price: i.price, priceUnit: i.priceUnit })
+
 export default function Browse() {
   const navigate = useNavigate()
-  const { pickItems } = useBooking()
+  const b = useBooking()
   const [q, setQ] = useState("")
   const [category, setCategory] = useState(ALL)
   const [categories, setCategories] = useState<string[]>([])
-  const [items, setItems] = useState<PublicItem[] | null>(null)
+  const [results, setResults] = useState<PublicItem[] | null>(null)
+  const [openIds, setOpenIds] = useState<{ iso: string; ids: Set<string> } | null>(null)
   const [failed, setFailed] = useState(false)
+  const [cartOpen, setCartOpen] = useState(false)
+
+  const iso = b.itemDate
+  const cart = b.items
+  const dayLabel = iso ? labelForIso(iso) : null
 
   useEffect(() => {
+    if (!iso) {
+      setResults(null)
+      return
+    }
     const controller = new AbortController()
     const timer = setTimeout(() => {
-      publicItems(q, category === ALL ? "" : category, controller.signal)
+      publicItems(q, category === ALL ? "" : category, iso, controller.signal)
         .then((data) => {
-          setItems(data.items)
+          setResults(data.items)
           setCategories(data.categories)
           setFailed(false)
         })
@@ -41,11 +63,32 @@ export default function Browse() {
       clearTimeout(timer)
       controller.abort()
     }
-  }, [q, category])
+  }, [q, category, iso])
 
-  const book = (item: PublicItem) => {
-    pickItems([{ id: item.id, name: item.name, category: item.category, price: item.price, priceUnit: item.priceUnit }])
-    navigate(`/item/${item.id}`)
+  // Everything open on the day, unfiltered, so the cart is checked against
+  // the day and not against the current search.
+  useEffect(() => {
+    if (!iso || cart.length === 0) return
+    const controller = new AbortController()
+    publicItems("", "", iso, controller.signal)
+      .then((data) => setOpenIds({ iso, ids: new Set(data.items.map((i) => i.id)) }))
+      .catch(() => {})
+    return () => controller.abort()
+  }, [iso, cart.length])
+
+  const unavailable = useMemo(() => {
+    if (!iso || !openIds || openIds.iso !== iso) return new Set<string>()
+    return new Set(cart.filter((i) => !openIds.ids.has(i.id)).map((i) => i.id))
+  }, [iso, openIds, cart])
+
+  const inCart = (id: string) => cart.some((i) => i.id === id)
+  const add = (item: PublicItem) => b.set("items", inCart(item.id) ? cart.filter((i) => i.id !== item.id) : [...cart, toDirect(item)])
+  const remove = (id: string) => b.set("items", cart.filter((i) => i.id !== id))
+  const total = cart.reduce((sum, i) => sum + (i.price ?? 0), 0)
+  const checkout = () => {
+    if (cart.length === 0 || unavailable.size > 0) return
+    setCartOpen(false)
+    navigate(`/item/${cart[0].id}`)
   }
 
   const priceLine = (item: PublicItem) => {
@@ -53,62 +96,119 @@ export default function Browse() {
     return item.priceUnit || "Text us for a price"
   }
 
+  const days = daysForItem(b.itemMonth)
+  const selectedKey = days.find((d) => d.iso === iso)?.key ?? null
+  const flagged = cart.filter((i) => unavailable.has(i.id))
+
   return (
     <AppShell>
-      <Body>
-        <GoLabel>Search</GoLabel>
-        <h1 className="mt-1.5 text-hero text-charcoal">Find one thing.</h1>
-        <div className="mt-3.5">
-          <Input
-            type="search"
-            placeholder="Bounce house, DJ, snow cones"
-            autoFocus
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            aria-label="Search the warehouse"
-          />
-        </div>
-        <CategoryChips categories={[ALL, ...categories]} active={category} onPick={setCategory} />
-        {failed && <p className="mt-2 text-body text-charcoal">That didn't go through. Try again, or text us.</p>}
-        {!failed && items === null && <p className="mt-2 text-body text-muted">Checking the warehouse.</p>}
-        {!failed && items && items.length === 0 && (
-          <p className="mt-2 text-body text-charcoal-soft">Nothing by that name. Try another word, or Ask GO.</p>
-        )}
-        {!failed && items && items.length > 0 && (
+      <Body className={cart.length > 0 ? "pb-24" : ""}>
+        <GoLabel>Browse</GoLabel>
+        <h1 className="mt-1.5 text-hero text-charcoal">Pick a day. See what's open.</h1>
+        <MonthChips
+          active={b.itemMonth}
+          onPick={(i) => {
+            b.set("itemMonth", i)
+            b.set("itemDate", null)
+          }}
+        />
+        <DayCarousel days={days} selected={selectedKey} onPick={(key) => b.set("itemDate", days.find((d) => d.key === key)?.iso ?? null)} />
+        {!iso && <p className="mt-1 text-[11.5px] text-muted">Tap a day. We show only what's open.</p>}
+        <Reveal open={flagged.length > 0} className="mt-3.5">
+          <div className="rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
+            {flagged.map((i) => (
+              <div key={i.id} className="flex items-center justify-between gap-3 py-1">
+                <span>
+                  {i.name} isn't open {dayLabel}.
+                </span>
+                <Button variant="ghost" size="sm" onClick={() => remove(i.id)}>
+                  Remove
+                </Button>
+              </div>
+            ))}
+            <p className="pt-1 text-charcoal-soft">Remove it or pick another day.</p>
+          </div>
+        </Reveal>
+        {iso && (
           <>
-            <p className="text-small text-muted">{items.length} items</p>
-            <div className="mt-2 grid gap-2">
-              {items.map((item) =>
-                item.hasUnits ? (
-                  <button
-                    key={item.id}
-                    className="flex w-full items-center justify-between gap-3 rounded-[14px] border border-line bg-white px-4 py-3.5 text-left hover:border-charcoal"
-                    onClick={() => book(item)}
-                  >
-                    <div className="min-w-0">
-                      <b className="block text-sm text-charcoal">{item.name}</b>
-                      <small className="block text-small text-muted">
-                        {item.category} · {priceLine(item)}
-                      </small>
-                    </div>
-                    <span className="flex-none text-[12.5px] font-bold text-charcoal">Book</span>
-                  </button>
-                ) : (
-                  <div key={item.id} className="flex items-center justify-between gap-3 rounded-[14px] border border-line bg-white px-4 py-3.5 opacity-70">
-                    <div className="min-w-0">
-                      <b className="block text-sm text-charcoal">{item.name}</b>
-                      <small className="block text-small text-muted">
-                        {item.category} · {priceLine(item)}
-                      </small>
-                    </div>
-                    <small className="flex-none text-right text-[11.5px] text-muted">Not online yet. Text us.</small>
-                  </div>
-                )
-              )}
+            <div className="mt-3.5">
+              <Input
+                type="search"
+                placeholder="Bounce house, DJ, snow cones"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                aria-label="Search what's open"
+              />
             </div>
+            <CategoryChips categories={[ALL, ...categories]} active={category} onPick={setCategory} />
+            {failed && <p className="mt-2 text-body text-charcoal">That didn't go through. Try again, or text us.</p>}
+            {!failed && results === null && <p className="mt-2 text-body text-muted">Checking the calendar.</p>}
+            {!failed && results && results.length === 0 && (
+              <p className="mt-2 text-body text-charcoal-soft">Nothing open by that name {dayLabel}. Try another word, or another day.</p>
+            )}
+            {!failed && results && results.length > 0 && (
+              <>
+                <GoLabel>Open {dayLabel}</GoLabel>
+                <p className="mt-0.5 text-small text-muted">{results.length} items</p>
+                <div className="mt-2 grid gap-2">
+                  {results.map((item) => {
+                    const on = inCart(item.id)
+                    return (
+                      <div
+                        key={item.id}
+                        className={cn(
+                          "flex items-center justify-between gap-3 rounded-[14px] border px-4 py-3.5",
+                          on ? "border-orange bg-orange-tint" : "border-line bg-white"
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <b className="block text-sm text-charcoal">{item.name}</b>
+                          <small className="block text-small text-muted">
+                            {item.category} · {priceLine(item)}
+                          </small>
+                          {typeof item.freeUnits === "number" && (
+                            <small className="block text-[11px] font-bold text-good">{item.freeUnits} open</small>
+                          )}
+                        </div>
+                        <button
+                          aria-label={on ? `Remove ${item.name}` : `Add ${item.name}`}
+                          className={cn(
+                            "flex flex-none items-center gap-1.5 rounded-[10px] border-[1.5px] px-3 py-2 text-[12.5px] font-bold text-charcoal",
+                            on ? "border-orange bg-orange" : "border-line bg-white"
+                          )}
+                          onClick={() => add(item)}
+                        >
+                          {on ? <Check className="size-4 stroke-charcoal" strokeWidth={2} /> : <Plus className="size-4 stroke-charcoal" strokeWidth={1.75} />}
+                          {on ? "Added" : "Add"}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
           </>
         )}
       </Body>
+      {cart.length > 0 && (
+        <StickyTotal
+          line={`${cart.length} ${cart.length === 1 ? "item" : "items"}${dayLabel ? ` · ${dayLabel}` : ""}${unavailable.size > 0 ? ` · ${unavailable.size} not open` : ""}`}
+          total={total}
+          action="Check out"
+          onAction={checkout}
+          onDetails={() => setCartOpen(true)}
+          disabled={!iso || unavailable.size > 0}
+        />
+      )}
+      <CartSheet
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+        items={cart}
+        unavailable={unavailable}
+        dayLabel={dayLabel}
+        onRemove={remove}
+        onCheckout={checkout}
+      />
     </AppShell>
   )
 }

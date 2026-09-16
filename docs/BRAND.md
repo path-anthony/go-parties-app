@@ -95,8 +95,9 @@ Bank (use these, extend in this register)
 - Welcome headline: Your party, built in two minutes.
 - Welcome body: Pick the occasion. We build it from what's actually in the warehouse. You tweak it. We show up.
 - Sign in: Welcome in. / No password. We text you a link.
-- Home: What are we celebrating? / Not sure? Describe the party. / Just need one thing? Search the warehouse. / What kind (label) / Recommended for Birthday (label, the sub-occasion) / Continue
-- Browse: Find one thing. / Bounce house, DJ, snow cones (placeholder) / All (category chip) / Checking the warehouse. / 167 items / Nothing by that name. Try another word, or Ask GO. / Book / Not online yet. Text us. / Text us for a price
+- Home: What are we celebrating? / Not sure? Describe the party. / Pick a day. See what's open. (browse row, right label Browse) / What kind (label) / Recommended for Birthday (label, the sub-occasion) / Continue
+- Browse: Pick a day. See what's open. / Tap a day. We show only what's open. / Open Sat Dec 5 (label) / 12 items / Bounce house, DJ, snow cones (placeholder) / All (category chip) / Checking the calendar. / Nothing open by that name Sat Dec 5. Try another word, or another day. / 2 open / Add / Added / Text us for a price
+- Cart: 3 items · Sat Dec 5 (sticky line) / 1 not open / Check out / In the cart / Nothing in it yet. / Remove / Total / Snow Cone Station isn't open Sat Dec 5. / Not open Sat Dec 5. Remove it or pick another day.
 - Menu: Menu / Signed in as / My party / Sign in / Create account / Sign out
 - Date: When's the party? / When's the night? / When's the big day? / When's the event?
 - Availability hint: Grayed days are booked solid, crew and gear included.
