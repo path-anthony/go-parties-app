@@ -44,8 +44,14 @@ export default function ItemAccount() {
   if (b.items[0].id !== id) return <Navigate to={`/item/${b.items[0].id}/account`} replace />
   const firstId = b.items[0].id
   if (!b.itemDate) return <Navigate to={`/item/${firstId}`} replace />
-  // Not while a hold is in flight: a fresh sign-up sets the customer before
-  // the booking after it has answered.
+  // Not while a hold is in flight, and not after one that left this screen.
+  // A fresh sign-up sets the customer before the booking after it has
+  // answered, and navigate() is deferred: if `booking` dropped back to
+  // false on success, this guard would re-fire on the very next render and
+  // its Navigate to the who screen would beat the pending one to held,
+  // handing the customer a fresh "Hold my date" for a booking that already
+  // exists. So `booking` stays true on every path that leaves the screen
+  // and is reset only when the screen stays to show a notice.
   if (ready && customer && !booking) return <Navigate to={`/item/${firstId}/who`} replace />
   if (b.contactName.trim() === "" || b.phone.trim() === "" || b.email.trim() === "") return <Navigate to={`/item/${firstId}/who`} replace />
 
@@ -58,10 +64,16 @@ export default function ItemAccount() {
   const canHold = !busy && (choice === "guest" || (choice === "account" && canSignUp(values)))
 
   // Signed up but not booked: the who screen owns the retry now, with the
-  // notice in hand. Still a guest: the notice shows here.
+  // notice in hand (booking stays true so the guard above can't race this
+  // navigation and drop the notice). Still a guest: the notice shows here
+  // and the button comes back.
   const fail = (n: Notice, who: typeof customer) => {
-    if (who) navigate(`/item/${firstId}/who`, { replace: true, state: { notice: n } })
-    else setNotice(n)
+    if (who) {
+      navigate(`/item/${firstId}/who`, { replace: true, state: { notice: n } })
+      return
+    }
+    setNotice(n)
+    setBooking(false)
   }
 
   const hold = async () => {
@@ -80,6 +92,7 @@ export default function ItemAccount() {
     try {
       const result = await bookDirect(directInput({ ...b, contactName: values.name || b.contactName }, who))
       if (result.ok) {
+        // Leaving: `booking` stays true on purpose, see the guard above.
         b.set("direct", result.booking)
         navigate("/item/held")
         return
@@ -87,8 +100,6 @@ export default function ItemAccount() {
       fail({ reason: result.reason, message: result.message }, who)
     } catch {
       fail({ reason: "error", message: "That didn't go through. Try again, or text us." }, who)
-    } finally {
-      setBooking(false)
     }
   }
 
