@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Navigate, useNavigate, useParams } from "react-router-dom"
+import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -22,17 +22,22 @@ import { useCustomer } from "@/state/customer"
    Address is plain text, no validation service, skippable with the "Add the
    address later" switch. A 409 from the race (someone took the last unit
    between the check and this tap) is shown as the server says it, with a
-   way back to the calendar, never a generic error. */
+   way back to the calendar. Any other refusal shows the bank's calm line
+   and a Try again; nothing typed is lost, every field here lives in the
+   booking store. The account step can hand a notice over in location
+   state when a fresh sign-up succeeded but the booking after it didn't. */
 
 type Notice = { reason: DirectReason; message: string }
 
 export default function ItemWho() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { id } = useParams()
   const b = useBooking()
   const { customer } = useCustomer()
   const [submitting, setSubmitting] = useState(false)
-  const [notice, setNotice] = useState<Notice | null>(null)
+  const handed = (location.state as { notice?: Notice } | null)?.notice ?? null
+  const [notice, setNotice] = useState<Notice | null>(handed)
 
   if (b.items.length === 0) return <Navigate to="/browse" replace />
   if (b.items[0].id !== id) return <Navigate to={`/item/${b.items[0].id}/who`} replace />
@@ -172,6 +177,11 @@ export default function ItemWho() {
                 }}
               >
                 Pick another date
+              </Button>
+            )}
+            {notice.reason === "error" && onFile && (
+              <Button variant="ghost" size="sm" className="mt-2.5 block" disabled={!canSubmit} onClick={submit}>
+                Try again
               </Button>
             )}
           </div>

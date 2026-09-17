@@ -21,7 +21,10 @@ import { useCustomer } from "@/state/customer"
    continue as a guest. An account books exactly like a signed-in customer
    does today: the request carries no contact and the account fills it, so
    the booking is tied to it. A guest books exactly as before. Signed-in
-   customers never see this screen. */
+   customers never see this screen. A refusal that isn't about the date
+   shows the bank's calm line and a Try again with everything typed still
+   in place; if the sign-up went through and only the booking failed, the
+   who screen takes over (the account is real now) and gets the notice. */
 
 type Choice = "account" | "guest" | null
 type Notice = { reason: DirectReason; message: string }
@@ -41,7 +44,9 @@ export default function ItemAccount() {
   if (b.items[0].id !== id) return <Navigate to={`/item/${b.items[0].id}/account`} replace />
   const firstId = b.items[0].id
   if (!b.itemDate) return <Navigate to={`/item/${firstId}`} replace />
-  if (ready && customer) return <Navigate to={`/item/${firstId}/who`} replace />
+  // Not while a hold is in flight: a fresh sign-up sets the customer before
+  // the booking after it has answered.
+  if (ready && customer && !booking) return <Navigate to={`/item/${firstId}/who`} replace />
   if (b.contactName.trim() === "" || b.phone.trim() === "" || b.email.trim() === "") return <Navigate to={`/item/${firstId}/who`} replace />
 
   const iso = b.itemDate
@@ -51,6 +56,13 @@ export default function ItemAccount() {
 
   const removeItem = (rid: string) => b.setItems(b.items.filter((i) => i.id !== rid))
   const canHold = !busy && (choice === "guest" || (choice === "account" && canSignUp(values)))
+
+  // Signed up but not booked: the who screen owns the retry now, with the
+  // notice in hand. Still a guest: the notice shows here.
+  const fail = (n: Notice, who: typeof customer) => {
+    if (who) navigate(`/item/${firstId}/who`, { replace: true, state: { notice: n } })
+    else setNotice(n)
+  }
 
   const hold = async () => {
     if (!canHold) return
@@ -72,9 +84,9 @@ export default function ItemAccount() {
         navigate("/item/held")
         return
       }
-      setNotice({ reason: result.reason, message: result.message })
+      fail({ reason: result.reason, message: result.message }, who)
     } catch {
-      setNotice({ reason: "error", message: "That didn't go through. Try again, or text us." })
+      fail({ reason: "error", message: "That didn't go through. Try again, or text us." }, who)
     } finally {
       setBooking(false)
     }
@@ -127,6 +139,11 @@ export default function ItemAccount() {
                 }}
               >
                 Pick another date
+              </Button>
+            )}
+            {notice.reason === "error" && (
+              <Button variant="ghost" size="sm" className="mt-2.5 block" disabled={!canHold} onClick={hold}>
+                Try again
               </Button>
             )}
           </div>

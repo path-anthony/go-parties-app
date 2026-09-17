@@ -74,14 +74,20 @@ export const bookedNames = (b: DirectBooking): string[] =>
 
 export type DirectReason = "unavailable" | "not-tracked" | "error"
 
-export type DirectResult = { ok: true; booking: DirectBooking } | { ok: false; reason: DirectReason; message: string }
+/* message is always fit to show: the admin's own words for a date that is
+   taken or an item that isn't bookable (written for the customer), and the
+   bank's calm line for everything else. detail keeps the admin's raw text
+   for the console, never for the screen. */
+export type DirectResult =
+  | { ok: true; booking: DirectBooking }
+  | { ok: false; reason: DirectReason; message: string; detail?: string }
 
 const FALLBACK = "That didn't go through. Try again, or text us."
 
 /* address and eventTime are optional on the storefront ("fill in later") and
-   travel as null when skipped. customerName, phone and email are null when
-   a signed-in customer's account supplies them: the keys are left out
-   entirely, because sending phone or email means the admin requires both.
+   travel as null when skipped. customerName, phone and email always go
+   (directInput fills them from the account when signed in); the admin
+   requires phone and email together, so both are sent or neither is.
    credentials: "include" carries the customer_session cookie so the booking
    attaches to the account. One item goes as itemId (the original contract);
    two or more go only as itemIds, so an admin without multi-item support
@@ -118,7 +124,12 @@ export async function bookDirect(input: {
   const data = await res.json().catch(() => ({}))
   if (res.status === 201) return { ok: true, booking: data as DirectBooking }
   const reason: DirectReason = data.reason === "unavailable" || data.reason === "not-tracked" ? data.reason : "error"
-  return { ok: false, reason, message: typeof data.error === "string" ? data.error : FALLBACK }
+  const detail = typeof data.error === "string" ? data.error : undefined
+  if (reason === "error") {
+    console.warn(`direct booking refused (${res.status}): ${detail ?? "no detail"}`)
+    return { ok: false, reason, message: FALLBACK, detail }
+  }
+  return { ok: false, reason, message: detail ?? FALLBACK }
 }
 
 /* Published packages for one sub-occasion, as the admin exposes them: a

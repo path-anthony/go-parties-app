@@ -113,7 +113,7 @@ Bank (use these, extend in this register)
 - CTA: Let's go / Show me / Make it mine / Hold my date, $200
 - Held: Held. You're good.
 - Empty: Nothing here yet. Build a party and it'll live here.
-- Error: That didn't go through. Try again, or text us.
+- Error: That didn't go through. Try again, or text us. / Try again (button under it; the admin's own wording is never shown except for a date that is taken or an item that isn't bookable)
 - Item (direct booking): When do you need it? / Tap a day. We check the calendar live. / Checking the calendar. / Open. 2 of 2 ready. / Booked solid that day. Try another date. / Only 1 open that day, this needs 2. Try another date. / Only 1 open, this needs 2. (per-item line) / Who's booking? / Name, phone, and email. That's it. / Signed in: We've got your details. Just the address. / Booking as / Nothing to pay right now. Contract and deposit link come by text.
 - Portal, signed out: Your bookings live here. / Sign in and they'll show up. / Sign in / Create account
 - Portal sign in: Welcome in. / Phone or email, then your password. / New here? Create an account

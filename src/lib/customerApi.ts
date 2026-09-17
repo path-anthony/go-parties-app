@@ -86,9 +86,14 @@ export const customerApi = {
 /* "2026-11-14T00:00:00.000Z" (a DATE column serialized) to "2026-11-14". */
 export const isoDay = (eventDate: string) => eventDate.slice(0, 10)
 
-/* "Sat Nov 14, 2 PM" and "Snow Cone Station" for a booking card. */
+/* "Sat Nov 14, 2 PM" and "Snow Cone Station" for a booking card. Units of
+   the same item read as one line with a count: "Tent x 2, Bounce House". */
 export const whenOf = (b: CustomerBooking) => {
   const day = labelForIso(isoDay(b.eventDate))
   return b.eventTime ? `${day}, ${b.eventTime}` : day
 }
-export const whatOf = (b: CustomerBooking) => b.units.map((u) => u.itemName).join(", ") || "Booking"
+export const whatOf = (b: CustomerBooking) => {
+  const counts = new Map<string, number>()
+  for (const u of b.units) counts.set(u.itemName, (counts.get(u.itemName) ?? 0) + 1)
+  return [...counts].map(([name, n]) => (n > 1 ? `${name} x ${n}` : name)).join(", ") || "Booking"
+}

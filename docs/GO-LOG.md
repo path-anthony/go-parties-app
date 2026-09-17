@@ -1,5 +1,13 @@
 # GO! Event Group · project log
 
+## 2026-09-17
+
+**Where we are:** A signed-in direct booking could fail with the admin's "customerName is required" and lose the booking. The storefront knew the customer (the sign-in response sets it client-side) but left name, phone and email out of the booking request and trusted the session cookie to carry them; wherever the cookie doesn't travel (a different site in production, a browser that blocks it), the admin saw a request with nothing required in it. The request now always carries name, phone and email from the account the storefront knows, with the cookie still along so the booking attaches to the account. The failure display is fixed with it: the admin's raw wording is never shown except for a date that is taken or an item that isn't bookable; everything else is the bank's calm line with a Try again, and nothing typed is lost (every who-screen field lives in the booking store; the account step keeps its own). A sign-up that succeeded with a booking that failed after it hands the notice to the who screen.
+
+**What we decided:** Nothing required in a booking request may depend on a cookie arriving. Server validation text is for the console, not the screen.
+
+**What's next:** Everything from 2026-09-16 still stands. The production cookie question (SameSite=None needs NODE_ENV=production on the admin, and Safari blocks third-party cookies regardless) still decides whether signed-in bookings attach to the account in production; the booking itself now succeeds either way.
+
 ## 2026-09-16
 
 **Where we are:** Welcome and Home are one screen at `/` and `/home`: the photo carousel on top with the value props as per-slide captions, then the greeting and the three doors. The old click-through sign-in gate is gone; `/signin` redirects to the portal's sign in, which is reachable from the header Menu and My party at any time. The greeting is real: the customer's first name when signed in, "Hey there" otherwise. Production deep links were a real 404. The storefront deploys to Vercel (the 2026-09-10 note saying Railway was wrong, and the 2026-09-15 entry repeated it), and Vercel serves `dist/` as static files with no history fallback unless `vercel.json` says so. The rewrite that fixed this was deleted on 2026-09-10 on that wrong belief. `vercel.json` is back: every unmatched path rewrites to `index.html`. It takes effect on the next Vercel deploy (`npx vercel --prod`), which has to be run from the founder's terminal; it cannot be verified from inside the sandbox. `npm start` (Vite preview over `dist/`, single page fallback built in) stays as the local way to check a production build.
