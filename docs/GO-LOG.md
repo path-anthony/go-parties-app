@@ -1,5 +1,13 @@
 # GO! Event Group · project log
 
+## 2026-09-21
+
+**Where we are:** Item add-ons are live on the storefront against the admin's real shape, read from the code and the endpoints before anything was built: every item from `GET /api/items/public`, `/api/recommend` and `/api/packages/public` carries `addonGroups` (a group is one question about one item, required or optional, one answer per group, each option with a per-unit price change), and `POST /api/bookings/direct` takes `addons: { [itemId]: [addonId] }`, charges each change times the units held, and records the choices with their names against the item. Two doors, one cart: Browse opens a sheet for the one item being added (required groups lock Add to cart, optional ones can be skipped); a batch (Ask GO's checked items, a package) gets one options step before the date, organized by item with the item's name as the heading. Picks live on the cart item, so the cart rows, the totals, the request, the held screen and My party all show which item a choice belongs to. As of today no real item has add-on groups configured; only the two test items do.
+
+**What we decided:** A choice is never shown apart from its item, anywhere. Choosing an option doesn't change what the cart is, so a package stays the package and its price is the base with the picks on top. The held screen shows the admin's record of what was sold, not the cart's guess. No checkout screen will take a date while a required group is unanswered, whichever door the cart came through.
+
+**What's next:** Andy configures real add-on groups in the admin's item popup. Change item in the portal drops a booking's add-ons on the admin today; the storefront doesn't ask for new ones there yet.
+
 ## 2026-09-17
 
 **Where we are:** A signed-in direct booking could fail with the admin's "customerName is required" and lose the booking. The storefront knew the customer (the sign-in response sets it client-side) but left name, phone and email out of the booking request and trusted the session cookie to carry them; wherever the cookie doesn't travel (a different site in production, a browser that blocks it), the admin saw a request with nothing required in it. The request now always carries name, phone and email from the account the storefront knows, with the cookie still along so the booking attaches to the account. The failure display is fixed with it: the admin's raw wording is never shown except for a date that is taken or an item that isn't bookable; everything else is the bank's calm line with a Try again, and nothing typed is lost (every who-screen field lives in the booking store; the account step keeps its own). A sign-up that succeeded with a booking that failed after it hands the notice to the who screen.

@@ -14,6 +14,7 @@ export function CartSheet({
   unavailable,
   dayLabel,
   onRemove,
+  onConfigure,
   onCheckout,
 }: {
   open: boolean
@@ -22,6 +23,7 @@ export function CartSheet({
   unavailable: Set<string>
   dayLabel: string | null
   onRemove: (id: string) => void
+  onConfigure?: (item: DirectItem) => void
   onCheckout: () => void
 }) {
   const blocked = items.some((i) => unavailable.has(i.id))
@@ -45,6 +47,7 @@ export function CartSheet({
               <CartItems
                 items={items}
                 onRemove={onRemove}
+                onConfigure={onConfigure}
                 flag={(i) => (unavailable.has(i.id) && dayLabel ? `Not open ${dayLabel}. Remove it or pick another day.` : null)}
               />
             </div>

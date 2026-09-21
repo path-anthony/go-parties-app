@@ -5,6 +5,8 @@ import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { ItemWhen } from "@/components/go/ItemWhen"
 import { CartItems } from "@/components/go/CartItems"
+import { missingRequired } from "@/lib/addons"
+import { checkoutSteps } from "@/lib/steps"
 import { useBooking } from "@/state/booking"
 import { useCustomer } from "@/state/customer"
 
@@ -25,7 +27,12 @@ export default function ItemDate() {
   // last item needs no navigation of its own.
   if (b.items.length === 0) return <Navigate to="/browse" replace />
   if (b.items[0].id !== id) return <Navigate to={`/item/${b.items[0].id}`} replace />
+  // Nothing gets a date while a required option is unanswered, whichever
+  // door the cart came through.
+  if (b.items.some((i) => missingRequired(i).length > 0)) return <Navigate to={`/item/${b.items[0].id}/options`} replace />
   const items = b.items
+  const steps = checkoutSteps(b.optionsStep, customer !== null)
+  const here = `/item/${items[0].id}`
   const timeSettled = b.itemTime !== null || b.itemTimeLater
 
   const removeItem = (rid: string) => b.setItems(items.filter((i) => i.id !== rid))
@@ -33,10 +40,16 @@ export default function ItemDate() {
   return (
     <AppShell>
       <Body>
-        <GoLabel>{items.length === 1 ? "Just this" : "Just these"} · Step 1 of {customer ? 2 : 3}</GoLabel>
+        <GoLabel>{items.length === 1 ? "Just this" : "Just these"} · Step {steps.date} of {steps.total}</GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">When do you need {items.length === 1 ? "it" : "them"}?</h1>
         <div className="mt-3.5">
-          <CartItems items={items} bundle={b.bundle} onRemove={removeItem} showTotal={items.length > 1 || b.bundle !== null} />
+          <CartItems
+            items={items}
+            bundle={b.bundle}
+            onRemove={removeItem}
+            onConfigure={() => navigate(`${here}/options`, { state: { from: here } })}
+            showTotal
+          />
         </div>
         <ItemWhen
           items={items}
@@ -52,7 +65,7 @@ export default function ItemDate() {
         />
       </Body>
       <Foot>
-        <Button variant="ghost" onClick={() => navigate("/home")}>Back</Button>
+        <Button variant="ghost" onClick={() => navigate(b.optionsStep ? `${here}/options` : "/home")}>Back</Button>
         <Button disabled={!available || !timeSettled} onClick={() => navigate(`/item/${items[0].id}/who`)}>Next</Button>
       </Foot>
     </AppShell>

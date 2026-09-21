@@ -12,6 +12,7 @@ import { Rail } from "@/components/go/Rail"
 import { PackageCard } from "@/components/go/PackageCard"
 import { Button } from "@/components/ui/button"
 import { publicPackages, type PublicPackage } from "@/lib/adminApi"
+import { needsConfig } from "@/lib/addons"
 import { useBooking, type DirectItem } from "@/state/booking"
 import { useCustomer } from "@/state/customer"
 import { useAsk } from "@/state/ask"
@@ -90,10 +91,13 @@ export default function Home() {
       price: i.price,
       priceUnit: i.priceUnit,
       quantity: i.quantity,
+      addonGroups: i.addonGroups,
     }))
     if (items.length === 0) return
     pickItems(items, { id: p.id, name: p.name, price: p.price })
-    navigate(`/item/${items[0].id}`)
+    // A package is a batch: anything in it with add-on groups is answered
+    // in the options step, item by item, before the date.
+    navigate(items.some(needsConfig) ? `/item/${items[0].id}/options` : `/item/${items[0].id}`)
   }
 
   return (

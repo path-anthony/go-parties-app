@@ -5,6 +5,7 @@ import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from "@/components/ui
 import { ASK, type AskContext } from "@/data/ask"
 import { ADMIN_API } from "@/lib/adminApi"
 import { customerApi } from "@/lib/customerApi"
+import { needsConfig, type AddonGroup } from "@/lib/addons"
 import { useToast } from "@/hooks/use-toast"
 import { useBooking, type DirectItem } from "@/state/booking"
 
@@ -33,6 +34,7 @@ interface RecommendItem {
   category: string
   price: number | string | null
   priceUnit: string | null
+  addonGroups?: AddonGroup[]
 }
 
 const priceOf = (item: RecommendItem): number | null => (item.price === null || item.price === undefined ? null : Number(item.price))
@@ -43,6 +45,7 @@ const toDirectItem = (item: RecommendItem): DirectItem => ({
   category: item.category,
   price: priceOf(item),
   priceUnit: item.priceUnit ?? null,
+  addonGroups: item.addonGroups,
 })
 
 interface AskApiResponse {
@@ -147,7 +150,9 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
   }
 
   /* The second door into booking: the checked items from a recommendation,
-     booked together on one date, no package. The route carries the first id. */
+     booked together on one date, no package. The route carries the first id.
+     The batch arrives all at once, so anything with add-on groups is
+     configured in one options step, item by item, before the date. */
   const togglePick = (id: string) => setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   const justThese = () => {
     if (!finalRec) return
@@ -155,7 +160,7 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
     if (chosen.length === 0) return
     pickItems(chosen)
     onClose()
-    navigate(`/item/${chosen[0].id}`)
+    navigate(chosen.some(needsConfig) ? `/item/${chosen[0].id}/options` : `/item/${chosen[0].id}`)
   }
 
   /* Armed by the portal's Change item screen: swap an existing booking onto

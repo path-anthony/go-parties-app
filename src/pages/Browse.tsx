@@ -7,7 +7,10 @@ import { GoLabel } from "@/components/go/GoLabel"
 import { MonthChips, DayCarousel, Reveal } from "@/components/go/DatePicker"
 import { CategoryChips } from "@/components/go/CategoryChips"
 import { StickyTotal } from "@/components/go/AddonRow"
+import { cartTotal } from "@/components/go/CartItems"
 import { CartSheet } from "@/components/go/CartSheet"
+import { AddonSheet } from "@/components/go/AddonSheet"
+import { groupsOf, needsConfig, type Picks } from "@/lib/addons"
 import { daysForItem, labelForIso } from "@/lib/availability"
 import { publicItems, type PublicItem } from "@/lib/adminApi"
 import { fmt } from "@/data/catalog"
@@ -18,13 +21,22 @@ import { cn } from "@/lib/utils"
    booking, then only what is actually open that day, from one request to
    the admin's public catalog with the date. Search and category filter the
    open items. Add builds a cart (the booking store's items) with a sticky
-   running total; changing the day re-checks the cart and names anything no
+   running total; an item with add-on groups opens its own sheet first and
+   goes in once its required groups are answered; changing the day re-checks the cart and names anything no
    longer open. Check out hands the cart to the same ItemDate, who, account
    and held screens every other door uses. */
 
 const ALL = "All"
 
-const toDirect = (i: PublicItem): DirectItem => ({ id: i.id, name: i.name, category: i.category, price: i.price, priceUnit: i.priceUnit })
+const toDirect = (i: PublicItem, picks?: Picks): DirectItem => ({
+  id: i.id,
+  name: i.name,
+  category: i.category,
+  price: i.price,
+  priceUnit: i.priceUnit,
+  addonGroups: i.addonGroups,
+  picks,
+})
 
 export default function Browse() {
   const navigate = useNavigate()
@@ -36,6 +48,9 @@ export default function Browse() {
   const [openIds, setOpenIds] = useState<{ iso: string; ids: Set<string> } | null>(null)
   const [failed, setFailed] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
+  // The one item whose options are being answered: a catalog row being
+  // added, or a cart item being changed.
+  const [configuring, setConfiguring] = useState<{ item: PublicItem | DirectItem; editing: boolean } | null>(null)
 
   const iso = b.itemDate
   const cart = b.items
@@ -81,12 +96,24 @@ export default function Browse() {
   }, [iso, openIds, cart])
 
   const inCart = (id: string) => cart.some((i) => i.id === id)
-  const add = (item: PublicItem) => b.setItems(inCart(item.id) ? cart.filter((i) => i.id !== item.id) : [...cart, toDirect(item)])
+  const add = (item: PublicItem) => {
+    if (inCart(item.id)) b.setItems(cart.filter((i) => i.id !== item.id))
+    else if (needsConfig(item)) setConfiguring({ item, editing: false })
+    else b.setItems([...cart, toDirect(item)])
+  }
+  const confirmOptions = (picks: Picks) => {
+    if (!configuring) return
+    if (configuring.editing) b.setPicks(configuring.item.id, picks)
+    else b.setItems([...cart, toDirect(configuring.item as PublicItem, picks)])
+    setConfiguring(null)
+  }
   const remove = (id: string) => b.setItems(cart.filter((i) => i.id !== id))
-  const total = cart.reduce((sum, i) => sum + (i.price ?? 0), 0)
+  const total = cartTotal(cart, null)
   const checkout = () => {
     if (cart.length === 0 || unavailable.size > 0) return
     setCartOpen(false)
+    // Every item here was configured as it was added: no options step.
+    b.set("optionsStep", false)
     navigate(`/item/${cart[0].id}`)
   }
 
@@ -152,7 +179,9 @@ export default function Browse() {
             {!failed && results && results.length > 0 && (
               <>
                 <GoLabel>Open {dayLabel}</GoLabel>
-                <p className="mt-0.5 text-small text-muted">{results.length} items</p>
+                <p className="mt-0.5 text-small text-muted">
+                  {results.length} {results.length === 1 ? "item" : "items"}
+                </p>
                 <div className="mt-2 grid gap-2">
                   {results.map((item) => {
                     const on = inCart(item.id)
@@ -169,6 +198,9 @@ export default function Browse() {
                           <small className="block text-small text-muted">
                             {item.category} · {priceLine(item)}
                           </small>
+                          {needsConfig(item) && (
+                            <small className="block text-[11px] text-muted">Options: {groupsOf(item).map((g) => g.name).join(", ")}</small>
+                          )}
                           {typeof item.freeUnits === "number" && (
                             <small className="block text-[11px] font-bold text-good">{item.freeUnits} open</small>
                           )}
@@ -210,7 +242,18 @@ export default function Browse() {
         unavailable={unavailable}
         dayLabel={dayLabel}
         onRemove={remove}
+        onConfigure={(item) => {
+          setCartOpen(false)
+          setConfiguring({ item, editing: true })
+        }}
         onCheckout={checkout}
+      />
+      <AddonSheet
+        item={configuring?.item ?? null}
+        initial={configuring?.editing ? (configuring.item as DirectItem).picks : undefined}
+        editing={configuring?.editing}
+        onClose={() => setConfiguring(null)}
+        onConfirm={confirmOptions}
       />
     </AppShell>
   )

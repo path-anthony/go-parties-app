@@ -1,6 +1,8 @@
 /* Live calls to go-parties-admin, same base URL Ask GO uses. Both endpoints
    here are public on the admin side (no session) and rate limited there. */
 
+import type { AddonGroup } from "@/lib/addons"
+
 export const ADMIN_API = import.meta.env.VITE_ADMIN_API_URL || "http://localhost:3001"
 
 export interface Availability {
@@ -26,6 +28,7 @@ export interface PublicItem {
   photoUrl: string | null
   hasUnits: boolean
   freeUnits?: number
+  addonGroups?: AddonGroup[]
 }
 
 export async function publicItems(
@@ -61,6 +64,10 @@ export interface DirectBooking {
   /* What the admin quoted: the package's bundle price, or the items times
      quantity. Null when nothing had a price. */
   total: number | null
+  /* The add-ons as the admin recorded them, each tied to its item. The
+     price delta is per unit; quantity is the units of that item held. */
+  addonsTotal?: number
+  addons?: Array<{ itemId: string; itemName: string; addonId: string; groupName: string; addonName: string; priceDelta: number; quantity: number }>
   packageId: string | null
   package: { id: string; name: string; price: number } | null
   item?: { id: string; name: string }
@@ -72,11 +79,12 @@ export interface DirectBooking {
 export const bookedNames = (b: DirectBooking): string[] =>
   b.items ? [...new Set(b.items.map((i) => i.name))] : b.item ? [b.item.name] : []
 
-export type DirectReason = "unavailable" | "not-tracked" | "error"
+export type DirectReason = "unavailable" | "not-tracked" | "addons" | "error"
 
 /* message is always fit to show: the admin's own words for a date that is
-   taken or an item that isn't bookable (written for the customer), and the
-   bank's calm line for everything else. detail keeps the admin's raw text
+   taken, an item that isn't bookable, or an add-on choice that is missing
+   or no longer offered (all written for the customer), and the bank's calm
+   line for everything else. detail keeps the admin's raw text
    for the console, never for the screen. */
 export type DirectResult =
   | { ok: true; booking: DirectBooking }
@@ -98,6 +106,7 @@ const FALLBACK = "That didn't go through. Try again, or text us."
 export async function bookDirect(input: {
   itemIds: string[]
   packageId: string | null
+  addons: Record<string, string[]> | null
   eventDate: string
   customerName: string | null
   phone: string | null
@@ -105,11 +114,13 @@ export async function bookDirect(input: {
   address: string | null
   eventTime: string | null
 }): Promise<DirectResult> {
-  const { customerName, phone, email, itemIds, packageId, ...rest } = input
+  const { customerName, phone, email, itemIds, packageId, addons, ...rest } = input
   const body: Record<string, unknown> = { ...rest }
   if (itemIds.length === 1) body.itemId = itemIds[0]
   else body.itemIds = itemIds
   if (packageId) body.packageId = packageId
+  // { [itemId]: [addonId, ...] }, the admin's shape; left out when empty.
+  if (addons) body.addons = addons
   if (customerName) body.customerName = customerName
   if (phone && email) {
     body.phone = phone
@@ -123,7 +134,12 @@ export async function bookDirect(input: {
   })
   const data = await res.json().catch(() => ({}))
   if (res.status === 201) return { ok: true, booking: data as DirectBooking }
-  const reason: DirectReason = data.reason === "unavailable" || data.reason === "not-tracked" ? data.reason : "error"
+  const reason: DirectReason =
+    data.reason === "unavailable" || data.reason === "not-tracked"
+      ? data.reason
+      : data.reason === "addon-required" || data.reason === "addon-invalid"
+        ? "addons"
+        : "error"
   const detail = typeof data.error === "string" ? data.error : undefined
   if (reason === "error") {
     console.warn(`direct booking refused (${res.status}): ${detail ?? "no detail"}`)
@@ -142,6 +158,7 @@ export interface PublicPackageItem {
   price: number | null
   priceUnit: string | null
   quantity: number
+  addonGroups?: AddonGroup[]
 }
 
 export interface PublicPackage {

@@ -33,6 +33,8 @@ export interface CustomerBooking {
   depositPaid: boolean
   createdAt: string
   units: BookingUnit[]
+  /* What was picked for which item, as booked. */
+  addons?: Array<{ itemId: string | null; itemName: string; groupName: string; addonName: string; priceDelta: number; quantity: number }>
 }
 
 export type ApiResult<T> =

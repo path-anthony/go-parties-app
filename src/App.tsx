@@ -18,6 +18,7 @@ import PartySignUp from "@/pages/PartySignUp"
 import PartyReschedule from "@/pages/PartyReschedule"
 import PartyChange from "@/pages/PartyChange"
 import ItemDate from "@/pages/ItemDate"
+import ItemOptions from "@/pages/ItemOptions"
 import ItemWho from "@/pages/ItemWho"
 import ItemAccount from "@/pages/ItemAccount"
 import ItemHeld from "@/pages/ItemHeld"
@@ -51,6 +52,7 @@ function App() {
             <Route path="/party/:id/change" element={<PartyChange />} />
             <Route path="/item/held" element={<ItemHeld />} />
             <Route path="/item/:id" element={<ItemDate />} />
+            <Route path="/item/:id/options" element={<ItemOptions />} />
             <Route path="/item/:id/who" element={<ItemWho />} />
             <Route path="/item/:id/account" element={<ItemAccount />} />
             <Route path="/kit" element={<Kit />} />

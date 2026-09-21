@@ -22,6 +22,8 @@ import { AddonRow, StickyTotal } from "@/components/go/AddonRow"
 import { CategoryChips } from "@/components/go/CategoryChips"
 import { AiLine } from "@/components/go/AiLine"
 import { BottomNav } from "@/components/go/BottomNav"
+import { AddonPicker } from "@/components/go/AddonPicker"
+import { withPick, type Picks } from "@/lib/addons"
 import { daysFor } from "@/lib/availability"
 import { ADDONS, BUDGETS, GUESTS, NEXT_OPEN, OCC, PKGS, TIMES, occOf } from "@/data/catalog"
 
@@ -54,6 +56,15 @@ const ICONS = [
   { name: "Truck", Icon: Truck },
 ]
 
+/* Sample add-on groups in the admin's shape: one required, one optional. */
+const KIT_ADDON_ITEM = {
+  id: "kit-item",
+  addonGroups: [
+    { id: "flavor", name: "Flavor", required: true, addons: [{ id: "cherry", name: "Cherry", priceDelta: 0 }, { id: "peach", name: "Peach", priceDelta: 10 }] },
+    { id: "size", name: "Cup size", required: false, addons: [{ id: "small", name: "Small", priceDelta: -25 }, { id: "large", name: "Large", priceDelta: 50 }] },
+  ],
+}
+
 function Section({ label, title, children }: { label: string; title: string; children: React.ReactNode }) {
   return (
     <section className="pt-10">
@@ -70,6 +81,7 @@ function Section({ label, title, children }: { label: string; title: string; chi
 export default function Kit() {
   const { toast } = useToast()
   const splash = PKGS.kids[3]
+  const [kitPicks, setKitPicks] = useState<Picks>({ flavor: "cherry" })
   const [month, setMonth] = useState(0)
   const [day, setDay] = useState<string | null>("Sep 13")
   const [time, setTime] = useState<string | null>("Midday")
@@ -197,6 +209,13 @@ export default function Kit() {
             ))}
           </div>
         </Reveal>
+      </Section>
+      <Section label="Item options" title="Add-on picker">
+        <div className="rounded-[14px] border border-line bg-white px-4 py-3.5">
+          <h3 className="text-base font-extrabold text-charcoal">Snow Cone Station</h3>
+          <small className="mb-3 block text-small text-muted">Fun foods</small>
+          <AddonPicker item={KIT_ADDON_ITEM} picks={kitPicks} onPick={(g, a) => setKitPicks((prev) => withPick(prev, g, a))} />
+        </div>
       </Section>
 
       <Section label="09" title="Occasion cards">

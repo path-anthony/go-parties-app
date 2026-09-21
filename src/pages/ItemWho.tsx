@@ -11,6 +11,8 @@ import { labelForIso } from "@/lib/availability"
 import { bookDirect, type DirectReason } from "@/lib/adminApi"
 import { directInput } from "@/lib/directInput"
 import { itemClock as clockFor } from "@/data/catalog"
+import { missingRequired } from "@/lib/addons"
+import { checkoutSteps } from "@/lib/steps"
 import { useBooking } from "@/state/booking"
 import { useCustomer } from "@/state/customer"
 
@@ -42,6 +44,7 @@ export default function ItemWho() {
   if (b.items.length === 0) return <Navigate to="/browse" replace />
   if (b.items[0].id !== id) return <Navigate to={`/item/${b.items[0].id}/who`} replace />
   if (!b.itemDate) return <Navigate to={`/item/${b.items[0].id}`} replace />
+  if (b.items.some((i) => missingRequired(i).length > 0)) return <Navigate to={`/item/${b.items[0].id}/options`} replace />
   const items = b.items
   const firstId = items[0].id
   const iso = b.itemDate
@@ -53,7 +56,8 @@ export default function ItemWho() {
   const nameSettled = needsName ? b.contactName.trim() !== "" : true
   const canSubmit = nameSettled && contactSettled && addressSettled && !submitting
 
-  const steps = onFile ? 2 : 3
+  const steps = checkoutSteps(b.optionsStep, onFile)
+  const here = `/item/${firstId}/who`
 
   const removeItem = (rid: string) => b.setItems(items.filter((i) => i.id !== rid))
 
@@ -86,7 +90,7 @@ export default function ItemWho() {
   return (
     <AppShell>
       <Body>
-        <GoLabel>{items.length === 1 ? "Just this" : "Just these"} · Step 2 of {steps}</GoLabel>
+        <GoLabel>{items.length === 1 ? "Just this" : "Just these"} · Step {steps.who} of {steps.total}</GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">Who's booking?</h1>
         <p className="mt-2 text-body text-charcoal-soft">
           {onFile ? "We've got your details. Just the address." : "Name, phone, and email. That's it."}
@@ -95,7 +99,13 @@ export default function ItemWho() {
           <MetaCard label="When" value={when} />
         </div>
         <div className="mt-2">
-          <CartItems items={items} bundle={b.bundle} onRemove={removeItem} showTotal={items.length > 1 || b.bundle !== null} />
+          <CartItems
+            items={items}
+            bundle={b.bundle}
+            onRemove={removeItem}
+            onConfigure={() => navigate(`/item/${firstId}/options`, { state: { from: here } })}
+            showTotal
+          />
         </div>
         {onFile && customer && (
           <div className="mt-3.5 rounded-[14px] border border-line bg-white px-4 py-3.5">
@@ -177,6 +187,11 @@ export default function ItemWho() {
                 }}
               >
                 Pick another date
+              </Button>
+            )}
+            {notice.reason === "addons" && (
+              <Button variant="ghost" size="sm" className="mt-2.5 block" onClick={() => navigate(`/item/${firstId}/options`, { state: { from: here } })}>
+                Pick options
               </Button>
             )}
             {notice.reason === "error" && onFile && (

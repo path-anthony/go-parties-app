@@ -12,6 +12,8 @@ import { labelForIso } from "@/lib/availability"
 import { bookDirect, type DirectReason } from "@/lib/adminApi"
 import { directInput } from "@/lib/directInput"
 import { itemClock } from "@/data/catalog"
+import { missingRequired } from "@/lib/addons"
+import { checkoutSteps } from "@/lib/steps"
 import { canSignUp, useSignUp, type SignUpValues } from "@/hooks/use-signup"
 import { useBooking } from "@/state/booking"
 import { useCustomer } from "@/state/customer"
@@ -44,6 +46,9 @@ export default function ItemAccount() {
   if (b.items[0].id !== id) return <Navigate to={`/item/${b.items[0].id}/account`} replace />
   const firstId = b.items[0].id
   if (!b.itemDate) return <Navigate to={`/item/${firstId}`} replace />
+  if (b.items.some((i) => missingRequired(i).length > 0)) return <Navigate to={`/item/${firstId}/options`} replace />
+  const steps = checkoutSteps(b.optionsStep, false)
+  const here = `/item/${firstId}/account`
   // Not while a hold is in flight, and not after one that left this screen.
   // A fresh sign-up sets the customer before the booking after it has
   // answered, and navigate() is deferred: if `booking` dropped back to
@@ -106,14 +111,20 @@ export default function ItemAccount() {
   return (
     <AppShell>
       <Body>
-        <GoLabel>{b.items.length === 1 ? "Just this" : "Just these"} · Step 3 of 3</GoLabel>
+        <GoLabel>{b.items.length === 1 ? "Just this" : "Just these"} · Step {steps.account} of {steps.total}</GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">Make an account?</h1>
         <p className="mt-2 text-body text-charcoal-soft">Sign in later to move it or cancel it. No account needed either way.</p>
         <div className="mt-3.5">
           <MetaCard label="When" value={when} />
         </div>
         <div className="mt-2">
-          <CartItems items={b.items} bundle={b.bundle} onRemove={removeItem} showTotal={b.items.length > 1 || b.bundle !== null} />
+          <CartItems
+            items={b.items}
+            bundle={b.bundle}
+            onRemove={removeItem}
+            onConfigure={() => navigate(`/item/${firstId}/options`, { state: { from: here } })}
+            showTotal
+          />
         </div>
         <div className="mt-3.5 grid grid-cols-2 gap-2">
           <Chip selected={choice === "account"} sub="Phone, email, a password" onClick={() => setChoice("account")}>
@@ -150,6 +161,11 @@ export default function ItemAccount() {
                 }}
               >
                 Pick another date
+              </Button>
+            )}
+            {notice.reason === "addons" && (
+              <Button variant="ghost" size="sm" className="mt-2.5 block" onClick={() => navigate(`/item/${firstId}/options`, { state: { from: here } })}>
+                Pick options
               </Button>
             )}
             {notice.reason === "error" && (

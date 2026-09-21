@@ -62,6 +62,11 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <b className="block text-sm text-charcoal">{whatOf(booking)}</b>
+          {(booking.addons ?? []).map((a) => (
+            <span key={`${a.itemName}-${a.groupName}`} className="block text-small text-charcoal-soft">
+              {a.itemName}, {a.groupName}: {a.addonName}
+            </span>
+          ))}
           <span className="block text-small text-charcoal-soft">{whenOf(booking)}</span>
           {booking.address && <span className="block text-small text-muted">{booking.address}</span>}
         </div>

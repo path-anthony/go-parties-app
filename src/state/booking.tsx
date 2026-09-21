@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useState } from "react"
 import { PKGS, type OccasionId, type Pkg } from "@/data/catalog"
 import type { DirectBooking } from "@/lib/adminApi"
+import { needsConfig, type AddonGroup, type Picks } from "@/lib/addons"
 
 /* Single booking store per docs/SCREENS.md: occ, month, date, time, guests,
    budget, pkg, swaps, addons, cat, addr, venue, power, water, held. The
@@ -16,6 +17,11 @@ export interface DirectItem {
   price: number | null
   priceUnit: string | null
   quantity?: number
+  /* The item's add-on groups as the admin sent them, and what was picked
+     (group id to addon id). Picks ride on the item, so every screen and the
+     booking request know which item a choice belongs to. */
+  addonGroups?: AddonGroup[]
+  picks?: Picks
 }
 
 /* The package a cart came from, when it did. Its bundle price is the total
@@ -46,6 +52,10 @@ export interface BookingState {
   held: boolean
   items: DirectItem[]
   bundle: Bundle | null
+  /* True when the cart arrived as a batch with things to configure (Ask GO,
+     a package): checkout then opens with the options step. Browse
+     configures each item as it is added and has no such step. */
+  optionsStep: boolean
   itemMonth: number
   itemDate: string | null
   itemTime: string | null
@@ -78,6 +88,7 @@ const INITIAL: BookingState = {
   held: false,
   items: [],
   bundle: null,
+  optionsStep: false,
   itemMonth: 0,
   itemDate: null,
   itemTime: null,
@@ -96,6 +107,7 @@ interface BookingApi extends BookingState {
   pick: (occ: OccasionId) => void
   pickItems: (items: DirectItem[], bundle?: Bundle) => void
   setItems: (items: DirectItem[]) => void
+  setPicks: (itemId: string, picks: Picks) => void
   jump: (occ: OccasionId, id: string) => void
   suggest: () => void
   swapPkg: (id: string) => void
@@ -117,8 +129,21 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       pick: (occ) =>
         setS((prev) => ({ ...prev, occ, subOcc: null, date: null, time: null, guests: null, budget: null, pkg: null, addons: {}, swaps: {}, month: 0 })),
       pickItems: (items, bundle) =>
-        setS((prev) => ({ ...prev, items, bundle: bundle ?? null, itemMonth: 0, itemDate: null, itemTime: null, itemTimeLater: false, direct: null })),
+        setS((prev) => ({
+          ...prev,
+          items,
+          bundle: bundle ?? null,
+          optionsStep: items.some(needsConfig),
+          itemMonth: 0,
+          itemDate: null,
+          itemTime: null,
+          itemTimeLater: false,
+          direct: null,
+        })),
       setItems: (items) => setS((prev) => ({ ...prev, items, bundle: null })),
+      // Not setItems: choosing an option doesn't change what the cart is, so
+      // a package stays the package.
+      setPicks: (itemId, picks) => setS((prev) => ({ ...prev, items: prev.items.map((i) => (i.id === itemId ? { ...i, picks } : i)) })),
       jump: (occ, id) =>
         setS((prev) => ({ ...prev, occ, pkg: PKGS[occ].find((p) => p.id === id) ?? null, addons: {}, swaps: {} })),
       suggest: () =>

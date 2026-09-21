@@ -3,7 +3,8 @@ import { Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { MetaCard } from "@/components/go/MetaCard"
-import { LineItems } from "@/components/go/LineItems"
+import { LineItems, type Line, type SubLine } from "@/components/go/LineItems"
+import { pickedOf } from "@/lib/addons"
 import { labelForIso } from "@/lib/availability"
 import { bookedNames } from "@/lib/adminApi"
 import { cartTotal, lineTotal, qtyOf } from "@/components/go/CartItems"
@@ -25,8 +26,16 @@ export default function ItemHeld() {
   const when = clock ? `${day}, ${clock}` : day
   const where = b.addressLater || b.address.trim() === "" ? "We'll text you for it" : b.address.trim()
   const names = bookedNames(direct)
-  const priced = items.filter((i) => i.price !== null)
-  const lines: [string, number][] = priced.map((i) => [qtyOf(i) > 1 ? `${i.name} x ${qtyOf(i)}` : i.name, lineTotal(i)])
+  // Each item's line carries its own add-ons under it. The admin's record
+  // of what it sold is the truth (names and prices as booked, tied to the
+  // item by id); the cart's own picks only fill in if that's absent.
+  const subsOf = (i: (typeof items)[number]): SubLine[] =>
+    direct.addons
+      ? direct.addons.filter((a) => a.itemId === i.id).map((a) => [`${a.groupName}: ${a.addonName}`, a.priceDelta * a.quantity])
+      : pickedOf(i).map(({ group, addon }) => [`${group.name}: ${addon.name}`, addon.priceDelta * qtyOf(i)])
+  const priced = items.filter((i) => i.price !== null || subsOf(i).length > 0)
+  const lines: Line[] = priced.map((i) => [qtyOf(i) > 1 ? `${i.name} x ${qtyOf(i)}` : i.name, lineTotal(i), subsOf(i)])
+  const extras = direct.addonsTotal ?? 0
   // The admin's total is the truth (the package's bundle price, or the
   // items times quantity); the cart's own sum only fills in if it's absent.
   const total = direct.total ?? cartTotal(items, b.bundle)
@@ -50,7 +59,7 @@ export default function ItemHeld() {
         </div>
         {lines.length > 0 && (
           <div className="mt-2.5 text-left">
-            <LineItems lines={lines} total={total} note={b.bundle ? `Package price, ${b.bundle.name}.` : undefined} />
+            <LineItems lines={lines} total={total} note={b.bundle ? `Package price, ${b.bundle.name}${extras !== 0 ? ", plus what you picked." : "."}` : undefined} />
           </div>
         )}
         <p className="mt-4 text-small text-muted">
