@@ -10,6 +10,7 @@ import { StickyTotal } from "@/components/go/AddonRow"
 import { cartTotal } from "@/components/go/CartItems"
 import { CartSheet } from "@/components/go/CartSheet"
 import { AddonSheet } from "@/components/go/AddonSheet"
+import { Thumb } from "@/components/go/Thumb"
 import { groupsOf, needsConfig, type Picks } from "@/lib/addons"
 import { daysForItem, labelForIso } from "@/lib/availability"
 import { publicItems, type PublicItem } from "@/lib/adminApi"
@@ -34,6 +35,7 @@ const toDirect = (i: PublicItem, picks?: Picks): DirectItem => ({
   category: i.category,
   price: i.price,
   priceUnit: i.priceUnit,
+  photoUrl: i.photoUrl,
   addonGroups: i.addonGroups,
   picks,
 })
@@ -193,7 +195,8 @@ export default function Browse() {
                           on ? "border-orange bg-orange-tint" : "border-line bg-white"
                         )}
                       >
-                        <div className="min-w-0">
+                        <Thumb src={item.photoUrl} className="size-14" />
+                        <div className="min-w-0 flex-1">
                           <b className="block text-sm text-charcoal">{item.name}</b>
                           <small className="block text-small text-muted">
                             {item.category} · {priceLine(item)}

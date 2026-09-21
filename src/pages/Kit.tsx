@@ -23,6 +23,7 @@ import { CategoryChips } from "@/components/go/CategoryChips"
 import { AiLine } from "@/components/go/AiLine"
 import { BottomNav } from "@/components/go/BottomNav"
 import { AddonPicker } from "@/components/go/AddonPicker"
+import { Thumb } from "@/components/go/Thumb"
 import { withPick, type Picks } from "@/lib/addons"
 import { daysFor } from "@/lib/availability"
 import { ADDONS, BUDGETS, GUESTS, NEXT_OPEN, OCC, PKGS, TIMES, occOf } from "@/data/catalog"
@@ -220,6 +221,17 @@ export default function Kit() {
           </div>
         </Reveal>
       </Section>
+      <Section label="Item photo" title="Thumbnail">
+        <div className="flex items-center gap-3 text-small text-charcoal-soft">
+          <Thumb src="/photos/welcome/adult-party.jpg" />
+          <span>Photo</span>
+          <Thumb />
+          <span>No photo: the plate</span>
+          <Thumb src="/photos/welcome/missing.jpg" className="size-14" />
+          <span>Failed load: the plate</span>
+        </div>
+      </Section>
+
       <Section label="Item options" title="Add-on picker">
         <div className="rounded-[14px] border border-line bg-white px-4 py-3.5">
           <h3 className="text-base font-extrabold text-charcoal">Snow Cone Station</h3>

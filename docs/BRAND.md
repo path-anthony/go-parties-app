@@ -62,6 +62,7 @@ Rules
 - **Chip**: guests, times, budgets. 3 per row (2 for budgets). Selected = orange border + orange-tint fill. Sub-label allowed.
 - **Month chips + day carousel**: months as a chip row (tap, no scroll). Days scroll horizontally, snap, 56px wide, green dot open, grayed booked. Tapping a day reveals time chips beneath it.
 - **Photo plate / photo card**: see imagery. Occasion cards are 1:1 plates with the name bottom-left.
+- **Item thumbnail**: the admin's item photo, square, object-cover, 10px radius: 56px on Browse rows, 44px on cart rows and held lines, 36px in the Ask GO list. No photo (or one that fails to load) is the photo plate at the same size, no corner marks or spec line at that scale. Never a blank space.
 - **Recommended rail**: horizontal, snap, 168px cards, photo 5:4, name, price, one line, next open date in green.
 - **Package hero**: 4:3 plate, then name left and price right with "before add-ons" under it, then the inclusions list with green check icons.
 - **Package select**: native `<select>` for switching packages. Native on purpose: identical on every browser and phone.

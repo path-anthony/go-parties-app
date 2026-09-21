@@ -6,6 +6,8 @@
 
 Later the same day: the picker handles large groups. More than 6 options (three rows of the two-column chips is the most that still reads at a glance) turns the group into a search input over a scrolling list, with the current pick named above it; 6 or fewer stays chips, unchanged. Checked against a real 15-option required group on the test tent, in the Browse sheet and in the options step.
 
+And item photos: the admin's `photoUrl` (uploaded photos are inline data URLs; two real items have one today) now shows as a thumbnail on Browse rows, the Ask GO list, cart rows and held lines, with the photo plate wherever an item has none. Package items don't carry `photoUrl` from the admin yet, so rows that came from a package show the plate.
+
 **What we decided:** A choice is never shown apart from its item, anywhere. Choosing an option doesn't change what the cart is, so a package stays the package and its price is the base with the picks on top. The held screen shows the admin's record of what was sold, not the cart's guess. No checkout screen will take a date while a required group is unanswered, whichever door the cart came through.
 
 **What's next:** Andy configures real add-on groups in the admin's item popup. Change item in the portal drops a booking's add-ons on the admin today; the storefront doesn't ask for new ones there yet.

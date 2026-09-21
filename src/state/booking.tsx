@@ -16,6 +16,9 @@ export interface DirectItem {
   category: string
   price: number | null
   priceUnit: string | null
+  /* The admin's photo (a URL or an inline data URL). Missing or null shows
+     the photo plate instead. */
+  photoUrl?: string | null
   quantity?: number
   /* The item's add-on groups as the admin sent them, and what was picked
      (group id to addon id). Picks ride on the item, so every screen and the

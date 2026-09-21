@@ -6,6 +6,7 @@ import { ASK, type AskContext } from "@/data/ask"
 import { ADMIN_API } from "@/lib/adminApi"
 import { customerApi } from "@/lib/customerApi"
 import { needsConfig, type AddonGroup } from "@/lib/addons"
+import { Thumb } from "@/components/go/Thumb"
 import { useToast } from "@/hooks/use-toast"
 import { useBooking, type DirectItem } from "@/state/booking"
 
@@ -34,6 +35,7 @@ interface RecommendItem {
   category: string
   price: number | string | null
   priceUnit: string | null
+  photoUrl?: string | null
   addonGroups?: AddonGroup[]
 }
 
@@ -45,6 +47,7 @@ const toDirectItem = (item: RecommendItem): DirectItem => ({
   category: item.category,
   price: priceOf(item),
   priceUnit: item.priceUnit ?? null,
+  photoUrl: item.photoUrl ?? null,
   addonGroups: item.addonGroups,
 })
 
@@ -242,6 +245,7 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
                                 {on && <Check className="size-3.5 stroke-orange" strokeWidth={2.5} />}
                               </button>
                             )}
+                            <Thumb src={item.photoUrl} className="size-9 rounded-[8px]" />
                             <span className="min-w-0 flex-1">{item.name}</span>
                             {price !== null && <span className="flex-none">${price.toLocaleString()}</span>}
                             {changeFor && (

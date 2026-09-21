@@ -1,6 +1,7 @@
 import { Trash2 } from "lucide-react"
 import { fmt } from "@/data/catalog"
 import { addonsTotal, deltaText, needsConfig, pickedOf } from "@/lib/addons"
+import { Thumb } from "@/components/go/Thumb"
 import type { Bundle, DirectItem } from "@/state/booking"
 
 /* The items in a booking, one row each with a trash can, so anything can be
@@ -42,7 +43,8 @@ export function CartItems({
         return (
           <div key={item.id} className="border-b border-line py-2.5 last:border-b-0">
             <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
+              <Thumb src={item.photoUrl} />
+              <div className="min-w-0 flex-1">
                 <b className="block text-sm text-charcoal">
                   {item.name}
                   {qty > 1 && <span className="font-medium text-muted"> x {qty}</span>}

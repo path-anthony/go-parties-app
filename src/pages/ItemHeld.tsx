@@ -34,7 +34,7 @@ export default function ItemHeld() {
       ? direct.addons.filter((a) => a.itemId === i.id).map((a) => [`${a.groupName}: ${a.addonName}`, a.priceDelta * a.quantity])
       : pickedOf(i).map(({ group, addon }) => [`${group.name}: ${addon.name}`, addon.priceDelta * qtyOf(i)])
   const priced = items.filter((i) => i.price !== null || subsOf(i).length > 0)
-  const lines: Line[] = priced.map((i) => [qtyOf(i) > 1 ? `${i.name} x ${qtyOf(i)}` : i.name, lineTotal(i), subsOf(i)])
+  const lines: Line[] = priced.map((i) => [qtyOf(i) > 1 ? `${i.name} x ${qtyOf(i)}` : i.name, lineTotal(i), subsOf(i), i.photoUrl ?? null])
   const extras = direct.addonsTotal ?? 0
   // The admin's total is the truth (the package's bundle price, or the
   // items times quantity); the cart's own sum only fills in if it's absent.
