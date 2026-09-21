@@ -20,6 +20,11 @@ export interface AddonGroup {
   addons: AddonOption[]
 }
 
+/* A group with more options than this renders as a searchable, scrolling
+   list instead of chips. Six is three rows of the two-column chips, which
+   still reads at a glance; a seventh starts a wall. */
+export const LARGE_GROUP = 6
+
 /* group id to addon id */
 export type Picks = Record<string, string>
 

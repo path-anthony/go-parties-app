@@ -62,6 +62,16 @@ const KIT_ADDON_ITEM = {
   addonGroups: [
     { id: "flavor", name: "Flavor", required: true, addons: [{ id: "cherry", name: "Cherry", priceDelta: 0 }, { id: "peach", name: "Peach", priceDelta: 10 }] },
     { id: "size", name: "Cup size", required: false, addons: [{ id: "small", name: "Small", priceDelta: -25 }, { id: "large", name: "Large", priceDelta: 50 }] },
+    {
+      id: "syrup",
+      name: "Second syrup",
+      required: false,
+      addons: ["Blue raspberry", "Grape", "Lemon lime", "Mango", "Orange", "Pina colada", "Strawberry", "Tiger blood", "Watermelon"].map((name, i) => ({
+        id: `syrup-${i}`,
+        name,
+        priceDelta: i > 5 ? 15 : 10,
+      })),
+    },
   ],
 }
 

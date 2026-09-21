@@ -108,7 +108,7 @@ Bank (use these, extend in this register)
 - Package: Here's your party. / before add-ons
 - Detail: What's in it. Swap anything. Price updates as you go.
 - Add-ons: Make it yours.
-- Item options (add-on groups from the admin, always shown under the item they belong to): Make it yours. / A few picks before the day. Each one sits under the thing it's for. / Pick one (required group) / Optional / Included / +$75 / -$25 / +$75 each (quantity above one) / Still needs: Sidewalls. / Everything else is ready as is. / Sidewalls: Full walls (choice line, under its item) / Change / Pick options / Options: Surface, Banner (Browse row) / A couple of picks and it's in. (Browse sheet) / Add to cart · $425 / Save · $350 / Package price, Backyard Bash, plus what you picked.
+- Item options (add-on groups from the admin, always shown under the item they belong to): Make it yours. / A few picks before the day. Each one sits under the thing it's for. / Pick one (required group) / Optional / Included / +$75 / -$25 / +$75 each (quantity above one) / Still needs: Sidewalls. / Large group (more than 6 options, a search input over a scrolling list): Search 15 options (placeholder) / Picked: Navy, +$10 / Nothing picked yet. / Nothing by that name. Try another word. / Everything else is ready as is. / Sidewalls: Full walls (choice line, under its item) / Change / Pick options / Options: Surface, Banner (Browse row) / A couple of picks and it's in. (Browse sheet) / Add to cart · $425 / Save · $350 / Package price, Backyard Bash, plus what you picked.
 - Where: Where's the party? / Gate width, stairs, dogs: tell the crew. We've seen it all.
 - Review: Look good? / $200 holds the date for 48 hours.
 - CTA: Let's go / Show me / Make it mine / Hold my date, $200

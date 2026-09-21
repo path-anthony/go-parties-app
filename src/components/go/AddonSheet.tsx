@@ -57,7 +57,7 @@ export function AddonSheet({
               </DrawerClose>
             </DrawerTitle>
             <DrawerDescription className="shrink-0 text-small text-charcoal-soft">A couple of picks and it's in.</DrawerDescription>
-            <div className="mt-3.5 flex-1 overflow-y-auto pb-px">
+            <div className="-mr-2.5 mt-3.5 flex-1 overflow-y-auto pr-2.5 pb-px">
               <AddonPicker item={item} picks={picks} onPick={(g, a) => setPicks((prev) => withPick(prev, g, a))} />
             </div>
             <div className="mt-3.5 shrink-0">
