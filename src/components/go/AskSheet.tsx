@@ -7,6 +7,8 @@ import { ADMIN_API } from "@/lib/adminApi"
 import { customerApi } from "@/lib/customerApi"
 import { needsConfig, type AddonGroup } from "@/lib/addons"
 import { Thumb } from "@/components/go/Thumb"
+import { ConciergeOffer } from "@/components/go/ConciergeOffer"
+import type { ConciergeContext } from "@/lib/concierge"
 import { useToast } from "@/hooks/use-toast"
 import { useBooking, type DirectItem } from "@/state/booking"
 
@@ -55,12 +57,15 @@ interface AskApiResponse {
   message: string
   items?: RecommendItem[]
   total?: number
+  /* The admin's nudge: this party reads like one a person should plan. */
+  suggestConcierge?: boolean
 }
 
 interface FinalRecommendation {
   message: string
   items: RecommendItem[]
   total: number
+  suggestConcierge: boolean
 }
 
 const TEXTAREA_MAX_PX = 120
@@ -126,7 +131,7 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
       const data: AskApiResponse = await response.json()
       setMessages((prev) => [...prev, { role: "assistant", content: data.message }])
       if (data.ready) {
-        setFinalRec({ message: data.message, items: data.items ?? [], total: data.total ?? 0 })
+        setFinalRec({ message: data.message, items: data.items ?? [], total: data.total ?? 0, suggestConcierge: data.suggestConcierge === true })
         setPicked([])
       }
     } catch {
@@ -179,6 +184,14 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
     }
     setSwitchNotice(result.message)
   }
+
+  /* What Ask GO recommended, for the concierge lead and the Calendly note. */
+  const conciergeCtx = (items: RecommendItem[]): ConciergeContext => ({
+    source: "ask_go",
+    occasion: subOcc,
+    itemOrPackage: items.map((i) => i.name).join(", ") || null,
+    eventDate: null,
+  })
 
   const tryAnother = () => {
     setMessages([])
@@ -261,6 +274,13 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
                     <div className="mt-2 border-t border-line pt-2 font-bold">
                       Total: ${finalRec.total.toLocaleString()}
                     </div>
+                  </div>
+                )}
+                {finalRec?.suggestConcierge && !changeFor && (
+                  <div className="rounded-[12px] border border-line bg-cream px-3.5 py-3 text-[13.5px] leading-normal text-charcoal">
+                    <b className="block font-bold">Want to talk it through instead?</b>
+                    <span className="block text-[12.5px] text-charcoal-soft">Some parties are easier to plan with a real person. Grab 30 minutes with our team, on us.</span>
+                    <ConciergeOffer ctx={conciergeCtx(finalRec.items)} className="mt-2.5" />
                   </div>
                 )}
                 {error && (

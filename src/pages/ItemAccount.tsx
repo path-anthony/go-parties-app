@@ -47,6 +47,7 @@ export default function ItemAccount() {
   const firstId = b.items[0].id
   if (!b.itemDate) return <Navigate to={`/item/${firstId}`} replace />
   if (b.items.some((i) => missingRequired(i).length > 0)) return <Navigate to={`/item/${firstId}/options`} replace />
+  if (b.concierge === null) return <Navigate to={`/item/${firstId}/concierge`} replace />
   const steps = checkoutSteps(b.optionsStep, false)
   const here = `/item/${firstId}/account`
   // Not while a hold is in flight, and not after one that left this screen.

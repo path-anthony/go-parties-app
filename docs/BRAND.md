@@ -117,6 +117,7 @@ Bank (use these, extend in this register)
 - Portal bookings: Hey Sarah / Your bookings / Confirmed / Cancelled / Completed / Reschedule / Change item / Cancel / Cancel this booking? The date opens back up. / Keep it / Cancel it / Cancelled. / Sign out
 - Portal reschedule: When instead? / Now (label) / Move it / Moved.
 - Portal change item: Something else instead? / Tell Ask GO what you'd rather have, then tap Switch to this on the item. Same date. / What would you rather have? / Switch to this / Switched.
+- Concierge (the offer after the date, and the nudge under an Ask GO recommendation): Prefer to just talk it through? / Some parties are easier to plan with a real person. Grab 30 minutes with our team, on us. / Talk to GO Event Group (button, a link to Calendly in a new tab) / I'll keep going / Or keep going and finish here. Nothing changes until you hold the date. / Booking opened in a new tab. Your cart stays right here. / Want to talk it through instead? (Ask GO nudge heading)
 - Item held: Sat Oct 10 is yours. Contract and deposit link are on their way to your phone.
 - Item, fill in later: Decide later (time chip, sub "No rush") / Add the address later. We'll text you for it. / Where: We'll text you for it
 - Item account step (guests only): Make an account? / Sign in later to move it or cancel it. No account needed either way. / Create account (chip, sub "Phone, email, a password") / Continue as guest (chip, sub "No account needed")

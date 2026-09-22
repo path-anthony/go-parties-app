@@ -45,6 +45,9 @@ export interface BookingState {
      a package): checkout then opens with the options step. Browse
      configures each item as it is added and has no such step. */
   optionsStep: boolean
+  /* The concierge offer after the date: "talk" (sent to Calendly), "skipped"
+     (kept going), null until answered. The who screen requires an answer. */
+  concierge: "talk" | "skipped" | null
   itemMonth: number
   itemDate: string | null
   itemTime: string | null
@@ -64,6 +67,7 @@ const INITIAL: BookingState = {
   items: [],
   bundle: null,
   optionsStep: false,
+  concierge: null,
   itemMonth: 0,
   itemDate: null,
   itemTime: null,
@@ -103,6 +107,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           items,
           bundle: bundle ?? null,
           optionsStep: items.some(needsConfig),
+          concierge: null,
           itemMonth: 0,
           itemDate: null,
           itemTime: null,

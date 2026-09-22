@@ -66,7 +66,7 @@ export default function ItemDate() {
       </Body>
       <Foot>
         <Button variant="ghost" onClick={() => navigate(b.optionsStep ? `${here}/options` : "/home")}>Back</Button>
-        <Button disabled={!available || !timeSettled} onClick={() => navigate(`/item/${items[0].id}/who`)}>Next</Button>
+        <Button disabled={!available || !timeSettled} onClick={() => navigate(`/item/${items[0].id}/concierge`)}>Next</Button>
       </Foot>
     </AppShell>
   )
