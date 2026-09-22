@@ -2,45 +2,35 @@ import { useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { Menu } from "lucide-react"
 import { Toaster } from "@/components/ui/toaster"
-import { useToast } from "@/hooks/use-toast"
 import { Wordmark } from "@/components/go/Wordmark"
 import { Progress } from "@/components/go/Progress"
 import { MenuSheet } from "@/components/go/MenuSheet"
 import { BottomNav, type NavTab } from "@/components/go/BottomNav"
-import { useBooking } from "@/state/booking"
 import { useAsk } from "@/state/ask"
 
 /* App frame: header with wordmark, progress and the menu button, fixed
    bottom nav, toast host. Mobile first at 390. Desktop centers at 560 with
    more air; no desktop layout. */
 
+/* Book is the real checkout: Browse and every /item screen. */
 function activeTab(path: string): NavTab | null {
   if (path === "/" || path === "/home") return "home"
   if (path.startsWith("/party")) return "party"
-  if (path === "/browse") return null
-  return "book"
+  if (path === "/browse" || path.startsWith("/item")) return "book"
+  return null
 }
 
 export function AppShell({ step, children }: { step?: number; children: React.ReactNode }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { occ, pkg } = useBooking()
   const { openAsk } = useAsk()
-  const { toast } = useToast()
   const [menuOpen, setMenuOpen] = useState(false)
 
   const onPick = (tab: NavTab) => {
     if (tab === "home") navigate("/home")
     if (tab === "party") navigate("/party")
     if (tab === "ask") openAsk("home")
-    if (tab === "book") {
-      if (!occ) {
-        navigate("/home")
-        toast({ title: "Pick an occasion first." })
-        return
-      }
-      navigate(pkg ? "/book/package" : "/book/date")
-    }
+    if (tab === "book") navigate("/browse")
   }
 
   return (

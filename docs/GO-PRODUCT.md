@@ -39,7 +39,7 @@ Fourteen tables in `go-parties-admin/prisma/schema.prisma`. Every row below Acco
 - **LeadStatus**: the Leads board's columns, editable in the admin, with a real foreign key so renaming a column cascades to its leads and a column with leads can't be deleted.
 - **LeadActivity**: append-only log per lead. Bookings, cancellations, reschedules, item and unit changes and add-on edits write here.
 
-Not in the schema: **Theme** as its own table (it is a text tag on Package), **Gig**, **Contractor**, **Client**, **Contract**, **Payment**. The storefront's original package flow (occasion, date, budget, package, add-ons, where, review, held at `/book/*`) still runs on the static catalog in `src/data/catalog.ts` with simulated availability; it is reachable from Home's Continue button and is the one part of the storefront not on real data.
+Not in the schema: **Theme** as its own table (it is a text tag on Package), **Gig**, **Contractor**, **Client**, **Contract**, **Payment**. The storefront's original static package flow (`/book/*`, `/held`) was removed on 2026-09-22; every booking a customer can make now goes through the real checkout. The static catalog in `src/data/catalog.ts` survives only as sample data for the `/kit` design page.
 
 ## The no-double-booking guarantee
 

@@ -4,14 +4,6 @@ import { CustomerProvider } from "@/state/customer"
 import { AskProvider } from "@/state/ask"
 import Home from "@/pages/Home"
 import Browse from "@/pages/Browse"
-import BookDate from "@/pages/BookDate"
-import BookBudget from "@/pages/BookBudget"
-import BookPackage from "@/pages/BookPackage"
-import BookDetail from "@/pages/BookDetail"
-import BookAddons from "@/pages/BookAddons"
-import BookWhere from "@/pages/BookWhere"
-import BookReview from "@/pages/BookReview"
-import Held from "@/pages/Held"
 import MyParty from "@/pages/MyParty"
 import PartySignIn from "@/pages/PartySignIn"
 import PartySignUp from "@/pages/PartySignUp"
@@ -37,14 +29,11 @@ function App() {
             {/* The old click-through gate is gone; sign in is the portal's. */}
             <Route path="/signin" element={<Navigate to="/party/signin" replace />} />
             <Route path="/browse" element={<Browse />} />
-            <Route path="/book/date" element={<BookDate />} />
-            <Route path="/book/budget" element={<BookBudget />} />
-            <Route path="/book/package" element={<BookPackage />} />
-            <Route path="/book/detail" element={<BookDetail />} />
-            <Route path="/book/addons" element={<BookAddons />} />
-            <Route path="/book/where" element={<BookWhere />} />
-            <Route path="/book/review" element={<BookReview />} />
-            <Route path="/held" element={<Held />} />
+            {/* The old static package flow lived at /book/* and /held. It never
+                made a real booking; any old link now lands on Browse, the real
+                checkout's door. */}
+            <Route path="/book/*" element={<Navigate to="/browse" replace />} />
+            <Route path="/held" element={<Navigate to="/browse" replace />} />
             <Route path="/party" element={<MyParty />} />
             <Route path="/party/signin" element={<PartySignIn />} />
             <Route path="/party/signup" element={<PartySignUp />} />

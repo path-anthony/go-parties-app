@@ -96,7 +96,7 @@ Bank (use these, extend in this register)
 - Hero captions (Home carousel): FARMINGTON, CT / Party on. We'll handle it. / REAL DATES / If you can pick it, we can make it. / DOOR TO DOOR / Delivery, setup, the fun, teardown.
 - Greeting (label): Hey Sarah (signed in, first name) / Hey there (signed out, or no name on the account)
 - Sign in: see Portal sign in. There is no gate; it lives in the Menu and on My party.
-- Home: What are we celebrating? / Ask GO (label) / The AI event builder. / Tell it the party. It builds one from what's actually in the warehouse, real items, real prices. / Build it with Ask GO / Build your own. Pick a day, add what's open. (row, right label Build) / Or pick the occasion (label) / What kind (label) / Packages for Birthday (label, the sub-occasion) / Finding packages. / No packages for Birthday yet. Ask GO can build one, or build your own. / 3 items, all real (card line) / Continue
+- Home: What are we celebrating? / Ask GO (label) / The AI event builder. / Tell it the party. It builds one from what's actually in the warehouse, real items, real prices. / Build it with Ask GO / Build your own. Pick a day, add what's open. (row, right label Build) / Or pick the occasion (label) / What kind (label) / Packages for Birthday (label, the sub-occasion) / See what's open (button into Browse) / Finding packages. / No packages for Birthday yet. Ask GO can build one, or build your own. / 3 items, all real (card line) / Continue
 - My party, recommended stub: Recommended for you / Book a few things and picks for you show up here.
 - Cart rows (every checkout step): trash can per item, aria "Remove {item}" / Snow Cone Station x 2 (quantity on the row) / Total / Package price, Backyard Bash. (under the total when the cart is a package)
 - Browse: Pick a day. See what's open. / Tap a day. We show only what's open. / Open Sat Dec 5 (label) / 12 items / Bounce house, DJ, snow cones (placeholder) / All (category chip) / Checking the calendar. / Nothing open by that name Sat Dec 5. Try another word, or another day. / 2 open / Add / Added / Text us for a price
@@ -104,15 +104,9 @@ Bank (use these, extend in this register)
 - Menu: Menu / Signed in as / My party / Sign in / Create account / Sign out
 - Date: When's the party? / When's the night? / When's the big day? / When's the event?
 - Availability hint: Grayed days are booked solid, crew and gear included.
-- Guests: How many people. Rough is fine.
-- Budget: Ballpark? No wrong answer. We build to the number and show what's possible.
-- Package: Here's your party. / before add-ons
-- Detail: What's in it. Swap anything. Price updates as you go.
 - Add-ons: Make it yours.
 - Item options (add-on groups from the admin, always shown under the item they belong to): Make it yours. / A few picks before the day. Each one sits under the thing it's for. / Pick one (required group) / Optional / Included / +$75 / -$25 / +$75 each (quantity above one) / Still needs: Sidewalls. / Large group (more than 6 options, a search input over a scrolling list): Search 15 options (placeholder) / Picked: Navy, +$10 / Nothing picked yet. / Nothing by that name. Try another word. / Everything else is ready as is. / Sidewalls: Full walls (choice line, under its item) / Change / Pick options / Options: Surface, Banner (Browse row) / A couple of picks and it's in. (Browse sheet) / Add to cart · $425 / Save · $350 / Package price, Backyard Bash, plus what you picked.
-- Where: Where's the party? / Gate width, stairs, dogs: tell the crew. We've seen it all.
-- Review: Look good? / $200 holds the date for 48 hours.
-- CTA: Let's go / Show me / Make it mine / Hold my date, $200
+- CTA: Hold my date / Next / Back / Done
 - Held: Held. You're good.
 - Empty: Nothing here yet. Build a party and it'll live here.
 - Error: That didn't go through. Try again, or text us. / Try again (button under it; the admin's own wording is never shown except for a date that is taken or an item that isn't bookable)
@@ -135,7 +129,7 @@ Don't
 
 ## 11. Ask GO (the AI voice)
 - Ask GO is a knowledgeable crew member, not a chatbot. It sounds like the copy: short, sure, chill.
-- It never opens itself. Three doors only: the dashed line on Home, "Ask about this package", the Ask tab.
+- It never opens itself. Two doors only: the Ask GO card on Home and the Ask tab.
 - Every answer is 1 to 3 sentences, then an action button. It recommends, then hands control back.
 - It only recommends real packages and real add-ons from the catalog, with real prices. It never invents inventory or promises availability it hasn't checked.
 - Uncertainty is stated plainly: "I'd have Mel confirm that. Want me to send it to her?" Custom quotes, weddings over $15k, and corporate over 150 people hand off to a human.

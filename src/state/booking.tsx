@@ -1,12 +1,12 @@
 import { createContext, useContext, useMemo, useState } from "react"
-import { PKGS, type OccasionId, type Pkg } from "@/data/catalog"
+import type { OccasionId } from "@/data/catalog"
 import type { DirectBooking } from "@/lib/adminApi"
 import { needsConfig, type AddonGroup, type Picks } from "@/lib/addons"
 
-/* Single booking store per docs/SCREENS.md: occ, month, date, time, guests,
-   budget, pkg, swaps, addons, cat, addr, venue, power, water, held. The
-   direct item path (item, itemMonth, itemDate, contactName, contact, direct)
-   lives here too so one refresh rule applies everywhere. */
+/* Single booking store. The occasion and sub-occasion picked on Home, then
+   the cart and everything the real checkout (/item/*) needs: items with
+   their picks, the package they came from, date, time, contact, address,
+   and the admin's answer. One refresh rule applies to all of it. */
 
 /* One admin catalog item, as returned inside an Ask GO recommendation or a
    package. quantity is how many units to hold; missing means one. */
@@ -39,20 +39,6 @@ export interface Bundle {
 export interface BookingState {
   occ: OccasionId | null
   subOcc: string | null
-  month: number
-  date: string | null
-  time: string | null
-  guests: string | null
-  budget: number | null
-  pkg: Pkg | null
-  swaps: Record<number, string>
-  addons: Record<string, number>
-  cat: string
-  addr: string
-  venue: string
-  power: boolean
-  water: boolean
-  held: boolean
   items: DirectItem[]
   bundle: Bundle | null
   /* True when the cart arrived as a batch with things to configure (Ask GO,
@@ -75,20 +61,6 @@ export interface BookingState {
 const INITIAL: BookingState = {
   occ: null,
   subOcc: null,
-  month: 0,
-  date: null,
-  time: null,
-  guests: null,
-  budget: null,
-  pkg: null,
-  swaps: {},
-  addons: {},
-  cat: "Fun foods",
-  addr: "",
-  venue: "Backyard",
-  power: true,
-  water: true,
-  held: false,
   items: [],
   bundle: null,
   optionsStep: false,
@@ -111,11 +83,6 @@ interface BookingApi extends BookingState {
   pickItems: (items: DirectItem[], bundle?: Bundle) => void
   setItems: (items: DirectItem[]) => void
   setPicks: (itemId: string, picks: Picks) => void
-  jump: (occ: OccasionId, id: string) => void
-  suggest: () => void
-  swapPkg: (id: string) => void
-  toggleAddon: (name: string, price: number) => void
-  total: () => number
 }
 
 const Ctx = createContext<BookingApi | null>(null)
@@ -129,8 +96,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     return {
       ...s,
       set,
-      pick: (occ) =>
-        setS((prev) => ({ ...prev, occ, subOcc: null, date: null, time: null, guests: null, budget: null, pkg: null, addons: {}, swaps: {}, month: 0 })),
+      pick: (occ) => setS((prev) => ({ ...prev, occ, subOcc: null })),
       pickItems: (items, bundle) =>
         setS((prev) => ({
           ...prev,
@@ -147,26 +113,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       // Not setItems: choosing an option doesn't change what the cart is, so
       // a package stays the package.
       setPicks: (itemId, picks) => setS((prev) => ({ ...prev, items: prev.items.map((i) => (i.id === itemId ? { ...i, picks } : i)) })),
-      jump: (occ, id) =>
-        setS((prev) => ({ ...prev, occ, pkg: PKGS[occ].find((p) => p.id === id) ?? null, addons: {}, swaps: {} })),
-      suggest: () =>
-        setS((prev) => {
-          if (!prev.occ) return prev
-          const list = PKGS[prev.occ]
-          const b = prev.budget ?? 99999
-          const pkg = [...list].reverse().find((p) => p.p <= b) ?? list[0]
-          return { ...prev, pkg, addons: {}, swaps: {} }
-        }),
-      swapPkg: (id) =>
-        setS((prev) => (prev.occ ? { ...prev, pkg: PKGS[prev.occ].find((p) => p.id === id) ?? prev.pkg, swaps: {} } : prev)),
-      toggleAddon: (name, price) =>
-        setS((prev) => {
-          const addons = { ...prev.addons }
-          if (addons[name]) delete addons[name]
-          else addons[name] = price
-          return { ...prev, addons }
-        }),
-      total: () => (s.pkg ? s.pkg.p : 0) + Object.values(s.addons).reduce((a, b) => a + b, 0),
     }
   }, [s])
 

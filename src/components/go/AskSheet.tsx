@@ -11,10 +11,9 @@ import { useToast } from "@/hooks/use-toast"
 import { useBooking, type DirectItem } from "@/state/booking"
 
 /* Ask GO. BRAND.md section 11: a knowledgeable crew member. It never opens
-   itself: the dashed line on Home, "Ask about this package", the Ask tab.
-   Home context: a real conversation with the admin API, full history sent
-   each turn, until a final recommendation comes back. Package context:
-   scripted, unchanged. */
+   itself: the Ask GO card on Home and the Ask tab. A real conversation with
+   the admin API, full history sent each turn, until a final recommendation
+   comes back. */
 
 interface AskSheetProps {
   open: boolean
@@ -70,7 +69,6 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
   const navigate = useNavigate()
   const { toast } = useToast()
   const { subOcc, pickItems, changeFor, set } = useBooking()
-  const [asked, setAsked] = useState<number | null>(null)
   const [picked, setPicked] = useState<string[]>([])
   const [switching, setSwitching] = useState(false)
   const [switchNotice, setSwitchNotice] = useState<string | null>(null)
@@ -85,7 +83,6 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
 
   useEffect(() => {
     if (open) {
-      setAsked(null)
       setMessages([])
       setInput("")
       setError(null)
@@ -108,7 +105,6 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
   }, [messages, finalRec, error])
 
-  const chip = asked !== null ? script.chips[asked] : null
 
   const send = async () => {
     const text = input.trim()
@@ -319,43 +315,6 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
             </>
           )}
 
-          {ctx === "pkg" && (
-            <div className="flex-1 overflow-y-auto">
-              <div className="mt-2.5 rounded-[12px] border border-line bg-cream px-3.5 py-3 text-[13.5px] leading-normal text-charcoal">
-                {script.open}
-              </div>
-              {chip && (
-                <>
-                  <div className="mt-2.5 ml-[30px] rounded-[12px] border border-orange bg-orange-tint px-3.5 py-3 text-[13.5px] leading-normal text-charcoal">
-                    {chip.q}
-                  </div>
-                  <div className="mt-2.5 rounded-[12px] border border-line bg-cream px-3.5 py-3 text-[13.5px] leading-normal text-charcoal">
-                    {chip.a}
-                  </div>
-                </>
-              )}
-              <div className="mt-3 flex flex-wrap gap-2">
-                {!chip &&
-                  script.chips.map((c, i) => (
-                    <button
-                      key={c.q}
-                      className="rounded-[18px] border-[1.5px] border-line bg-white px-3 py-[9px] text-[12.5px] font-semibold text-charcoal hover:border-charcoal"
-                      onClick={() => setAsked(i)}
-                    >
-                      {c.q}
-                    </button>
-                  ))}
-                {chip && !chip.occ && (
-                  <button
-                    className="rounded-[18px] border-[1.5px] border-line bg-white px-3 py-[9px] text-[12.5px] font-semibold text-charcoal hover:border-charcoal"
-                    onClick={onClose}
-                  >
-                    Got it
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </DrawerContent>
     </Drawer>

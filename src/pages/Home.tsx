@@ -24,7 +24,7 @@ import { OCC, SUB_OCC, type OccasionId } from "@/data/catalog"
    AI event builder), the Build-your-own row (date first, then a cart,
    /browse), and the occasion cards (sub-occasion chips reveal beneath, then
    the packages the admin has published for that sub-occasion, live from
-   GET /api/packages/public, then Continue). A package is a pre-filled cart
+   GET /api/packages/public, then a button into Browse). A package is a pre-filled cart
    of its real items: tapping one hands them to the same /item/:id checkout
    every other door uses. No packages for a sub-occasion says so plainly.
    No gate in front of any of it; sign in lives in the header menu and on
@@ -150,8 +150,8 @@ export default function Home() {
           )}
         </Reveal>
         {occ && (
-          <Button className="mt-3.5 w-full" onClick={() => navigate("/book/date")}>
-            Continue
+          <Button className="mt-3.5 w-full" onClick={() => navigate("/browse")}>
+            See what's open
           </Button>
         )}
         <p className="mt-4 text-small text-muted">Dates are live off the unit calendar. If it's open, it's real.</p>
