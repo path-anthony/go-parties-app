@@ -1,5 +1,13 @@
 # GO! Event Group · project log
 
+## 2026-09-30 (later)
+
+**Where we are:** The contract and compliance foundation, data model and admin only. Settings gained a full review threshold ($15,000), occasions requiring review (Wedding and Corporate; a group covers its sub-occasions) and a deposit percentage (20). The cancellation and deposit policy text is versioned: a save adds a version and never edits one. Every new booking now has exactly one Agreement (customer, policy version, whether the box was ticked, when, plus reserved empty fields for a signed contract), enforced by the database, not just the code. A cart over the threshold, or for a review occasion, is not held: it becomes a Design Request in a new admin screen, and staff convert it through New booking, pre-filled, under the normal locks. Booking gained occasion and a balance payment preference (recorded only). Agreement status and the balance preference show wherever bookings are listed.
+
+**What the storefront needs:** send `agreedToPolicy: true` after showing `policy.text`, send `occasion` (a group like Wedding or a sub-occasion), and handle a 202 `reviewRequired` response from `POST /api/bookings/direct`. Until it sends the box, bookings are recorded as "box not ticked"; the admin can then switch the requirement on. Shapes are in the admin repo's commit 482dfee and the public API section of GO-PRODUCT.
+
+**What we decided:** An agreement records what happened, so a booking made without the box is stored as unticked rather than refused during the transition. Review is decided by the server on both paths, so the storefront and staff can't disagree.
+
 ## 2026-09-30
 
 **Where we are:** The portal told every customer their booking was Confirmed. The admin's customer bookings carry two fields: `status`, the old one, which reads "Confirmed" for any live booking, and `stage`, the real one (Held, Contract Sent, Signed, Retainer Paid, Confirmed only when signed and the retainer is paid, Completed, Cancelled). My party read `status`. It now reads `stage` through `src/lib/stage.ts` and shows each stage as a tag and one honest line: a held date says the contract comes next, a sent contract says to sign it and pay the retainer, and only a signed, paid booking says "You're all set". Cancelled is an outlined tag with its own line; Reschedule, Change item and Cancel show while the booking is live (not Completed or Cancelled), which is what "Confirmed" was standing in for. A missing or unknown stage reads as Held, never Confirmed. The Held screen and the rush display are untouched; they never read either field. Checked against real bookings at all seven stages, made through the customer API and the admin's stage and retainer controls, then deleted.
