@@ -1,5 +1,13 @@
 # GO! Event Group · project log
 
+## 2026-09-30
+
+**Where we are:** Three things. The migration drift is fixed: a "must match 196" guard in the Item source migration failed on an empty database, so it now accepts 0 or 196, and its checksum row was updated to match; a fresh shadow replay passes. Booking status is a real flow: the stored stage is Held (default), Contract Sent, Signed, Completed or Cancelled, Retainer paid is its own flag replacing the deposit checkbox, and Confirmed is computed, never stored, true only when the stage is Signed and the retainer is paid. The 41 old "Confirmed" rows became Held. The admin has a New booking flow for phone and in-person bookings; it calls the same booking code as the storefront (`createDirectBooking`), so unit locks, crew checks, add-on rules and RUSH are identical, and it defaults to Held.
+
+**What the storefront needs:** its portal reads `status === "Confirmed"` as a live booking, so customer responses keep that meaning and add `stage` with the real status (Held, Contract Sent, Signed, Retainer Paid, Confirmed). Until it reads `stage`, a Held booking still shows as Confirmed to the customer. `depositPaid` remains as an alias of `retainerPaid`. `deposit_paid` is dropped from the table in a follow-up migration once the new admin build is live.
+
+**What we decided:** Confirmed is derived from two facts, not a state to set. Staff bookings are the storefront's booking made by a person, not a parallel path.
+
 ## 2026-09-29 (later)
 
 **Where we are:** Rush orders. Two account settings in the admin's Settings screen, minimum booking notice in hours (default 72, 0 turns the flag off) and a rush contact phone (empty until Anthony supplies one). The storefront reads them from `GET /api/settings/public`, which returns `{ minBookingNoticeHours, rushContactPhone }` with no session. A booking whose event day starts, at midnight Eastern, less than that many hours from now is flagged `rush` when it is created or its date moves, and the flag clears if it is moved out of the window. It blocks nothing. The direct booking response now carries `rush` so the storefront can say the booking is pending confirmation. The admin shows a solid red RUSH tag in Scheduling, the booking popup, Overview (a Rush bookings card and the needs-crew list), Crew & Gigs and the lead panel.

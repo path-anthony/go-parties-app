@@ -31,7 +31,7 @@ Seventeen tables in `go-parties-admin/prisma/schema.prisma`. Every row below Acc
 - **CrewMember**: a person who works events. Name, phone, email, a list of skills from that table, an active flag, notes. Admin managed, no login. Deactivating keeps the row and everything it filled.
 - **Gig**: one person needed for one skill of one item on one booking. Created automatically, one per skill per unit wanted, the moment a booking takes an item with skills (a three-skill item makes three gigs, each offered and filled on its own); all of them cancelled with the booking; moved with the booking's date. Carries the skill, the event date, the item name (copied, so a renamed or deleted item doesn't rewrite it), a status (Needs Crew, Offered, Filled, Cancelled) and who filled it.
 - **GigOffer**: a gig put to one crew member, Sent, Accepted or Declined. Several people can be offered the same gig; one accepted offer fills it, and a second accept on a filled gig is refused by name. Nothing is sent anywhere yet; the admin records what was asked and answered.
-- **Booking**: a confirmed event on a date. Event time and address as free text, customer name, phone and email as separate columns, status (Confirmed, Completed, Cancelled), a `deposit_paid` flag nothing sets automatically, a `rush` flag (event day starts inside the account's minimum notice window when it was made or moved; visibility only), the quoted `total`, and optional links to the Lead it came from, the Customer who made it, and the Package it was booked as.
+- **Booking**: a confirmed event on a date. Event time and address as free text, customer name, phone and email as separate columns, a stage set by hand (Held by default, Contract Sent, Signed, Completed, Cancelled) and a `retainer_paid` flag (the old `deposit_paid`, hand-ticked; the column is dropped in a follow-up migration). The status people read is computed: Confirmed only when the stage is Signed and the retainer is paid, Retainer Paid when only the retainer is, otherwise the stage. a `rush` flag (event day starts inside the account's minimum notice window when it was made or moved; visibility only), the quoted `total`, and optional links to the Lead it came from, the Customer who made it, and the Package it was booked as.
 - **BookingUnit**: which units a booking holds, one row per unit, each carrying the event date. `(unit_id, event_date)` is unique. See the guarantee below.
 - **BookingAddon**: what a booking chose for an item. The item name, group name, option name and price change are copied at booking time on purpose: a booking is a record of what was sold, so renaming, repricing or deleting an option later never rewrites it. Quantity is how many units of the item the choice applies to.
 - **Customer**: a storefront account. Phone and email (both unique per account), bcrypt password hash, optional name, `phone_verified_at` (column exists, nothing sets it).
@@ -78,6 +78,8 @@ Verified on the live database, with the race between an admin reschedule and a s
 - `GET /api/settings/public`: `{ minBookingNoticeHours, rushContactPhone }`.
 - `POST /api/leads/external`: the n8n webhook, shared secret header.
 
+Admin only: `POST /api/bookings/staff` (New booking, the same booking code as `POST /api/bookings/direct` plus a quantity per item, an optional existing customer and a confirmed price) and `GET /api/customers?q=`.
+
 Every public item, from the catalog, from Ask GO and from a package, is built by one function (`server/publicItem.ts`, `toPublicItem`) that constructs the object field by field: id, name, category, price, priceUnit, photoUrl, hasUnits, addonGroups. It constructs rather than spreads, so a column added to Item later can't leak by default. This closed a real leak on 2026-09-21: Ask GO had been returning whole item rows, internal notes, account id and timestamps included.
 
 ## The three faces
@@ -123,7 +125,7 @@ Open questions: which GitHub account or organisation should own the repos (and w
 
 ## Payments and contracts
 
-Not built. `deposit_paid` on Booking is a hand-set flag in the booking popup. The storefront tells the customer a contract and deposit link follow by text; nothing sends them yet. There is no cancellation fee logic; cancel frees the date and that is all.
+Not built. `retainer_paid` on Booking is a hand-set checkbox in the booking popup. The storefront tells the customer a contract and deposit link follow by text; nothing sends them yet. There is no cancellation fee logic; cancel frees the date and that is all.
 
 - **Deposits / retainers:** SwipeSimple payment links, 10 to 20 percent of package price was the plan. Exact rule not yet locked with Andy.
 - **Contracts:** e-sign, embedded rather than built in-house. Vendor not yet chosen (SignWell vs. Documenso).
