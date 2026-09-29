@@ -20,7 +20,10 @@ function activeTab(path: string): NavTab | null {
   return null
 }
 
-export function AppShell({ step, children }: { step?: number; children: React.ReactNode }) {
+/* bare: for a page reached from a text or email link (the contract to sign),
+   not from inside the app: just the wordmark, no menu and no tab bar to
+   wander off with. */
+export function AppShell({ step, bare, children }: { step?: number; bare?: boolean; children: React.ReactNode }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { openAsk } = useAsk()
@@ -34,19 +37,21 @@ export function AppShell({ step, children }: { step?: number; children: React.Re
   }
 
   return (
-    <div className="mx-auto flex min-h-svh max-w-[480px] flex-col pb-[calc(76px+env(safe-area-inset-bottom))] min-[900px]:max-w-[560px]">
+    <div className={`mx-auto flex min-h-svh max-w-[480px] flex-col min-[900px]:max-w-[560px] ${bare ? "pb-[env(safe-area-inset-bottom)]" : "pb-[calc(76px+env(safe-area-inset-bottom))]"}`}>
       <div className="flex items-center justify-between px-5 pt-[18px]">
         <Wordmark onClick={() => navigate("/home")} />
         <div className="flex items-center gap-3">
           {step !== undefined && <Progress step={step} />}
-          <button aria-label="Menu" className="-mr-1.5 flex size-11 items-center justify-center" onClick={() => setMenuOpen(true)}>
-            <Menu className="size-[22px] stroke-charcoal" strokeWidth={1.75} />
-          </button>
+          {!bare && (
+            <button aria-label="Menu" className="-mr-1.5 flex size-11 items-center justify-center" onClick={() => setMenuOpen(true)}>
+              <Menu className="size-[22px] stroke-charcoal" strokeWidth={1.75} />
+            </button>
+          )}
         </div>
       </div>
       {children}
-      <BottomNav active={activeTab(pathname)} onPick={onPick} />
-      <MenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} />
+      {!bare && <BottomNav active={activeTab(pathname)} onPick={onPick} />}
+      {!bare && <MenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} />}
       <Toaster />
     </div>
   )

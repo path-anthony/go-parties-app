@@ -13,6 +13,7 @@ import ItemDate from "@/pages/ItemDate"
 import ItemOptions from "@/pages/ItemOptions"
 import ItemWho from "@/pages/ItemWho"
 import ItemAccount from "@/pages/ItemAccount"
+import Sign from "@/pages/Sign"
 import ItemReview from "@/pages/ItemReview"
 import ItemHeld from "@/pages/ItemHeld"
 import Kit from "@/pages/Kit"
@@ -46,6 +47,8 @@ function App() {
             <Route path="/item/:id/options" element={<ItemOptions />} />
             <Route path="/item/:id/who" element={<ItemWho />} />
             <Route path="/item/:id/account" element={<ItemAccount />} />
+            {/* The contract, reached only from the texted link. */}
+            <Route path="/sign/:token" element={<Sign />} />
             <Route path="/kit" element={<Kit />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
