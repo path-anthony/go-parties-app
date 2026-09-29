@@ -60,6 +60,7 @@ Rules
 ## 8. Components (what exists, and the rule for each)
 - **Button**: primary orange, dark charcoal, ghost white with line border. 15px/800, padding 15x22, full width on mobile forms. One primary per screen.
 - **Chip**: guests, times, budgets. 3 per row (2 for budgets). Selected = orange border + orange-tint fill. Sub-label allowed.
+- **Contract document** (`/sign/:token` only): the one place a serif face is used (`font-serif`, from the device: Georgia, then Iowan Old Style, Palatino, Times), for the contract sheet; the letterhead is the sans wordmark set large and letter-spaced over a double rule; clauses are numbered; the signing form, buttons and messages stay sans.
 - **Month calendar + time input**: a standard month grid with prev and next arrows and a bold "October 2026" between them, weekday initials, dates in weeks. Every day not in the past is white with a green dot and tappable; past days are quiet and untappable; the chosen day is orange. Tapping a day reveals, in order, the live availability card, the short-notice card when it applies, and a time input (quarter-hour steps, 7 AM to 11 PM, optional) with a muted setup hint.
 - **Photo plate / photo card**: see imagery. Occasion cards are 1:1 plates with the name bottom-left.
 - **Item thumbnail**: the admin's item photo, square, object-cover, 10px radius: 56px on Browse rows, 44px on cart rows and held lines, 36px in the Ask GO list. No photo (or one that fails to load) is the photo plate at the same size, no corner marks or spec line at that scale. Never a blank space.

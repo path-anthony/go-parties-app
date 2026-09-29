@@ -15,6 +15,8 @@
   --color-good: #3E8E4A;
 
   --font-sans: "Inter", system-ui, sans-serif;
+  /* The contract page only: a document face, from the device (no download). */
+  --font-serif: Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
 
   /* Type scale, mobile. BRAND.md section 4. */
   --text-hero: 32px;

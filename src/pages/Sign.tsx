@@ -17,7 +17,27 @@ import { loadContract, signContract, type ContractLoad, type Signed, type Unsign
    button waits for the name and both boxes; the admin's own refusals still
    show inline, in words for the customer, because the client's checks are a
    courtesy and the server is the authority. The hash of the text shown goes
-   back with the signature so a contract that changed in between is refused. */
+   back with the signature so a contract that changed in between is refused.
+
+   It is styled as a formal document, and only styled: a letterhead, the
+   contract on a sheet of paper in a serif face with numbered clauses, the
+   figures as a summary of terms. Everything the customer does (the form, its
+   checks, every message) is the app's own sans-serif. */
+
+/* The brand's letterhead: the wordmark set large and spaced, a double rule,
+   the place. Every state of this page carries it. */
+function Letterhead() {
+  return (
+    <header className="px-5 pt-7 text-center">
+      <div className="text-[19px] font-black tracking-[.22em] text-charcoal">
+        <b className="text-orange">GO!</b> EVENT GROUP
+      </div>
+      <div className="mt-2.5 border-y-[3px] border-double border-charcoal py-1.5 text-[10.5px] font-semibold tracking-[.32em] text-taupe uppercase">
+        Farmington, Connecticut
+      </div>
+    </header>
+  )
+}
 
 const usd = (n: number | null) => (n === null ? "To be confirmed" : "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
 
@@ -50,6 +70,7 @@ const signedWhen = (iso: string) => {
 function Notice({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
     <AppShell bare>
+      <Letterhead />
       <Body>
         <h1 className="text-hero text-charcoal">{title}</h1>
         {children && <div className="mt-2 text-body text-charcoal-soft">{children}</div>}
@@ -61,6 +82,7 @@ function Notice({ title, children }: { title: string; children?: React.ReactNode
 function SignedView({ title, signed, fresh }: { title: string; signed: Signed; fresh: boolean }) {
   return (
     <AppShell bare>
+      <Letterhead />
       <Body>
         <div className="mx-auto mb-3.5 flex size-16 items-center justify-center rounded-full bg-orange-tint">
           <Check className="size-[30px] stroke-orange" strokeWidth={2.5} />
@@ -113,43 +135,57 @@ function Contract({ contract, token, onStale }: { contract: UnsignedContract; to
 
   return (
     <AppShell bare>
+      <Letterhead />
       <Body>
-        <GoLabel>Contract</GoLabel>
-        <h1 className="mt-1.5 text-hero text-charcoal">{contract.title}</h1>
-        <p className="mt-2 text-body text-charcoal-soft">Please read this agreement all the way through, then sign at the bottom.</p>
+        <p className="text-center text-sm text-charcoal-soft">Please read this agreement all the way through, then sign at the bottom.</p>
 
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <MetaCard label="When" value={`${longDate(contract.eventDate)}${contract.eventTime ? `, ${contract.eventTime}` : ""}`} />
-          <MetaCard label="Where" value={contract.address ?? "To be confirmed"} />
-        </div>
+        <article className="mt-4 rounded-[6px] border border-line bg-white px-5 py-7 font-serif text-charcoal shadow-[0_1px_0_rgba(33,29,28,.04)]">
+          <h1 className="text-center text-[21px] leading-tight font-bold tracking-[.08em] uppercase">{contract.title}</h1>
+          <p className="mt-2 text-center text-[13.5px] text-charcoal-soft">
+            Prepared for <span className="font-bold text-charcoal">{contract.customerName}</span>
+          </p>
+          <hr className="mx-auto mt-4 w-16 border-t-[1.5px] border-charcoal" />
 
-        <div className="mt-2 rounded-[14px] border border-line bg-white px-4 py-3.5">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-sm text-charcoal-soft">Total</span>
-            <b className="text-[22px] font-extrabold text-charcoal">{usd(contract.total)}</b>
-          </div>
-          <div className="mt-2.5 flex items-baseline justify-between gap-3 border-t border-line pt-2.5 text-sm text-charcoal">
-            <span>Deposit ({contract.depositPercentage}%), due to hold the date</span>
-            <b>{usd(contract.depositAmount)}</b>
-          </div>
-          <div className="mt-1.5 flex items-baseline justify-between gap-3 text-sm text-charcoal">
-            <span>Remaining balance</span>
-            <b>{usd(contract.balanceAmount)}</b>
-          </div>
-        </div>
+          <h2 className="mt-6 text-center text-[11px] font-bold tracking-[.2em] text-taupe uppercase">Summary of terms</h2>
+          <dl className="mt-3 border-y border-charcoal text-[14.5px]">
+            <div className="border-b border-line py-2.5">
+              <dt className="text-[11px] font-bold tracking-[.14em] text-taupe uppercase">Event date</dt>
+              <dd className="mt-0.5 font-bold">{`${longDate(contract.eventDate)}${contract.eventTime ? `, ${contract.eventTime}` : ""}`}</dd>
+            </div>
+            <div className="border-b border-line py-2.5">
+              <dt className="text-[11px] font-bold tracking-[.14em] text-taupe uppercase">Place</dt>
+              <dd className="mt-0.5 font-bold">{contract.address ?? "To be confirmed"}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-3 border-b border-line py-2.5">
+              <dt>Total</dt>
+              <dd className="text-[19px] font-bold">{usd(contract.total)}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-3 border-b border-line py-2.5">
+              <dt>Deposit ({contract.depositPercentage}%), due to hold the date</dt>
+              <dd className="font-bold">{usd(contract.depositAmount)}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-3 py-2.5">
+              <dt>Remaining balance</dt>
+              <dd className="font-bold">{usd(contract.balanceAmount)}</dd>
+            </div>
+          </dl>
 
-        <div className="mt-2.5 rounded-[14px] border border-line bg-white px-4 py-4">
-          {sections ? (
-            sections.map((s) => (
-              <section key={s.heading} className="mt-5 first:mt-0">
-                <h2 className="text-[11px] font-bold tracking-[.1em] text-taupe uppercase">{s.heading}</h2>
-                <p className="mt-1.5 whitespace-pre-line text-[14.5px] leading-relaxed text-charcoal">{s.body}</p>
-              </section>
-            ))
-          ) : (
-            <p className="whitespace-pre-line text-[14.5px] leading-relaxed text-charcoal">{contract.text}</p>
-          )}
-        </div>
+          <div className="mt-7">
+            {sections ? (
+              sections.map((sec, i) => (
+                <section key={sec.heading} className="mt-7 first:mt-0">
+                  <h2 className="border-b border-charcoal pb-1.5 text-[13px] font-bold tracking-[.14em] uppercase">
+                    <span className="mr-2 tabular-nums">{i + 1}.</span>
+                    {sec.heading}
+                  </h2>
+                  <p className="mt-2.5 whitespace-pre-line text-[15.5px] leading-[1.7] text-charcoal">{sec.body}</p>
+                </section>
+              ))
+            ) : (
+              <p className="whitespace-pre-line text-[15.5px] leading-[1.7]">{contract.text}</p>
+            )}
+          </div>
+        </article>
 
         <form
           className="mt-4"
@@ -158,7 +194,9 @@ function Contract({ contract, token, onStale }: { contract: UnsignedContract; to
             submit()
           }}
         >
-          <GoLabel className="mb-1.5 tracking-[.1em]">Sign</GoLabel>
+          <h2 className="mb-3 border-b border-charcoal pb-1.5 font-serif text-[13px] font-bold tracking-[.14em] uppercase">
+            Signature
+          </h2>
           <label htmlFor="sign-name" className="block text-sm font-bold text-charcoal">Your full name</label>
           <Input
             id="sign-name"
@@ -220,6 +258,7 @@ export default function Sign() {
   if (!state) {
     return (
       <AppShell bare>
+        <Letterhead />
         <Body>
           <GoLabel>Contract</GoLabel>
           <p className="mt-2 text-body text-muted">Opening your contract.</p>
