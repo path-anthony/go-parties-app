@@ -1,14 +1,14 @@
 import { monthWindow } from "@/data/catalog"
 
-/* Calendar cells for the direct item path. Fri Sat Sun are the days that can
-   be booked; nothing is simulated: past days are grayed, every other open day
-   is checked live against the admin when tapped. iso is what the admin API
-   wants. */
+/* Calendar cells for the direct item path. Every day that is not past can be
+   tapped; there is no day-of-week rule. What is actually open (units, crew)
+   is checked live against the admin when a day is tapped. Nothing is
+   simulated. iso is what the admin API wants. */
 
 export interface CalendarDay {
   iso: string
   dayNum: number
-  /* A Fri, Sat or Sun that is not in the past: tappable. */
+  /* Not in the past: tappable. */
   open: boolean
 }
 
@@ -33,8 +33,7 @@ export function calendarMonth(monthIndex: number): CalendarMonth {
   const d = new Date(y, m, 1)
   const lead = d.getDay()
   while (d.getMonth() === m) {
-    const wd = d.getDay()
-    days.push({ iso: `${y}-${pad(m + 1)}-${pad(d.getDate())}`, dayNum: d.getDate(), open: (wd === 0 || wd === 5 || wd === 6) && d >= today })
+    days.push({ iso: `${y}-${pad(m + 1)}-${pad(d.getDate())}`, dayNum: d.getDate(), open: d >= today })
     d.setDate(d.getDate() + 1)
   }
   return { title: `${MONTH_LONG[m]} ${y}`, lead, days }

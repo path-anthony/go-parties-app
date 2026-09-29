@@ -4,9 +4,9 @@ import { MONTH_WINDOW } from "@/data/catalog"
 import { calendarMonth, labelForIso } from "@/lib/availability"
 
 /* Month calendar. BRAND.md section 8: a real month grid, weekday headers,
-   dates in weeks, prev and next for the month. Open days (Fri Sat Sun, not
-   past) are white with a green dot; every other day is quiet and can't be
-   tapped. The chosen day is the screen's one orange. */
+   dates in weeks, prev and next for the month. Every day that is not past is
+   white with a green dot and tappable (what is really open is checked live
+   when it is tapped); past days are quiet and can't be tapped. The chosen day is the screen's one orange. */
 
 const HEADS = ["S", "M", "T", "W", "T", "F", "S"]
 

@@ -7,9 +7,9 @@ import { useBooking } from "@/state/booking"
    {{tokens}} filled from settings, clamped with a "Read the full policy"
    toggle, and a real checkbox that starts unchecked and stays disabled until
    the customer has opened the text (expanded it, which also lets them scroll
-   it). Text short enough to show whole is already read. It never blocks the
-   button: whatever the checkbox's actual state is goes with the booking, and
-   the admin refuses an unchecked one only when its own requirement is on.
+   it). Text short enough to show whole is already read. Hold my date
+   waits for it (use-agreement.ts), and the checkbox's real state goes with
+   the booking; the admin enforces its own requirement setting separately.
    No policy written yet means nothing to agree to, so nothing is shown. */
 export function CheckoutAgreement({ className }: { className?: string }) {
   const settings = usePublicSettings()
@@ -59,6 +59,7 @@ export function CheckoutAgreement({ className }: { className?: string }) {
         <span>I have read and agree to the cancellation and deposit policy</span>
       </label>
       {!read && <p className="mt-1 pl-8 text-small text-muted">Read the policy to continue.</p>}
+      {read && !b.agreed && <p className="mt-1 pl-8 text-small text-muted">Check the box to hold your date.</p>}
     </div>
   )
 }

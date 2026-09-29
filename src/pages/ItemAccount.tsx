@@ -19,6 +19,7 @@ import { missingRequired } from "@/lib/addons"
 import { checkoutSteps } from "@/lib/steps"
 import { canSignUp, useSignUp, type SignUpValues } from "@/hooks/use-signup"
 import { useBooking } from "@/state/booking"
+import { useAgreementBlocked } from "@/hooks/use-agreement"
 import { useCustomer } from "@/state/customer"
 
 /* Direct booking, step 3 of 3, guests only. Before the date is held: make an
@@ -44,6 +45,7 @@ export default function ItemAccount() {
   const [values, setValues] = useState<SignUpValues>({ name: b.contactName, phone: b.phone, email: b.email, password: "" })
   const [booking, setBooking] = useState(false)
   const [notice, setNotice] = useState<Notice | null>(null)
+  const agreementBlocked = useAgreementBlocked()
 
   if (b.items.length === 0) return <Navigate to="/browse" replace />
   if (b.items[0].id !== id) return <Navigate to={`/item/${b.items[0].id}/account`} replace />
@@ -69,7 +71,7 @@ export default function ItemAccount() {
   const busy = signingUp || booking
 
   const removeItem = (rid: string) => b.setItems(b.items.filter((i) => i.id !== rid))
-  const canHold = !busy && (choice === "guest" || (choice === "account" && canSignUp(values)))
+  const canHold = !busy && !agreementBlocked && (choice === "guest" || (choice === "account" && canSignUp(values)))
 
   // Signed up but not booked: the who screen owns the retry now, with the
   // notice in hand (booking stays true so the guard above can't race this

@@ -17,6 +17,7 @@ import { clockLabel as clockFor } from "@/data/catalog"
 import { missingRequired } from "@/lib/addons"
 import { checkoutSteps } from "@/lib/steps"
 import { useBooking } from "@/state/booking"
+import { useAgreementBlocked } from "@/hooks/use-agreement"
 import { useCustomer } from "@/state/customer"
 
 /* Direct item booking, step 2. Name, phone and email are the hard line,
@@ -41,6 +42,7 @@ export default function ItemWho() {
   const b = useBooking()
   const { customer } = useCustomer()
   const [submitting, setSubmitting] = useState(false)
+  const agreementBlocked = useAgreementBlocked()
   const handed = (location.state as { notice?: Notice } | null)?.notice ?? null
   const [notice, setNotice] = useState<Notice | null>(handed)
 
@@ -57,7 +59,8 @@ export default function ItemWho() {
   const addressSettled = b.address.trim() !== "" || b.addressLater
   const contactSettled = onFile ? true : b.phone.trim() !== "" && b.email.trim() !== ""
   const nameSettled = needsName ? b.contactName.trim() !== "" : true
-  const canSubmit = nameSettled && contactSettled && addressSettled && !submitting
+  // Only the last screen holds the date, so only there does the policy wait.
+  const canSubmit = nameSettled && contactSettled && addressSettled && !submitting && !(onFile && agreementBlocked)
 
   const steps = checkoutSteps(b.optionsStep, onFile)
   const here = `/item/${firstId}/who`

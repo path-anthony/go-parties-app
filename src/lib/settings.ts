@@ -14,23 +14,29 @@ export interface PublicSettings {
   /* The current cancellation and deposit policy, or null until the admin has
      written one. Null hides the agreement checkbox entirely. */
   policy: { version: number; text: string } | null
-  /* Numbers the policy text can name with {{tokens}}; null when the admin
-     doesn't send one, and then its token is left as written. */
-  depositPercentage: number | null
-  cancellationWindowDays: number | null
+  /* Every number the admin sent, by field name, for the policy's {{tokens}}
+     (depositPercentage, cancellationWindowDays, and whatever it adds next).
+     Built from the response itself, not from a list here, so a new token
+     needs no change on the storefront. */
+  tokens: Record<string, number>
 }
 
-const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null)
+/* A number, or a numeric string (a numeric column can arrive as one). */
+const asNumber = (v: unknown): number | null => {
+  if (typeof v === "number" && Number.isFinite(v)) return v
+  if (typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v))) return Number(v)
+  return null
+}
 
-/* The policy as the customer reads it: {{depositPercentage}} and
-   {{cancellationWindowDays}} become the admin's current numbers. A token it
-   doesn't know, or a number the admin didn't send, is left exactly as
-   written, so a new token or an older admin never breaks the text. */
-export function renderPolicy(text: string, s: Pick<PublicSettings, "depositPercentage" | "cancellationWindowDays">): string {
-  const values: Record<string, number | null> = { depositPercentage: s.depositPercentage, cancellationWindowDays: s.cancellationWindowDays }
-  return text.replace(/\{\{\s*(\w+)\s*\}\}/g, (token, key: string) => {
-    const v = values[key]
-    return v === null || v === undefined ? token : String(v)
+/* The policy as the customer reads it: each {{name}} becomes the admin's
+   current number for that name (matched ignoring case and inner spaces). A
+   token the admin did not send a number for is left exactly as written, so a
+   new token or an older admin never breaks the text. */
+export function renderPolicy(text: string, s: Pick<PublicSettings, "tokens">): string {
+  const byName = new Map(Object.entries(s.tokens).map(([k, v]) => [k.toLowerCase(), v]))
+  return text.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (token, key: string) => {
+    const v = byName.get(key.toLowerCase())
+    return v === undefined ? token : String(v)
   })
 }
 
@@ -49,8 +55,12 @@ function load(): Promise<PublicSettings | null> {
           minBookingNoticeHours: data.minBookingNoticeHours,
           rushContactPhone: phone || null,
           policy,
-          depositPercentage: num(data.depositPercentage),
-          cancellationWindowDays: num(data.cancellationWindowDays),
+          tokens: Object.fromEntries(
+            Object.entries(data as Record<string, unknown>).flatMap(([k, v]) => {
+              const n = asNumber(v)
+              return n === null ? [] : [[k, n]]
+            })
+          ),
         }
       })
       .catch(() => null)

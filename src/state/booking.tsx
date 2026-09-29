@@ -55,8 +55,8 @@ export interface BookingState {
   addressLater: boolean
   /* The checkbox on the last screen, the real state, never pre-checked. */
   agreed: boolean
-  /* How the remaining balance should be handled; Manual is the admin's own
-     default, so an untouched choice records the same thing. */
+  /* How the remaining balance should be handled. Auto-charge is what the
+     screen opens on; it is only a preference the admin records. */
   balancePref: BalancePreference
   direct: DirectBooking | null
   /* The admin's 202: sent to the team, nothing held. Its own screen. */
@@ -79,7 +79,7 @@ const INITIAL: BookingState = {
   address: "",
   addressLater: false,
   agreed: false,
-  balancePref: "Manual",
+  balancePref: "Auto-charge",
   direct: null,
   review: null,
   changeFor: null,

@@ -5,8 +5,8 @@ import { usePublicSettings } from "@/lib/settings"
 import { isShortNotice } from "@/lib/rush"
 import { checkAvailability, type Availability } from "@/lib/adminApi"
 
-/* Date and time for one or more items, checked live. A month calendar (Fri
-   Sat Sun open, past days grayed), one availability request per item per
+/* Date and time for one or more items, checked live. A month calendar (every
+   day open, past days grayed), one availability request per item per
    tapped day, a heads-up when the day is inside the admin's notice window
    (non-blocking), then a real time input. Owned by whoever holds the
    state: the direct booking (ItemDate) and the portal's reschedule use the
