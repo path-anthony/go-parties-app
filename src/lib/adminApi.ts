@@ -59,7 +59,10 @@ export interface DirectBooking {
   bookingId: string
   leadId: string
   eventDate: string
+  /* Old field (any live booking reads "Confirmed"); stage is the real one.
+     Nothing on the Held screen reads either: it reads rush. */
   status: string
+  stage?: string
   depositPaid: boolean
   /* The admin's own call that the date is inside its notice window: the
      booking is held pending and a person confirms it. Never recomputed here. */

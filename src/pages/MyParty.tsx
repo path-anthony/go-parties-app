@@ -6,6 +6,7 @@ import { AppShell, Body } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { Reveal } from "@/components/go/DatePicker"
 import { customerApi, whatOf, whenOf, type CustomerBooking } from "@/lib/customerApi"
+import { stageView, type StageView } from "@/lib/stage"
 import { useCustomer } from "@/state/customer"
 import { cn } from "@/lib/utils"
 
@@ -25,12 +26,18 @@ function RecommendedStub({ className = "" }: { className?: string }) {
   )
 }
 
-function Status({ status }: { status: string }) {
-  const confirmed = status === "Confirmed"
+/* The stage as the customer reads it. Confirmed is the only green; a
+   cancelled booking is set apart by an outlined tag, not just a color. */
+function Status({ view }: { view: StageView }) {
   return (
-    <span className={cn("flex flex-none items-center gap-1.5 text-[11.5px] font-bold", confirmed ? "text-good" : "text-muted")}>
-      {confirmed && <i className="inline-block size-1.5 rounded-full bg-good" />}
-      {status}
+    <span
+      className={cn(
+        "flex flex-none items-center gap-1.5 text-[11.5px] font-bold",
+        view.tone === "good" ? "text-good" : view.tone === "cancelled" ? "rounded-full border border-charcoal px-2 py-0.5 text-charcoal" : "text-muted"
+      )}
+    >
+      {view.tone === "good" && <i className="inline-block size-1.5 rounded-full bg-good" />}
+      {view.label}
     </span>
   )
 }
@@ -41,7 +48,8 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
-  const live = booking.status === "Confirmed"
+  const view = stageView(booking)
+  const live = view.live
 
   const cancel = async () => {
     setBusy(true)
@@ -70,8 +78,9 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
           <span className="block text-small text-charcoal-soft">{whenOf(booking)}</span>
           {booking.address && <span className="block text-small text-muted">{booking.address}</span>}
         </div>
-        <Status status={booking.status} />
+        <Status view={view} />
       </div>
+      <p className={`mt-2 text-small ${view.tone === "cancelled" ? "text-charcoal" : "text-charcoal-soft"}`}>{view.message}</p>
       {live && (
         <div className="mt-3 flex flex-wrap gap-2">
           <Button variant="ghost" size="sm" onClick={() => navigate(`/party/${booking.id}/reschedule`)}>

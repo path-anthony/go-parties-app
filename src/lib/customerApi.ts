@@ -29,7 +29,11 @@ export interface CustomerBooking {
   customerName: string
   phone: string | null
   email: string | null
+  /* Old field: "Confirmed" for any live booking. Not the source of truth. */
   status: string
+  /* The real one: Held, Contract Sent, Signed, Retainer Paid, Confirmed,
+     Completed or Cancelled. See lib/stage.ts. */
+  stage?: string
   depositPaid: boolean
   createdAt: string
   units: BookingUnit[]

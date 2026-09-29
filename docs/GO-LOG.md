@@ -2,6 +2,14 @@
 
 ## 2026-09-30
 
+**Where we are:** The portal told every customer their booking was Confirmed. The admin's customer bookings carry two fields: `status`, the old one, which reads "Confirmed" for any live booking, and `stage`, the real one (Held, Contract Sent, Signed, Retainer Paid, Confirmed only when signed and the retainer is paid, Completed, Cancelled). My party read `status`. It now reads `stage` through `src/lib/stage.ts` and shows each stage as a tag and one honest line: a held date says the contract comes next, a sent contract says to sign it and pay the retainer, and only a signed, paid booking says "You're all set". Cancelled is an outlined tag with its own line; Reschedule, Change item and Cancel show while the booking is live (not Completed or Cancelled), which is what "Confirmed" was standing in for. A missing or unknown stage reads as Held, never Confirmed. The Held screen and the rush display are untouched; they never read either field. Checked against real bookings at all seven stages, made through the customer API and the admin's stage and retainer controls, then deleted.
+
+**What we decided:** The storefront never claims more than the admin's stage says. The customer's words are ours, not the internal labels.
+
+**What's next:** The old `status` field can leave the admin's customer response once nothing else reads it. A cancelled booking still loses its item names on reload (the item line reads "Booking").
+
+## 2026-09-30
+
 **Where we are:** Three things. The migration drift is fixed: a "must match 196" guard in the Item source migration failed on an empty database, so it now accepts 0 or 196, and its checksum row was updated to match; a fresh shadow replay passes. Booking status is a real flow: the stored stage is Held (default), Contract Sent, Signed, Completed or Cancelled, Retainer paid is its own flag replacing the deposit checkbox, and Confirmed is computed, never stored, true only when the stage is Signed and the retainer is paid. The 41 old "Confirmed" rows became Held. The admin has a New booking flow for phone and in-person bookings; it calls the same booking code as the storefront (`createDirectBooking`), so unit locks, crew checks, add-on rules and RUSH are identical, and it defaults to Held.
 
 **What the storefront needs:** its portal reads `status === "Confirmed"` as a live booking, so customer responses keep that meaning and add `stage` with the real status (Held, Contract Sent, Signed, Retainer Paid, Confirmed). Until it reads `stage`, a Held booking still shows as Confirmed to the customer. `depositPaid` remains as an alias of `retainerPaid`. `deposit_paid` is dropped from the table in a follow-up migration once the new admin build is live.
