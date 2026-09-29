@@ -6,7 +6,7 @@ import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { MetaCard } from "@/components/go/MetaCard"
 import { ItemWhen } from "@/components/go/ItemWhen"
-import { ITEM_TIMES, MONTHS, itemClock } from "@/data/catalog"
+import { ITEM_TIMES, monthWindow, itemClock } from "@/data/catalog"
 import { customerApi, isoDay, whatOf, whenOf, type CustomerBooking } from "@/lib/customerApi"
 import { useCustomer } from "@/state/customer"
 
@@ -17,7 +17,7 @@ import { useCustomer } from "@/state/customer"
 
 const monthIndexFor = (iso: string) => {
   const [y, m] = iso.split("-").map(Number)
-  const i = MONTHS.findIndex(([, year, monthIndex]) => year === y && monthIndex === m - 1)
+  const i = monthWindow().findIndex(([, year, monthIndex]) => year === y && monthIndex === m - 1)
   return i === -1 ? 0 : i
 }
 

@@ -1,4 +1,4 @@
-import { MONTHS, type OccasionId } from "@/data/catalog"
+import { monthWindow, type OccasionId } from "@/data/catalog"
 
 /* Simulated availability, v1. Deterministic function of the date, copied from
    the reference build. Fri Sat Sun only. Do not wire a backend. */
@@ -20,7 +20,7 @@ const pad = (n: number) => String(n).padStart(2, "0")
    nothing is simulated: past days are grayed, every other day is checked
    live against the admin when tapped. iso is what the admin API wants. */
 export function daysForItem(monthIndex: number): DayCell[] {
-  const [mname, y, m] = MONTHS[monthIndex]
+  const [mname, y, m] = monthWindow()[monthIndex]
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const days: DayCell[] = []
@@ -49,7 +49,7 @@ export function labelForIso(iso: string): string {
 }
 
 export function daysFor(monthIndex: number, occ: OccasionId): DayCell[] {
-  const [mname, y, m] = MONTHS[monthIndex]
+  const [mname, y, m] = monthWindow()[monthIndex]
   const days: DayCell[] = []
   const d = new Date(y, m, 1)
   while (d.getMonth() === m) {

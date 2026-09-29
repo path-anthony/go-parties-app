@@ -7,6 +7,7 @@ import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { MetaCard } from "@/components/go/MetaCard"
 import { CartItems } from "@/components/go/CartItems"
+import { CheckoutConcierge } from "@/components/go/CheckoutConcierge"
 import { labelForIso } from "@/lib/availability"
 import { bookDirect, type DirectReason } from "@/lib/adminApi"
 import { directInput } from "@/lib/directInput"
@@ -45,8 +46,6 @@ export default function ItemWho() {
   if (b.items[0].id !== id) return <Navigate to={`/item/${b.items[0].id}/who`} replace />
   if (!b.itemDate) return <Navigate to={`/item/${b.items[0].id}`} replace />
   if (b.items.some((i) => missingRequired(i).length > 0)) return <Navigate to={`/item/${b.items[0].id}/options`} replace />
-  // The concierge offer is met once per cart, never skipped by URL.
-  if (b.concierge === null) return <Navigate to={`/item/${b.items[0].id}/concierge`} replace />
   const items = b.items
   const firstId = items[0].id
   const iso = b.itemDate
@@ -204,9 +203,10 @@ export default function ItemWho() {
           </div>
         )}
         <p className="mt-2.5 text-small text-muted">Nothing to pay right now. Contract and deposit link come by text.</p>
+        {onFile && <CheckoutConcierge className="mt-1.5" />}
       </Body>
       <Foot>
-        <Button variant="ghost" onClick={() => navigate(`/item/${firstId}/concierge`)}>Back</Button>
+        <Button variant="ghost" onClick={() => navigate(`/item/${firstId}`)}>Back</Button>
         <Button disabled={!canSubmit} onClick={submit}>{onFile ? "Hold my date" : "Next"}</Button>
       </Foot>
     </AppShell>

@@ -2,16 +2,17 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { calendlyUrl, logConcierge, type ConciergeContext } from "@/lib/concierge"
 
-/* The one concierge call to action, shared by the checkout offer screen and
-   the Ask GO nudge. A real link, not a script-opened window: target="_blank"
+/* The one concierge call to action, shared by the checkout's last screen
+   (quiet: a small ghost button under the Hold my date action, so it never
+   competes with it) and the Ask GO nudge (full width, the default). A real link, not a script-opened window: target="_blank"
    keeps the cart here, rel keeps Calendly from reaching back. The lead is
    logged on the tap and never awaited. After the tap a small line says
    where the booking went, so a customer who comes back isn't lost. */
-export function ConciergeOffer({ ctx, onTalk, className }: { ctx: ConciergeContext; onTalk?: () => void; className?: string }) {
+export function ConciergeOffer({ ctx, className, quiet }: { ctx: ConciergeContext; className?: string; quiet?: boolean }) {
   const [opened, setOpened] = useState(false)
   return (
     <div className={className}>
-      <Button asChild className="w-full">
+      <Button asChild className={quiet ? undefined : "w-full"} variant={quiet ? "ghost" : "default"} size={quiet ? "sm" : "default"}>
         <a
           href={calendlyUrl(ctx)}
           target="_blank"
@@ -19,10 +20,9 @@ export function ConciergeOffer({ ctx, onTalk, className }: { ctx: ConciergeConte
           onClick={() => {
             logConcierge(ctx)
             setOpened(true)
-            onTalk?.()
           }}
         >
-          Talk to GO Event Group
+          {quiet ? "Talk to us instead" : "Talk to GO Event Group"}
         </a>
       </Button>
       {opened && <p className="mt-2 text-small text-muted">Booking opened in a new tab. Your cart stays right here.</p>}

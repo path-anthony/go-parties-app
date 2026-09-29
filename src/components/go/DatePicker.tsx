@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
-import { MONTHS } from "@/data/catalog"
+import { monthWindow } from "@/data/catalog"
 import type { DayCell } from "@/lib/availability"
 
 /* Month chips + day carousel. BRAND.md section 8: months tap, never scroll.
@@ -9,7 +9,7 @@ import type { DayCell } from "@/lib/availability"
 export function MonthChips({ active, onPick }: { active: number; onPick: (i: number) => void }) {
   return (
     <div className="mt-3 flex gap-1.5">
-      {MONTHS.map(([name], i) => (
+      {monthWindow().map(([name], i) => (
         <button
           key={name}
           className={cn(

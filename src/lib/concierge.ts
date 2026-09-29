@@ -1,8 +1,7 @@
 import { ADMIN_API } from "@/lib/adminApi"
-import { labelForIso } from "@/lib/availability"
 
 /* White-glove concierge: the customer would rather talk to a person than
-   check out. Two doors (the offer screen in checkout, a nudge under an Ask
+   check out. Two doors (a quiet option on the checkout's last screen, a nudge under an Ask
    GO recommendation), one destination: GO's Calendly. Two things happen on
    the tap, and neither may block the other or the navigation: a lead is
    logged on the admin so the CRM has the context before Calendly's own
@@ -60,6 +59,3 @@ export function logConcierge(ctx: ConciergeContext): void {
     /* a log, not a requirement */
   }
 }
-
-/* "Sat Oct 10" for the screen; the summary itself keeps the ISO date. */
-export const conciergeWhen = (iso: string | null) => (iso ? labelForIso(iso) : null)

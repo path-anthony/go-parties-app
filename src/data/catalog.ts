@@ -109,12 +109,18 @@ export const BUDGETS: Record<OccasionId, [label: string, ceiling: number][]> = {
   corporate: [["Under $10,000", 10000], ["$10,000-$25,000", 25000], ["$25,000-$50,000", 50000], ["$50,000+", 99999]],
 }
 
-export const MONTHS: [name: string, year: number, monthIndex: number][] = [
-  ["Sep", 2026, 8],
-  ["Oct", 2026, 9],
-  ["Nov", 2026, 10],
-  ["Dec", 2026, 11],
-]
+/* The month chips: this month and the next five, computed from today each
+   time it is asked, so the picker never runs out of future. Six chips is the
+   most that still fit one row at 390px. */
+export const MONTH_WINDOW = 6
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+export function monthWindow(from: Date = new Date()): [name: string, year: number, monthIndex: number][] {
+  return Array.from({ length: MONTH_WINDOW }, (_, i) => {
+    const d = new Date(from.getFullYear(), from.getMonth() + i, 1)
+    return [MONTH_LABELS[d.getMonth()], d.getFullYear(), d.getMonth()]
+  })
+}
 
 export const NEXT_OPEN: Record<OccasionId, string> = {
   kids: "Sat Sep 13",
