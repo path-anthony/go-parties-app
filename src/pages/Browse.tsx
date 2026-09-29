@@ -4,6 +4,7 @@ import { Check, Plus, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { AppShell, Body } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
+import { OccasionChips } from "@/components/go/OccasionChips"
 import { MonthCalendar, Reveal } from "@/components/go/DatePicker"
 import { CategoryChips } from "@/components/go/CategoryChips"
 import { StickyTotal } from "@/components/go/AddonRow"
@@ -131,6 +132,7 @@ export default function Browse() {
       <Body className={cart.length > 0 ? "pb-24" : ""}>
         <GoLabel>Browse</GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">Pick a day. See what's open.</h1>
+        <OccasionChips />
         <MonthCalendar month={b.itemMonth} onMonth={(i) => b.set("itemMonth", i)} selected={iso} onPick={(d) => b.set("itemDate", d)} />
         {!iso && <p className="mt-1 text-[11.5px] text-muted">Tap a day. We show only what's open.</p>}
         <Reveal open={flagged.length > 0} className="mt-3.5">

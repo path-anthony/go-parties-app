@@ -109,7 +109,8 @@ Bank (use these, extend in this register)
 - CTA: Hold my date / Next / Back / Done
 - Sent to the team (202): Our team takes it from here. / {the admin's message} / Nothing is held and nothing is charged. We'll reach out by phone or email.
 - Remaining balance: Remaining balance / How would you like to handle the remaining balance after the deposit? / I'll pay it myself (Manual) / Auto-charge (Just noting it) / Send me a link (Reminder link) / This is a preference. We'll confirm how it works with you when the deposit is due.
-- Policy: Read the full policy / Show less / I have read and agree to the cancellation and deposit policy
+- Browse occasion row: Planning something? Optional. / Kids party / Adult party / Wedding / Corporate / Just browsing
+- Policy: Read the policy to continue. / Read the full policy / Show less / I have read and agree to the cancellation and deposit policy
 - Held: Held. You're good. / Pending (short notice): Pending. We'll be in touch. / {Day} is on our list. It's short notice, so a person confirms it first and texts you soon. / Need it faster? Call or text {phone}. (phone only when set)
 - Short-notice warning: This date needs at least {hours} hours notice to book automatically. We'll still hold this as a pending booking. / If you need it faster, call or text us at {phone}. (second sentence only when a phone is set)
 - Time: What time / Leave it blank and we'll settle the time by text. / Consider booking about an hour before you need it, for setup. / We book between 7 AM and 11 PM. Pick a time in that window.

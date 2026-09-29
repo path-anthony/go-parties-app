@@ -14,6 +14,24 @@ export interface PublicSettings {
   /* The current cancellation and deposit policy, or null until the admin has
      written one. Null hides the agreement checkbox entirely. */
   policy: { version: number; text: string } | null
+  /* Numbers the policy text can name with {{tokens}}; null when the admin
+     doesn't send one, and then its token is left as written. */
+  depositPercentage: number | null
+  cancellationWindowDays: number | null
+}
+
+const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null)
+
+/* The policy as the customer reads it: {{depositPercentage}} and
+   {{cancellationWindowDays}} become the admin's current numbers. A token it
+   doesn't know, or a number the admin didn't send, is left exactly as
+   written, so a new token or an older admin never breaks the text. */
+export function renderPolicy(text: string, s: Pick<PublicSettings, "depositPercentage" | "cancellationWindowDays">): string {
+  const values: Record<string, number | null> = { depositPercentage: s.depositPercentage, cancellationWindowDays: s.cancellationWindowDays }
+  return text.replace(/\{\{\s*(\w+)\s*\}\}/g, (token, key: string) => {
+    const v = values[key]
+    return v === null || v === undefined ? token : String(v)
+  })
 }
 
 let cached: Promise<PublicSettings | null> | null = null
@@ -27,7 +45,13 @@ function load(): Promise<PublicSettings | null> {
         const phone = typeof data.rushContactPhone === "string" ? data.rushContactPhone.trim() : ""
         const text = typeof data.policy?.text === "string" ? data.policy.text.trim() : ""
         const policy = text ? { version: Number(data.policy.version) || 0, text } : null
-        return { minBookingNoticeHours: data.minBookingNoticeHours, rushContactPhone: phone || null, policy }
+        return {
+          minBookingNoticeHours: data.minBookingNoticeHours,
+          rushContactPhone: phone || null,
+          policy,
+          depositPercentage: num(data.depositPercentage),
+          cancellationWindowDays: num(data.cancellationWindowDays),
+        }
       })
       .catch(() => null)
       .then((result) => {
