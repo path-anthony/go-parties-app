@@ -61,6 +61,9 @@ export interface DirectBooking {
   eventDate: string
   status: string
   depositPaid: boolean
+  /* The admin's own call that the date is inside its notice window: the
+     booking is held pending and a person confirms it. Never recomputed here. */
+  rush?: boolean
   /* What the admin quoted: the package's bundle price, or the items times
      quantity. Null when nothing had a price. */
   total: number | null

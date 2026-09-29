@@ -88,19 +88,43 @@ export const TIMES: Record<OccasionId, [label: string, time: string][]> = {
   corporate: [["Morning", "9 AM"], ["Midday", "12 PM"], ["Evening", "6 PM"]],
 }
 
-/* Time chips for the direct item path. Same chip pattern as TIMES, one set
-   for every item, and the sixth chip is the explicit skip. */
-export const ITEM_TIMES: [label: string, time: string][] = [
-  ["Morning", "9 AM"],
-  ["Midday", "12 PM"],
-  ["Afternoon", "2 PM"],
-  ["Evening", "6 PM"],
-  ["Late", "8 PM"],
-]
+/* The time input for the direct item path. Business hours bound it and a
+   quarter hour is the step (the native picker steps by it where it honors
+   step; typed minutes are accepted either way). The store holds "HH:mm" (what
+   a time input speaks); the admin and the customer see the clock text. */
+export const TIME_MIN = "07:00"
+export const TIME_MAX = "23:00"
+export const TIME_STEP_SECONDS = 900
+export const TIME_RANGE_TEXT = "7 AM and 11 PM"
 
-/* Chip label ("Afternoon") to clock time ("2 PM", BRAND.md section 10). The
-   store holds the label; the admin and the customer see the clock. */
-export const itemClock = (label: string | null): string | null => ITEM_TIMES.find(([l]) => l === label)?.[1] ?? null
+export const timeInRange = (hhmm: string) => hhmm >= TIME_MIN && hhmm <= TIME_MAX
+
+/* "14:30" to "2:30 PM", "14:00" to "2 PM" (BRAND.md section 10 clock style). */
+export function clockLabel(hhmm: string | null): string | null {
+  const m = hhmm ? /^(\d{1,2}):(\d{2})$/.exec(hhmm) : null
+  if (!m) return null
+  const h = Number(m[1])
+  const suffix = h >= 12 ? "PM" : "AM"
+  const h12 = h % 12 === 0 ? 12 : h % 12
+  return m[2] === "00" ? `${h12} ${suffix}` : `${h12}:${m[2]} ${suffix}`
+}
+
+/* The other way: "2:30 PM", "2 PM" (what the admin holds for older bookings)
+   or "14:30" back to "14:30". Anything else is null, so a booking whose time
+   is free text the picker can't read simply starts with no time. */
+export function parseClock(text: string | null): string | null {
+  const m = text ? /^\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\s*$/i.exec(text) : null
+  if (!m) return null
+  let h = Number(m[1])
+  const min = m[2] ?? "00"
+  const suffix = m[3]?.toUpperCase()
+  if (Number(min) > 59) return null
+  if (suffix) {
+    if (h < 1 || h > 12) return null
+    h = (h % 12) + (suffix === "PM" ? 12 : 0)
+  } else if (h > 23) return null
+  return `${String(h).padStart(2, "0")}:${min}`
+}
 
 export const BUDGETS: Record<OccasionId, [label: string, ceiling: number][]> = {
   kids: [["Under $1,500", 1500], ["$1,500-$3,000", 3000], ["$3,000-$5,000", 5000], ["$5,000+", 99999]],
@@ -109,10 +133,11 @@ export const BUDGETS: Record<OccasionId, [label: string, ceiling: number][]> = {
   corporate: [["Under $10,000", 10000], ["$10,000-$25,000", 25000], ["$25,000-$50,000", 50000], ["$50,000+", 99999]],
 }
 
-/* The month chips: this month and the next five, computed from today each
-   time it is asked, so the picker never runs out of future. Six chips is the
-   most that still fit one row at 390px. */
-export const MONTH_WINDOW = 6
+/* The months the calendar can page through: this month and the next
+   seventeen, computed from today each time it is asked, so the picker never
+   runs out of future. A wedding books a year out; prev and next arrows carry
+   the range that a row of chips could not. */
+export const MONTH_WINDOW = 18
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 export function monthWindow(from: Date = new Date()): [name: string, year: number, monthIndex: number][] {

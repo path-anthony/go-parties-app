@@ -60,7 +60,7 @@ Rules
 ## 8. Components (what exists, and the rule for each)
 - **Button**: primary orange, dark charcoal, ghost white with line border. 15px/800, padding 15x22, full width on mobile forms. One primary per screen.
 - **Chip**: guests, times, budgets. 3 per row (2 for budgets). Selected = orange border + orange-tint fill. Sub-label allowed.
-- **Month chips + day carousel**: months as a chip row (tap, no scroll). Days scroll horizontally, snap, 56px wide, green dot open, grayed booked. Tapping a day reveals time chips beneath it.
+- **Month calendar + time input**: a standard month grid with prev and next arrows and a bold "October 2026" between them, weekday initials, dates in weeks. Open days (Fri Sat Sun, not past) white with a green dot; everything else quiet and untappable; the chosen day is orange. Tapping a day reveals, in order, the live availability card, the short-notice card when it applies, and a time input (quarter-hour steps, 7 AM to 11 PM, optional) with a muted setup hint.
 - **Photo plate / photo card**: see imagery. Occasion cards are 1:1 plates with the name bottom-left.
 - **Item thumbnail**: the admin's item photo, square, object-cover, 10px radius: 56px on Browse rows, 44px on cart rows and held lines, 36px in the Ask GO list. No photo (or one that fails to load) is the photo plate at the same size, no corner marks or spec line at that scale. Never a blank space.
 - **Recommended rail**: horizontal, snap, 168px cards, photo 5:4, name, price, one line, next open date in green.
@@ -107,7 +107,9 @@ Bank (use these, extend in this register)
 - Add-ons: Make it yours.
 - Item options (add-on groups from the admin, always shown under the item they belong to): Make it yours. / A few picks before the day. Each one sits under the thing it's for. / Pick one (required group) / Optional / Included / +$75 / -$25 / +$75 each (quantity above one) / Still needs: Sidewalls. / Large group (more than 6 options, a search input over a scrolling list): Search 15 options (placeholder) / Picked: Navy, +$10 / Nothing picked yet. / Nothing by that name. Try another word. / Everything else is ready as is. / Sidewalls: Full walls (choice line, under its item) / Change / Pick options / Options: Surface, Banner (Browse row) / A couple of picks and it's in. (Browse sheet) / Add to cart · $425 / Save · $350 / Package price, Backyard Bash, plus what you picked.
 - CTA: Hold my date / Next / Back / Done
-- Held: Held. You're good.
+- Held: Held. You're good. / Pending (short notice): Pending. We'll be in touch. / {Day} is on our list. It's short notice, so a person confirms it first and texts you soon. / Need it faster? Call or text {phone}. (phone only when set)
+- Short-notice warning: This date needs at least {hours} hours notice to book automatically. We'll still hold this as a pending booking. / If you need it faster, call or text us at {phone}. (second sentence only when a phone is set)
+- Time: What time / Leave it blank and we'll settle the time by text. / Consider booking about an hour before you need it, for setup. / We book between 7 AM and 11 PM. Pick a time in that window.
 - Empty: Nothing here yet. Build a party and it'll live here.
 - Error: That didn't go through. Try again, or text us. / Try again (button under it; the admin's own wording is never shown except for a date that is taken or an item that isn't bookable)
 - Item (direct booking): When do you need it? / Tap a day. We check the calendar live. / Checking the calendar. / Open. 2 of 2 ready. / Booked solid that day. Try another date. / Only 1 open that day, this needs 2. Try another date. / Only 1 open, this needs 2. (per-item line) / Who's booking? / Name, phone, and email. That's it. / Signed in: We've got your details. Just the address. / Booking as / Nothing to pay right now. Contract and deposit link come by text.
@@ -119,7 +121,7 @@ Bank (use these, extend in this register)
 - Portal change item: Something else instead? / Tell Ask GO what you'd rather have, then tap Switch to this on the item. Same date. / What would you rather have? / Switch to this / Switched.
 - Concierge (a quiet option on the checkout's last screen, and the nudge under an Ask GO recommendation): Talk to us instead (small ghost link under Hold my date, a link to Calendly in a new tab) / Some parties are easier to plan with a real person. Grab 30 minutes with our team, on us. / Talk to GO Event Group (the Ask GO nudge button) / Booking opened in a new tab. Your cart stays right here. / Want to talk it through instead? (Ask GO nudge heading)
 - Item held: Sat Oct 10 is yours. Contract and deposit link are on their way to your phone.
-- Item, fill in later: Decide later (time chip, sub "No rush") / Add the address later. We'll text you for it. / Where: We'll text you for it
+- Item, fill in later: Add the address later. We'll text you for it. / Where: We'll text you for it
 - Item account step (guests only): Make an account? / Sign in later to move it or cancel it. No account needed either way. / Create account (chip, sub "Phone, email, a password") / Continue as guest (chip, sub "No account needed")
 - Item CTA: Just this / Just these (2) / Next / Hold my date / Pick another date / Done
 - Items together: When do you need them? / Snow Cone Station: Open, 2 of 2. / Test Gladiator Bounce House: Booked solid that day. / Try another date.

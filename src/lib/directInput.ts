@@ -1,6 +1,6 @@
 import type { BookingState } from "@/state/booking"
 import type { Customer } from "@/lib/customerApi"
-import { itemClock } from "@/data/catalog"
+import { clockLabel } from "@/data/catalog"
 import { addonsPayload } from "@/lib/addons"
 
 /* The request for POST /api/bookings/direct, built the same way from the
@@ -23,6 +23,6 @@ export function directInput(b: BookingState, customer: Customer | null) {
     phone: customer ? customer.phone : b.phone.trim(),
     email: customer ? customer.email : b.email.trim(),
     address: b.addressLater ? null : b.address.trim() || null,
-    eventTime: itemClock(b.itemTime),
+    eventTime: clockLabel(b.itemTime),
   }
 }

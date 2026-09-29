@@ -6,6 +6,7 @@ import { GoLabel } from "@/components/go/GoLabel"
 import { ItemWhen } from "@/components/go/ItemWhen"
 import { CartItems } from "@/components/go/CartItems"
 import { missingRequired } from "@/lib/addons"
+import { timeInRange } from "@/data/catalog"
 import { checkoutSteps } from "@/lib/steps"
 import { useBooking } from "@/state/booking"
 import { useCustomer } from "@/state/customer"
@@ -33,7 +34,7 @@ export default function ItemDate() {
   const items = b.items
   const steps = checkoutSteps(b.optionsStep, customer !== null)
   const here = `/item/${items[0].id}`
-  const timeSettled = b.itemTime !== null || b.itemTimeLater
+  const timeOk = b.itemTime === null || timeInRange(b.itemTime)
 
   const removeItem = (rid: string) => b.setItems(items.filter((i) => i.id !== rid))
 
@@ -58,15 +59,13 @@ export default function ItemDate() {
           iso={b.itemDate}
           onIso={(iso) => b.set("itemDate", iso)}
           time={b.itemTime}
-          onTime={(label) => b.set("itemTime", label)}
-          timeLater={b.itemTimeLater}
-          onTimeLater={(v) => b.set("itemTimeLater", v)}
+          onTime={(t) => b.set("itemTime", t)}
           onAvailable={setAvailable}
         />
       </Body>
       <Foot>
         <Button variant="ghost" onClick={() => navigate(b.optionsStep ? `${here}/options` : "/home")}>Back</Button>
-        <Button disabled={!available || !timeSettled} onClick={() => navigate(`/item/${items[0].id}/who`)}>Next</Button>
+        <Button disabled={!available || !timeOk} onClick={() => navigate(`/item/${items[0].id}/who`)}>Next</Button>
       </Foot>
     </AppShell>
   )

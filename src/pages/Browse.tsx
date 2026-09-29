@@ -4,7 +4,7 @@ import { Check, Plus, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { AppShell, Body } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
-import { MonthChips, DayCarousel, Reveal } from "@/components/go/DatePicker"
+import { MonthCalendar, Reveal } from "@/components/go/DatePicker"
 import { CategoryChips } from "@/components/go/CategoryChips"
 import { StickyTotal } from "@/components/go/AddonRow"
 import { cartTotal } from "@/components/go/CartItems"
@@ -12,7 +12,7 @@ import { CartSheet } from "@/components/go/CartSheet"
 import { AddonSheet } from "@/components/go/AddonSheet"
 import { Thumb } from "@/components/go/Thumb"
 import { groupsOf, needsConfig, type Picks } from "@/lib/addons"
-import { daysForItem, labelForIso } from "@/lib/availability"
+import { labelForIso } from "@/lib/availability"
 import { publicItems, type PublicItem } from "@/lib/adminApi"
 import { fmt } from "@/data/catalog"
 import { useBooking, type DirectItem } from "@/state/booking"
@@ -124,8 +124,6 @@ export default function Browse() {
     return item.priceUnit || "Text us for a price"
   }
 
-  const days = daysForItem(b.itemMonth)
-  const selectedKey = days.find((d) => d.iso === iso)?.key ?? null
   const flagged = cart.filter((i) => unavailable.has(i.id))
 
   return (
@@ -133,14 +131,7 @@ export default function Browse() {
       <Body className={cart.length > 0 ? "pb-24" : ""}>
         <GoLabel>Browse</GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">Pick a day. See what's open.</h1>
-        <MonthChips
-          active={b.itemMonth}
-          onPick={(i) => {
-            b.set("itemMonth", i)
-            b.set("itemDate", null)
-          }}
-        />
-        <DayCarousel days={days} selected={selectedKey} onPick={(key) => b.set("itemDate", days.find((d) => d.key === key)?.iso ?? null)} />
+        <MonthCalendar month={b.itemMonth} onMonth={(i) => b.set("itemMonth", i)} selected={iso} onPick={(d) => b.set("itemDate", d)} />
         {!iso && <p className="mt-1 text-[11.5px] text-muted">Tap a day. We show only what's open.</p>}
         <Reveal open={flagged.length > 0} className="mt-3.5">
           <div className="rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">

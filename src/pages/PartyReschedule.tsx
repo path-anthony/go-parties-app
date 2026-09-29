@@ -6,7 +6,7 @@ import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { MetaCard } from "@/components/go/MetaCard"
 import { ItemWhen } from "@/components/go/ItemWhen"
-import { ITEM_TIMES, monthWindow, itemClock } from "@/data/catalog"
+import { clockLabel, monthWindow, parseClock, timeInRange } from "@/data/catalog"
 import { customerApi, isoDay, whatOf, whenOf, type CustomerBooking } from "@/lib/customerApi"
 import { useCustomer } from "@/state/customer"
 
@@ -21,7 +21,6 @@ const monthIndexFor = (iso: string) => {
   return i === -1 ? 0 : i
 }
 
-const labelForClock = (clock: string | null) => ITEM_TIMES.find(([, t]) => t === clock)?.[0] ?? null
 
 export default function PartyReschedule() {
   const navigate = useNavigate()
@@ -32,7 +31,6 @@ export default function PartyReschedule() {
   const [month, setMonth] = useState(0)
   const [iso, setIso] = useState<string | null>(null)
   const [time, setTime] = useState<string | null>(null)
-  const [timeLater, setTimeLater] = useState(false)
   const [available, setAvailable] = useState(false)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
@@ -49,9 +47,7 @@ export default function PartyReschedule() {
       if (found && !seeded.current) {
         seeded.current = true
         setMonth(monthIndexFor(isoDay(found.eventDate)))
-        const label = labelForClock(found.eventTime)
-        setTime(label)
-        setTimeLater(!label)
+        setTime(parseClock(found.eventTime))
       }
     })
   }, [customer, id])
@@ -60,14 +56,14 @@ export default function PartyReschedule() {
   if (booking === null) return <Navigate to="/party" replace />
   const whenItems = booking ? [...new Map(booking.units.map((u) => [u.itemId, { id: u.itemId, name: u.itemName }])).values()] : []
 
-  const timeSettled = time !== null || timeLater
-  const canSubmit = !!booking && !!iso && available && timeSettled && !busy
+  const timeOk = time === null || timeInRange(time)
+  const canSubmit = !!booking && !!iso && available && timeOk && !busy
 
   const submit = async () => {
     if (!booking || !iso || !canSubmit) return
     setBusy(true)
     setNotice(null)
-    const result = await customerApi.reschedule(booking.id, { eventDate: iso, eventTime: timeLater ? null : itemClock(time) })
+    const result = await customerApi.reschedule(booking.id, { eventDate: iso, eventTime: clockLabel(time) })
     setBusy(false)
     if (result.ok) {
       toast({ title: "Moved." })
@@ -97,8 +93,6 @@ export default function PartyReschedule() {
             onIso={setIso}
             time={time}
             onTime={setTime}
-            timeLater={timeLater}
-            onTimeLater={setTimeLater}
             onAvailable={setAvailable}
           />
         )}

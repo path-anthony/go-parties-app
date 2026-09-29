@@ -1,5 +1,5 @@
 import { Navigate, useNavigate } from "react-router-dom"
-import { Check } from "lucide-react"
+import { Check, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { MetaCard } from "@/components/go/MetaCard"
@@ -8,8 +8,9 @@ import { pickedOf } from "@/lib/addons"
 import { labelForIso } from "@/lib/availability"
 import { bookedNames } from "@/lib/adminApi"
 import { cartTotal, lineTotal, qtyOf } from "@/components/go/CartItems"
+import { usePublicSettings } from "@/lib/settings"
 import { useBooking } from "@/state/booking"
-import { itemClock as clockFor } from "@/data/catalog"
+import { clockLabel as clockFor } from "@/data/catalog"
 
 /* Direct item booking, confirmation. Same pattern as Held (screen 11): check
    mark, "Held. You're good.", what, when and where, a line per item, one
@@ -18,9 +19,11 @@ import { itemClock as clockFor } from "@/data/catalog"
 export default function ItemHeld() {
   const navigate = useNavigate()
   const b = useBooking()
+  const settings = usePublicSettings()
 
   if (!b.direct || b.items.length === 0) return <Navigate to="/home" replace />
   const { direct, items } = b
+  const rush = direct.rush === true
   const day = labelForIso(direct.eventDate)
   const clock = clockFor(b.itemTime)
   const when = clock ? `${day}, ${clock}` : day
@@ -44,11 +47,14 @@ export default function ItemHeld() {
     <AppShell>
       <Body className="text-center">
         <div className="mx-auto mb-3.5 flex size-16 items-center justify-center rounded-full bg-orange-tint">
-          <Check className="size-[30px] stroke-orange" strokeWidth={2.5} />
+          {rush ? <Clock className="size-[30px] stroke-orange" strokeWidth={2.5} /> : <Check className="size-[30px] stroke-orange" strokeWidth={2.5} />}
         </div>
-        <h1 className="text-hero text-charcoal">Held. You're good.</h1>
+        <h1 className="text-hero text-charcoal">{rush ? "Pending. We'll be in touch." : "Held. You're good."}</h1>
         <p className="mt-2 text-body text-charcoal-soft">
-          {day} is yours. Contract and deposit link are on their way to your phone.
+          {rush
+            ? `${day} is on our list. It's short notice, so a person confirms it first and texts you soon.`
+            : `${day} is yours. Contract and deposit link are on their way to your phone.`}
+          {rush && settings?.rushContactPhone && ` Need it faster? Call or text ${settings.rushContactPhone}.`}
         </p>
         <div className="mt-5 grid grid-cols-2 gap-2 text-left">
           <MetaCard label="What" value={(names.length ? names : items.map((i) => i.name)).join(", ")} />

@@ -11,7 +11,8 @@ import { Wordmark } from "@/components/go/Wordmark"
 import { Progress } from "@/components/go/Progress"
 import { GoLabel } from "@/components/go/GoLabel"
 import { Chip } from "@/components/go/Chip"
-import { MonthChips, DayCarousel, Reveal } from "@/components/go/DatePicker"
+import { MonthCalendar } from "@/components/go/DatePicker"
+import { TimeField } from "@/components/go/TimeField"
 import { OccasionCard } from "@/components/go/OccasionCard"
 import { RailCard } from "@/components/go/RailCard"
 import { Rail } from "@/components/go/Rail"
@@ -25,7 +26,6 @@ import { BottomNav } from "@/components/go/BottomNav"
 import { AddonPicker } from "@/components/go/AddonPicker"
 import { Thumb } from "@/components/go/Thumb"
 import { withPick, type Picks } from "@/lib/addons"
-import { daysFor } from "@/lib/availability"
 import { ADDONS, BUDGETS, GUESTS, NEXT_OPEN, OCC, PKGS, TIMES, occOf } from "@/data/catalog"
 
 /* Design kit. Every component from BRAND.md section 8, rendered from the same
@@ -94,8 +94,8 @@ export default function Kit() {
   const splash = PKGS.kids[3]
   const [kitPicks, setKitPicks] = useState<Picks>({ flavor: "cherry" })
   const [month, setMonth] = useState(0)
-  const [day, setDay] = useState<string | null>("Sep 13")
-  const [time, setTime] = useState<string | null>("Midday")
+  const [day, setDay] = useState<string | null>(null)
+  const [time, setTime] = useState<string | null>("14:00")
   const [guests, setGuests] = useState<string | null>("20-25")
   const [budget, setBudget] = useState<number | null>(2000)
   const [swapOpen, setSwapOpen] = useState(false)
@@ -205,21 +205,15 @@ export default function Kit() {
         </div>
       </Section>
 
-      <Section label="08" title="Month chips and day carousel">
-        <MonthChips active={month} onPick={(i) => { setMonth(i); setDay(null); setTime(null) }} />
-        <DayCarousel days={daysFor(month, "kids")} selected={day} onPick={setDay} />
+      <Section label="08" title="Month calendar and time">
+        <MonthCalendar month={month} onMonth={setMonth} selected={day} onPick={setDay} />
         <div className="mt-1 flex items-center gap-2.5 text-[11.5px] text-muted">
           <i className="inline-block size-1.5 rounded-full bg-good" />
-          Open. Grayed days are booked solid, crew and gear included.
+          Open. Fri, Sat and Sun only; past days and other weekdays are quiet.
         </div>
-        <Reveal open={!!day} className="mt-3.5">
-          <GoLabel className="mb-2">What time</GoLabel>
-          <div className="grid grid-cols-3 gap-2">
-            {TIMES.kids.map(([label, t]) => (
-              <Chip key={label} selected={time === label} sub={t} onClick={() => setTime(label)}>{label}</Chip>
-            ))}
-          </div>
-        </Reveal>
+        <div className="mt-3.5">
+          <TimeField value={time} onChange={setTime} />
+        </div>
       </Section>
       <Section label="Item photo" title="Thumbnail">
         <div className="flex items-center gap-3 text-small text-charcoal-soft">

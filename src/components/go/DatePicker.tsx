@@ -1,66 +1,82 @@
-import { useEffect, useRef } from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { monthWindow } from "@/data/catalog"
-import type { DayCell } from "@/lib/availability"
+import { MONTH_WINDOW } from "@/data/catalog"
+import { calendarMonth, labelForIso } from "@/lib/availability"
 
-/* Month chips + day carousel. BRAND.md section 8: months tap, never scroll.
-   Days scroll sideways and snap, 56px wide, green dot open, grayed booked. */
+/* Month calendar. BRAND.md section 8: a real month grid, weekday headers,
+   dates in weeks, prev and next for the month. Open days (Fri Sat Sun, not
+   past) are white with a green dot; every other day is quiet and can't be
+   tapped. The chosen day is the screen's one orange. */
 
-export function MonthChips({ active, onPick }: { active: number; onPick: (i: number) => void }) {
+const HEADS = ["S", "M", "T", "W", "T", "F", "S"]
+
+export function MonthCalendar({
+  month,
+  onMonth,
+  selected,
+  onPick,
+}: {
+  month: number
+  onMonth: (i: number) => void
+  selected: string | null
+  onPick: (iso: string) => void
+}) {
+  const cal = calendarMonth(month)
   return (
-    <div className="mt-3 flex gap-1.5">
-      {monthWindow().map(([name], i) => (
+    <div className="mt-3">
+      <div className="flex items-center justify-between">
         <button
-          key={name}
-          className={cn(
-            "min-h-[44px] flex-1 rounded-[10px] border-[1.5px] py-[9px] text-[12.5px] font-bold transition-colors",
-            i === active ? "border-charcoal bg-charcoal text-white" : "border-line bg-white text-charcoal hover:border-charcoal"
-          )}
-          onClick={() => onPick(i)}
+          aria-label="Previous month"
+          disabled={month <= 0}
+          className="flex size-11 items-center justify-center rounded-[10px] border-[1.5px] border-line bg-white transition-colors hover:border-charcoal disabled:opacity-35 disabled:hover:border-line"
+          onClick={() => onMonth(month - 1)}
         >
-          {name}
+          <ChevronLeft className="size-[18px] stroke-charcoal" strokeWidth={2} />
         </button>
-      ))}
-    </div>
-  )
-}
-
-export function DayCarousel({ days, selected, onPick }: { days: DayCell[]; selected: string | null; onPick: (key: string) => void }) {
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const el = ref.current?.querySelector<HTMLElement>("[data-selected]")
-    el?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" })
-  }, [selected])
-
-  return (
-    <div ref={ref} className="no-bar flex snap-x snap-mandatory gap-2 overflow-x-auto py-3 pb-2">
-      {days.map((d) => (
+        <div aria-live="polite" className="text-base font-extrabold text-charcoal">{cal.title}</div>
         <button
-          key={d.key}
-          disabled={d.blocked}
-          data-selected={selected === d.key || undefined}
-          className={cn(
-            "w-14 flex-none snap-start rounded-[12px] border-[1.5px] pt-2.5 pb-[9px] text-center text-base font-extrabold text-charcoal",
-            d.blocked && "opacity-35",
-            selected === d.key ? "border-orange bg-orange-tint" : "border-line bg-white"
-          )}
-          onClick={() => onPick(d.key)}
+          aria-label="Next month"
+          disabled={month >= MONTH_WINDOW - 1}
+          className="flex size-11 items-center justify-center rounded-[10px] border-[1.5px] border-line bg-white transition-colors hover:border-charcoal disabled:opacity-35 disabled:hover:border-line"
+          onClick={() => onMonth(month + 1)}
         >
-          <small className="mb-[3px] block text-[10px] font-semibold text-muted">{d.weekday}</small>
-          {d.dayNum}
-          <span className={cn("mx-auto mt-[5px] block size-[5px] rounded-full", d.blocked ? "bg-line" : "bg-good")} />
+          <ChevronRight className="size-[18px] stroke-charcoal" strokeWidth={2} />
         </button>
-      ))}
+      </div>
+      <div className="mt-2 grid grid-cols-7 gap-1 text-center">
+        {HEADS.map((h, i) => (
+          <div key={i} className="py-1 text-[10px] font-semibold text-muted">{h}</div>
+        ))}
+        {Array.from({ length: cal.lead }, (_, i) => (
+          <div key={`lead-${i}`} />
+        ))}
+        {cal.days.map((d) => (
+          <button
+            key={d.iso}
+            disabled={!d.open}
+            aria-label={labelForIso(d.iso)}
+            aria-pressed={selected === d.iso}
+            className={cn(
+              "flex min-h-[46px] flex-col items-center justify-center rounded-[10px] border-[1.5px] text-[15px] font-extrabold",
+              d.open ? "text-charcoal" : "border-transparent text-charcoal/30",
+              d.open && (selected === d.iso ? "border-orange bg-orange-tint" : "border-line bg-white hover:border-charcoal")
+            )}
+            onClick={() => onPick(d.iso)}
+          >
+            {d.dayNum}
+            <span className={cn("mt-[3px] block size-[5px] rounded-full", d.open ? "bg-good" : "bg-transparent")} />
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
 
 /* Reveal. BRAND.md section 9: max-height over 300ms ease. */
-export function Reveal({ open, className, children }: { open: boolean; className?: string; children: React.ReactNode }) {
+export function Reveal({ open, className, max = "max-h-96", children }: { open: boolean; className?: string; max?: string; children: React.ReactNode }) {
   return (
     <div
-      className={cn("overflow-hidden transition-[max-height] duration-300 ease-in-out", open ? "max-h-96" : "max-h-0", className)}
+      className={cn("overflow-hidden transition-[max-height] duration-300 ease-in-out", open ? max : "max-h-0", className)}
     >
       {children}
     </div>

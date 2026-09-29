@@ -12,7 +12,7 @@ import { SignUpFields } from "@/components/go/SignUpFields"
 import { labelForIso } from "@/lib/availability"
 import { bookDirect, type DirectReason } from "@/lib/adminApi"
 import { directInput } from "@/lib/directInput"
-import { itemClock } from "@/data/catalog"
+import { clockLabel } from "@/data/catalog"
 import { missingRequired } from "@/lib/addons"
 import { checkoutSteps } from "@/lib/steps"
 import { canSignUp, useSignUp, type SignUpValues } from "@/hooks/use-signup"
@@ -62,7 +62,7 @@ export default function ItemAccount() {
   if (b.contactName.trim() === "" || b.phone.trim() === "" || b.email.trim() === "") return <Navigate to={`/item/${firstId}/who`} replace />
 
   const iso = b.itemDate
-  const clock = itemClock(b.itemTime)
+  const clock = clockLabel(b.itemTime)
   const when = clock ? `${labelForIso(iso)}, ${clock}` : labelForIso(iso)
   const busy = signingUp || booking
 
@@ -135,7 +135,7 @@ export default function ItemAccount() {
             Continue as guest
           </Chip>
         </div>
-        <Reveal open={choice === "account"} className="mt-3.5">
+        <Reveal open={choice === "account"} max="max-h-[44rem]" className="mt-3.5 pb-1">
           <SignUpFields values={values} onChange={setValues} onSubmit={hold} />
           {signUpNotice && (
             <div className="mt-3.5 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">

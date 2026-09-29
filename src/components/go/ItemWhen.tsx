@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react"
-import { GoLabel } from "@/components/go/GoLabel"
-import { Chip } from "@/components/go/Chip"
-import { MonthChips, DayCarousel, Reveal } from "@/components/go/DatePicker"
-import { daysForItem } from "@/lib/availability"
+import { MonthCalendar, Reveal } from "@/components/go/DatePicker"
+import { TimeField } from "@/components/go/TimeField"
+import { usePublicSettings } from "@/lib/settings"
+import { isShortNotice } from "@/lib/rush"
 import { checkAvailability, type Availability } from "@/lib/adminApi"
-import { ITEM_TIMES } from "@/data/catalog"
 
-/* Date and time for one or more items, checked live. Month chips, the Fri
-   Sat Sun day carousel with past days grayed, one availability request per
-   item per tapped day, then the time chips (same Chip pattern as the package
-   flow) with "Decide later" as the explicit skip. Owned by whoever holds the
+/* Date and time for one or more items, checked live. A month calendar (Fri
+   Sat Sun open, past days grayed), one availability request per item per
+   tapped day, a heads-up when the day is inside the admin's notice window
+   (non-blocking), then a real time input. Owned by whoever holds the
    state: the direct booking (ItemDate) and the portal's reschedule use the
    same one. */
 
@@ -28,17 +27,16 @@ export interface ItemWhenProps {
   onMonth: (i: number) => void
   iso: string | null
   onIso: (iso: string | null) => void
+  /* "HH:mm" or null */
   time: string | null
-  onTime: (label: string | null) => void
-  timeLater: boolean
-  onTimeLater: (v: boolean) => void
+  onTime: (hhmm: string | null) => void
   onAvailable: (available: boolean) => void
 }
 
 const needOf = (item: WhenItem) => item.quantity ?? 1
 const isOpen = (r: Availability, need = 1) => r.directBooking && r.available && (r.freeUnits ?? 1) >= need
 
-export function ItemWhen({ items, month, onMonth, iso, onIso, time, onTime, timeLater, onTimeLater, onAvailable }: ItemWhenProps) {
+export function ItemWhen({ items, month, onMonth, iso, onIso, time, onTime, onAvailable }: ItemWhenProps) {
   const [check, setCheck] = useState<Check | null>(null)
   const key = items.map((i) => i.id).join(",")
 
@@ -63,8 +61,8 @@ export function ItemWhen({ items, month, onMonth, iso, onIso, time, onTime, time
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [iso, key])
 
-  const days = daysForItem(month)
-  const selectedKey = days.find((d) => d.iso === iso)?.key ?? null
+  const settings = usePublicSettings()
+  const rush = !!iso && !!settings && isShortNotice(iso, settings.minBookingNoticeHours)
   const current = check && check.iso === iso ? check : null
   const results = current?.state === "done" ? (current.results ?? []) : []
   const available = current?.state === "done" && results.length === items.length && results.every((r, i) => isOpen(r, needOf(items[i])))
@@ -77,14 +75,7 @@ export function ItemWhen({ items, month, onMonth, iso, onIso, time, onTime, time
 
   return (
     <>
-      <MonthChips
-        active={month}
-        onPick={(i) => {
-          onMonth(i)
-          onIso(null)
-        }}
-      />
-      <DayCarousel days={days} selected={selectedKey} onPick={(key) => onIso(days.find((d) => d.key === key)?.iso ?? null)} />
+      <MonthCalendar month={month} onMonth={onMonth} selected={iso} onPick={onIso} />
       <p className="mt-1 text-[11.5px] text-muted">Tap a day. We check the calendar live.</p>
       <Reveal open={!!current} className="mt-3.5">
         <div className="rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
@@ -127,33 +118,21 @@ export function ItemWhen({ items, month, onMonth, iso, onIso, time, onTime, time
           )}
         </div>
       </Reveal>
+      <Reveal open={available && rush} className="mt-3.5">
+        {rush && settings && (
+          <div className="rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
+            This date needs at least {settings.minBookingNoticeHours} hours notice to book automatically. We'll still hold this as a pending booking.
+            {settings.rushContactPhone && (
+              <>
+                {" "}If you need it faster, call or text us at{" "}
+                <a href={`tel:${settings.rushContactPhone}`} className="font-bold text-charcoal">{settings.rushContactPhone}</a>.
+              </>
+            )}
+          </div>
+        )}
+      </Reveal>
       <Reveal open={available} className="mt-3.5">
-        <GoLabel className="mb-2">What time</GoLabel>
-        <div className="grid grid-cols-3 gap-2 pb-px">
-          {ITEM_TIMES.map(([label, t]) => (
-            <Chip
-              key={label}
-              selected={time === label}
-              sub={t}
-              onClick={() => {
-                onTime(label)
-                onTimeLater(false)
-              }}
-            >
-              {label}
-            </Chip>
-          ))}
-          <Chip
-            selected={timeLater}
-            sub="No rush"
-            onClick={() => {
-              onTime(null)
-              onTimeLater(true)
-            }}
-          >
-            Decide later
-          </Chip>
-        </div>
+        <TimeField value={time} onChange={onTime} />
       </Reveal>
     </>
   )

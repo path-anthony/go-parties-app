@@ -48,7 +48,6 @@ export interface BookingState {
   itemMonth: number
   itemDate: string | null
   itemTime: string | null
-  itemTimeLater: boolean
   contactName: string
   phone: string
   email: string
@@ -67,7 +66,6 @@ const INITIAL: BookingState = {
   itemMonth: 0,
   itemDate: null,
   itemTime: null,
-  itemTimeLater: false,
   contactName: "",
   phone: "",
   email: "",
@@ -106,7 +104,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           itemMonth: 0,
           itemDate: null,
           itemTime: null,
-          itemTimeLater: false,
           direct: null,
         })),
       setItems: (items) => setS((prev) => ({ ...prev, items, bundle: null })),
