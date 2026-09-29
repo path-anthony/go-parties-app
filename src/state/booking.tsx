@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useState } from "react"
 import type { OccasionId } from "@/data/catalog"
-import type { DirectBooking } from "@/lib/adminApi"
+import type { BalancePreference, DirectBooking, ReviewReceipt } from "@/lib/adminApi"
 import { needsConfig, type AddonGroup, type Picks } from "@/lib/addons"
 
 /* Single booking store. The occasion and sub-occasion picked on Home, then
@@ -53,7 +53,14 @@ export interface BookingState {
   email: string
   address: string
   addressLater: boolean
+  /* The checkbox on the last screen, the real state, never pre-checked. */
+  agreed: boolean
+  /* How the remaining balance should be handled; Manual is the admin's own
+     default, so an untouched choice records the same thing. */
+  balancePref: BalancePreference
   direct: DirectBooking | null
+  /* The admin's 202: sent to the team, nothing held. Its own screen. */
+  review: ReviewReceipt | null
   changeFor: { bookingId: string; itemName: string; eventDate: string } | null
 }
 
@@ -71,7 +78,10 @@ const INITIAL: BookingState = {
   email: "",
   address: "",
   addressLater: false,
+  agreed: false,
+  balancePref: "Manual",
   direct: null,
+  review: null,
   changeFor: null,
 }
 
@@ -104,7 +114,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           itemMonth: 0,
           itemDate: null,
           itemTime: null,
+          agreed: false,
           direct: null,
+          review: null,
         })),
       setItems: (items) => setS((prev) => ({ ...prev, items, bundle: null })),
       // Not setItems: choosing an option doesn't change what the cart is, so

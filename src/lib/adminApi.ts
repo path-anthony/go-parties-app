@@ -85,7 +85,18 @@ export interface DirectBooking {
 export const bookedNames = (b: DirectBooking): string[] =>
   b.items ? [...new Set(b.items.map((i) => i.name))] : b.item ? [b.item.name] : []
 
-export type DirectReason = "unavailable" | "not-tracked" | "addons" | "error"
+export type DirectReason = "unavailable" | "not-tracked" | "addons" | "agreement" | "error"
+
+/* The admin's 202: the cart is over the review threshold or is for an
+   occasion on the review list, so nothing was held. It is a design request
+   for staff, an expected outcome and not an error. message is the admin's own
+   words for the customer. */
+export interface ReviewReceipt {
+  designRequestId: string
+  eventDate: string
+  total: number | null
+  message: string
+}
 
 /* message is always fit to show: the admin's own words for a date that is
    taken, an item that isn't bookable, or an add-on choice that is missing
@@ -93,10 +104,16 @@ export type DirectReason = "unavailable" | "not-tracked" | "addons" | "error"
    line for everything else. detail keeps the admin's raw text
    for the console, never for the screen. */
 export type DirectResult =
-  | { ok: true; booking: DirectBooking }
+  | { ok: true; kind: "held"; booking: DirectBooking }
+  | { ok: true; kind: "review"; review: ReviewReceipt }
   | { ok: false; reason: DirectReason; message: string; detail?: string }
 
 const FALLBACK = "That didn't go through. Try again, or text us."
+const REVIEW_FALLBACK = "This one goes to our team first. Nothing is held yet; we'll be in touch to put it together with you."
+
+/* How the customer wants the remaining balance handled after the deposit.
+   Only a preference the admin records; nothing charges or sends from it. */
+export type BalancePreference = "Manual" | "Auto-charge" | "Reminder link"
 
 /* address and eventTime are optional on the storefront ("fill in later") and
    travel as null when skipped. customerName, phone and email always go
@@ -119,9 +136,15 @@ export async function bookDirect(input: {
   email: string | null
   address: string | null
   eventTime: string | null
+  /* A group or sub-occasion in the admin's spelling, when the cart has one. */
+  occasion: string | null
+  /* The real state of the checkbox, always sent (false when there is none). */
+  agreedToPolicy: boolean
+  balancePaymentPreference: BalancePreference
 }): Promise<DirectResult> {
-  const { customerName, phone, email, itemIds, packageId, addons, ...rest } = input
+  const { customerName, phone, email, itemIds, packageId, addons, occasion, ...rest } = input
   const body: Record<string, unknown> = { ...rest }
+  if (occasion) body.occasion = occasion
   if (itemIds.length === 1) body.itemId = itemIds[0]
   else body.itemIds = itemIds
   if (packageId) body.packageId = packageId
@@ -139,13 +162,27 @@ export async function bookDirect(input: {
     body: JSON.stringify(body),
   })
   const data = await res.json().catch(() => ({}))
-  if (res.status === 201) return { ok: true, booking: data as DirectBooking }
+  if (res.status === 201) return { ok: true, kind: "held", booking: data as DirectBooking }
+  if (res.status === 202 && data.reviewRequired === true && typeof data.designRequestId === "string") {
+    return {
+      ok: true,
+      kind: "review",
+      review: {
+        designRequestId: data.designRequestId,
+        eventDate: typeof data.eventDate === "string" ? data.eventDate : input.eventDate,
+        total: typeof data.total === "number" ? data.total : null,
+        message: typeof data.message === "string" && data.message ? data.message : REVIEW_FALLBACK,
+      },
+    }
+  }
   const reason: DirectReason =
-    data.reason === "unavailable" || data.reason === "not-tracked"
-      ? data.reason
-      : data.reason === "addon-required" || data.reason === "addon-invalid"
-        ? "addons"
-        : "error"
+    data.reason === "agreement-required"
+      ? "agreement"
+      : data.reason === "unavailable" || data.reason === "not-tracked"
+        ? data.reason
+        : data.reason === "addon-required" || data.reason === "addon-invalid"
+          ? "addons"
+          : "error"
   const detail = typeof data.error === "string" ? data.error : undefined
   if (reason === "error") {
     console.warn(`direct booking refused (${res.status}): ${detail ?? "no detail"}`)

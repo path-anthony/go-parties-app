@@ -3,13 +3,17 @@ import { ADMIN_API } from "@/lib/adminApi"
 
 /* GET /api/settings/public: the rush rule the admin owns. The notice hours
    drive the short-notice warning; the phone is null until the admin sets a
-   real one, and every line that would show it is left out then. Read once
+   real one, and every line that would show it is left out then. The policy
+   is null until the admin writes one. Read once
    per page load and shared. A failed read is not cached and yields null, so
    the warning simply doesn't appear (the admin's own rush flag on the
    booking is what counts, this is only a heads-up). */
 export interface PublicSettings {
   minBookingNoticeHours: number
   rushContactPhone: string | null
+  /* The current cancellation and deposit policy, or null until the admin has
+     written one. Null hides the agreement checkbox entirely. */
+  policy: { version: number; text: string } | null
 }
 
 let cached: Promise<PublicSettings | null> | null = null
@@ -21,7 +25,9 @@ function load(): Promise<PublicSettings | null> {
       .then((data): PublicSettings | null => {
         if (!data || typeof data.minBookingNoticeHours !== "number") return null
         const phone = typeof data.rushContactPhone === "string" ? data.rushContactPhone.trim() : ""
-        return { minBookingNoticeHours: data.minBookingNoticeHours, rushContactPhone: phone || null }
+        const text = typeof data.policy?.text === "string" ? data.policy.text.trim() : ""
+        const policy = text ? { version: Number(data.policy.version) || 0, text } : null
+        return { minBookingNoticeHours: data.minBookingNoticeHours, rushContactPhone: phone || null, policy }
       })
       .catch(() => null)
       .then((result) => {

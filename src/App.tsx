@@ -13,6 +13,7 @@ import ItemDate from "@/pages/ItemDate"
 import ItemOptions from "@/pages/ItemOptions"
 import ItemWho from "@/pages/ItemWho"
 import ItemAccount from "@/pages/ItemAccount"
+import ItemReview from "@/pages/ItemReview"
 import ItemHeld from "@/pages/ItemHeld"
 import Kit from "@/pages/Kit"
 
@@ -40,6 +41,7 @@ function App() {
             <Route path="/party/:id/reschedule" element={<PartyReschedule />} />
             <Route path="/party/:id/change" element={<PartyChange />} />
             <Route path="/item/held" element={<ItemHeld />} />
+            <Route path="/item/review" element={<ItemReview />} />
             <Route path="/item/:id" element={<ItemDate />} />
             <Route path="/item/:id/options" element={<ItemOptions />} />
             <Route path="/item/:id/who" element={<ItemWho />} />

@@ -8,6 +8,8 @@ import { GoLabel } from "@/components/go/GoLabel"
 import { MetaCard } from "@/components/go/MetaCard"
 import { CartItems } from "@/components/go/CartItems"
 import { CheckoutConcierge } from "@/components/go/CheckoutConcierge"
+import { CheckoutAgreement } from "@/components/go/CheckoutAgreement"
+import { BalancePreference } from "@/components/go/BalancePreference"
 import { labelForIso } from "@/lib/availability"
 import { bookDirect, type DirectReason } from "@/lib/adminApi"
 import { directInput } from "@/lib/directInput"
@@ -73,6 +75,11 @@ export default function ItemWho() {
     try {
       const result = await bookDirect(directInput(b, customer))
       if (result.ok) {
+        if (result.kind === "review") {
+          b.set("review", result.review)
+          navigate("/item/review")
+          return
+        }
         b.set("direct", result.booking)
         navigate("/item/held")
         return
@@ -203,7 +210,13 @@ export default function ItemWho() {
           </div>
         )}
         <p className="mt-2.5 text-small text-muted">Nothing to pay right now. Contract and deposit link come by text.</p>
-        {onFile && <CheckoutConcierge className="mt-1.5" />}
+        {onFile && (
+          <>
+            <BalancePreference className="mt-4" />
+            <CheckoutAgreement className="mt-4" />
+            <CheckoutConcierge className="mt-1.5" />
+          </>
+        )}
       </Body>
       <Foot>
         <Button variant="ghost" onClick={() => navigate(`/item/${firstId}`)}>Back</Button>

@@ -1,6 +1,6 @@
 import type { BookingState } from "@/state/booking"
 import type { Customer } from "@/lib/customerApi"
-import { clockLabel } from "@/data/catalog"
+import { OCC, clockLabel } from "@/data/catalog"
 import { addonsPayload } from "@/lib/addons"
 
 /* The request for POST /api/bookings/direct, built the same way from the
@@ -12,6 +12,15 @@ import { addonsPayload } from "@/lib/addons"
    the cookie arriving. A cookie that doesn't travel (a different site in
    production, a browser that blocks it) used to turn into "customerName is
    required" from the admin and a lost booking. */
+/* The cart's occasion in the admin's spelling: the sub-occasion when it has
+   one the admin knows, else the group ("Kids party", "Wedding"). "Other" is
+   the storefront's own catch-all and would be refused as unknown, so it falls
+   back to the group. Null when no occasion was ever picked (Browse). */
+export function occasionOf(b: BookingState): string | null {
+  if (b.subOcc && b.subOcc !== "Other") return b.subOcc
+  return b.occ ? OCC[b.occ].label : null
+}
+
 export function directInput(b: BookingState, customer: Customer | null) {
   const typedName = b.contactName.trim() || null
   return {
@@ -24,5 +33,8 @@ export function directInput(b: BookingState, customer: Customer | null) {
     email: customer ? customer.email : b.email.trim(),
     address: b.addressLater ? null : b.address.trim() || null,
     eventTime: clockLabel(b.itemTime),
+    occasion: occasionOf(b),
+    agreedToPolicy: b.agreed,
+    balancePaymentPreference: b.balancePref,
   }
 }

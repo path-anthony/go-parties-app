@@ -78,6 +78,7 @@ export default function ItemHeld() {
             // The booking is made; an emptied cart means Browse starts clean.
             b.setItems([])
             b.set("direct", null)
+            b.set("agreed", false)
             navigate("/home")
           }}
         >

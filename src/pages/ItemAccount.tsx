@@ -7,6 +7,8 @@ import { Chip } from "@/components/go/Chip"
 import { MetaCard } from "@/components/go/MetaCard"
 import { CartItems } from "@/components/go/CartItems"
 import { CheckoutConcierge } from "@/components/go/CheckoutConcierge"
+import { CheckoutAgreement } from "@/components/go/CheckoutAgreement"
+import { BalancePreference } from "@/components/go/BalancePreference"
 import { Reveal } from "@/components/go/DatePicker"
 import { SignUpFields } from "@/components/go/SignUpFields"
 import { labelForIso } from "@/lib/availability"
@@ -98,7 +100,13 @@ export default function ItemAccount() {
     try {
       const result = await bookDirect(directInput({ ...b, contactName: values.name || b.contactName }, who))
       if (result.ok) {
-        // Leaving: `booking` stays true on purpose, see the guard above.
+        // Leaving: `booking` stays true on purpose, see the guard above. The
+        // admin's 202 (sent to the team, nothing held) leaves the same way.
+        if (result.kind === "review") {
+          b.set("review", result.review)
+          navigate("/item/review")
+          return
+        }
         b.set("direct", result.booking)
         navigate("/item/held")
         return
@@ -177,6 +185,8 @@ export default function ItemAccount() {
           </div>
         )}
         <p className="mt-2.5 text-small text-muted">Nothing to pay right now. Contract and deposit link come by text.</p>
+        <BalancePreference className="mt-4" />
+        <CheckoutAgreement className="mt-4" />
         <CheckoutConcierge className="mt-1.5" />
       </Body>
       <Foot>
