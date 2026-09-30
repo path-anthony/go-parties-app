@@ -1,5 +1,13 @@
 # GO! Event Group · project log
 
+## 2026-10-04 (Block 3)
+
+**Where we are:** Crew bidding works end to end. From a gig popup, staff set a pay range and deadline, pick crew with the skill, and each person gets a text with their own link to the storefront's `/bid/<token>` page. Bids are taken on the server under a deadline; staff see every bid sorted by amount with an above or below range flag, accept one with a plain-English confirm, and everyone else still in the running is told they were not selected. New pages: Crew & Gigs > Bids (gigs out for bids or ready to pick). Crew records carry an SMS consent checkbox and date. The Block 2 crew reminders now resolve `{{gigLink}}` and send. Migration `20261004120000_crew_bidding` was applied to production first.
+
+**What we decided:** The public response is built in one serializer that never reads customer name, phone, email or booking id, and shows address, arrival notes, contact phone, crew first name and questions only after acceptance. Accepting and editing a bid share one row lock on the gig, and one accept function serves the bid screen and the manual path. Offer status gains one value, Not Selected; the page state is derived from it. A link dies 2 days after the gig. Bids outside the range are allowed and flagged. A manual accept with no bid texts "the agreed rate". Missing STOREFRONT_URL blocks the send with that reason.
+
+**What's next:** Set the staff notification phone and email (Settings > Notifications) so crew questions reach someone. Guest count is not on bookings, so staff type it per gig. Crew replies by text are still not read.
+
 ## 2026-10-03 (Block 2)
 
 **Where we are:** The scheduler is built. `POST /api/automations/check-reminders` now runs three journeys through one pure planner (`server/automation/planner.ts`) and sends what is due through `sendTemplatedMessage`; the same planner feeds an Automation timeline (with a pause switch) on the lead panel, booking popup and gig popup, a status chip on each lead card, and a new Messages > Upcoming page (14 days grouped by day, blocked items flagged early, a Needs attention count, and Run check now with a preview step). Settings > Integrations shows the last automation check. Migration `20261003120000_scheduler_engine` added `sms_opt_outs`, `automation_runs`, pause flags, `agreements.contract_sent_at`, `accounts.automation_started_at` and attempt tracking on `message_logs`; it was applied to production before the code shipped.
