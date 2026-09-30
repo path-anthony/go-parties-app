@@ -36,6 +36,13 @@ Status: foundation built (2026-09-23). CrewMember, Gig and GigOffer exist; items
 
 ## Next
 
+- **Block 1 shipped: one send pipeline, editable templates, a message log** (2026-10-02). Every automated text and email goes through `sendTemplatedMessage`; wording lives in the registry and can be customized in Settings > Messages; every send is logged with its trigger and an idempotency key.
+- **Block 2: the scheduler.** Fires the timed messages (contract unsigned nudge, week and eve reminders, post-event thanks, balance reminders, crew reminders at 30, 15, 7, 3 days and the eve, lead follow-ups at day 3 and 10) and retries anything the pipeline held for quiet hours or a Sunday. Needs: an n8n or cron trigger, and per-lead eligibility rules (only leads created inside this app; the website and Google Sheet leads stay with the n8n campaigns).
+- **Block 3: bidding and the crew gig page.** Fills `gigLink`, `bidLink`, `bidRange`, `bidAmount`, `bidDeadline` and switches on `bid_accepted` and `bid_not_selected`. Until then, crew reminders that use `{{gigLink}}` are blocked by design and show as "Blocked" in the log.
+- **Cart and hold capture.** `lead_cart_abandoned_1h/24h` need the storefront to save a cart on the server; `lead_hold_expiring` needs holds to expire. Neither exists yet.
+- **Opt-outs.** STOP replies are handled by whatever owns the number's inbound webhook (the n8n workflows). The admin does not read them, so it cannot honor an opt-out itself. Decide before nurture goes live.
+
+
 These are the outstanding requirements, in the order they unblock each other.
 
 - **Payment and retainer collection.** After a hold, a payment link for the retainer (SwipeSimple was the plan; the percentage rule still needs Andy: flat, or by occasion), and `deposit_paid` set by the payment, not by hand in the popup. The Held screen already promises this by text. A Payment record on the booking, so the SMPL exit door covers money too.
