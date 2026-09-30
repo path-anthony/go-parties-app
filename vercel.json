@@ -1,4 +1,20 @@
 {
+  "headers": [
+    {
+      "source": "/sign/(.*)",
+      "headers": [
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "X-Robots-Tag", "value": "noindex" }
+      ]
+    },
+    {
+      "source": "/bid/(.*)",
+      "headers": [
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "X-Robots-Tag", "value": "noindex" }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AppShell, Body } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
+import { Letterhead } from "@/components/go/Letterhead"
+import { useNoIndex } from "@/hooks/use-noindex"
 import { MetaCard } from "@/components/go/MetaCard"
 import { loadContract, signContract, type ContractLoad, type Signed, type UnsignedContract } from "@/lib/contractApi"
 
@@ -23,21 +25,6 @@ import { loadContract, signContract, type ContractLoad, type Signed, type Unsign
    contract on a sheet of paper in a serif face with numbered clauses, the
    figures as a summary of terms. Everything the customer does (the form, its
    checks, every message) is the app's own sans-serif. */
-
-/* The brand's letterhead: the wordmark set large and spaced, a double rule,
-   the place. Every state of this page carries it. */
-function Letterhead() {
-  return (
-    <header className="px-5 pt-7 text-center">
-      <div className="text-[19px] font-black tracking-[.22em] text-charcoal">
-        <b className="text-orange">GO!</b> EVENT GROUP
-      </div>
-      <div className="mt-2.5 border-y-[3px] border-double border-charcoal py-1.5 text-[10.5px] font-semibold tracking-[.32em] text-taupe uppercase">
-        Farmington, Connecticut
-      </div>
-    </header>
-  )
-}
 
 const usd = (n: number | null) => (n === null ? "To be confirmed" : "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
 
@@ -238,6 +225,7 @@ function Contract({ contract, token, onStale }: { contract: UnsignedContract; to
 }
 
 export default function Sign() {
+  useNoIndex()
   const { token = "" } = useParams()
   const [state, setState] = useState<ContractLoad | null>(null)
   const [round, setRound] = useState(0)
