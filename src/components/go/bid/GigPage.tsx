@@ -3,7 +3,7 @@ import { Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { GoLabel } from "@/components/go/GoLabel"
 import { GigFacts } from "@/components/go/bid/GigFacts"
-import { easternWhen } from "@/components/go/bid/format"
+import { easternWhen, usPhone } from "@/components/go/bid/format"
 import { askQuestion, confirmSet, type BidGig } from "@/lib/bidApi"
 
 /* After the bid is accepted, the same link is the gig page: the full address,
@@ -77,7 +77,7 @@ export function GigPage({ token, gig, onGig }: { token: string; gig: BidGig; onG
             <div className={gig.address || gig.arrivalNotes ? "pt-3" : ""}>
               <div className="text-[10.5px] font-bold tracking-[.1em] text-taupe uppercase">Day-of contact</div>
               <a href={`tel:${gig.contactPhone}`} className="-my-1 mt-0.5 inline-block py-2.5 text-sm font-bold text-charcoal underline">
-                {gig.contactPhone}
+                {usPhone(gig.contactPhone)}
               </a>
             </div>
           )}
@@ -134,7 +134,7 @@ export function GigPage({ token, gig, onGig }: { token: string; gig: BidGig; onG
             {askError}
           </div>
         )}
-        {sent && <p className="mt-2 text-small text-charcoal-soft">Sent. We'll get back to you.</p>}
+        {sent && <p className="mt-2 text-small text-charcoal-soft">Sent. GO will call or text you back.</p>}
         <Button type="submit" variant="ghost" className="mt-2.5 w-full" disabled={!text.trim() || asking}>
           {asking ? "Sending" : "Send question"}
         </Button>

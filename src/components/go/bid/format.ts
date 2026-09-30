@@ -58,3 +58,10 @@ export function payLine(range: { min: number | null; max: number | null } | null
   if (max !== null) return `Pay range: up to ${money(max)} for the whole gig`
   return null
 }
+
+/* A US E.164 number (+18608467715) as (860) 846-7715. Anything that is not
+   one is returned exactly as sent, so nothing is ever mangled. */
+export function usPhone(raw: string): string {
+  const m = /^\+1([2-9]\d{2})([2-9]\d{2})(\d{4})$/.exec(raw)
+  return m ? `(${m[1]}) ${m[2]}-${m[3]}` : raw
+}
