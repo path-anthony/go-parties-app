@@ -4,9 +4,9 @@
 
 **Where we are:** Three things. Copy: the customer-facing word is now "retainer" everywhere it was "deposit" (the balance question, the policy checkbox, the contract's price line, the no-policy message), with identifiers and JSON keys untouched, and every promise that a contract, deposit or payment link comes by text or email is gone, because there is no payment link yet and contracts and retainers move into checkout later. A held booking now says "We'll reach out to confirm and finish your booking" (the held screen, the checkout notes, the My party Held line), and a request over the review threshold or for a review occasion says "Big events get a personal look. We'll reach out within one business day." Bot checks: the booking, concierge and Ask GO requests each send a hidden honeypot (`hpField`, always empty from a person) and `formStartedAt` in milliseconds; the app works the same if the admin ignores them. Headers: `vercel.json` now sends a Content-Security-Policy, HSTS, nosniff, frame protection (`frame-ancestors 'none'`, `X-Frame-Options: DENY`) and `Referrer-Policy: strict-origin-when-cross-origin` on every route, with `no-referrer` and `noindex` kept for `/sign` and `/bid`. The signed-contract PDF link only renders when its address starts with https. Checked against a production build served by `vite preview` with these headers: every screen loaded with no CSP violations.
 
-**What we decided:** The CSP allows the admin API at `https://*.up.railway.app`, because the production API origin is not recorded in the repo or in Vercel (the project has no environment variables set, so `VITE_ADMIN_API_URL` would fall back to localhost in a build made there). It should be pinned to the exact origin, and the variable set, before the next deploy.
+**What we decided:** The CSP's `connect-src` is pinned to the exact production API origin, `https://go-parties-admin-production.up.railway.app`, which is also what `VITE_ADMIN_API_URL` is set to in Vercel production. Nothing in the code relies on a wildcard Railway origin. A different API origin (a custom domain, say) needs both changed together.
 
-**What's next:** Set `VITE_ADMIN_API_URL` in Vercel and replace the wildcard in `connect-src` with the real origin.
+**What's next:** Deploy, then confirm the live site loads with no CSP errors.
 
 ## 2026-10-04 (Block 3)
 
