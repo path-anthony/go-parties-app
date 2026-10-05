@@ -4,7 +4,7 @@ import type { BalancePreference as Pref } from "@/lib/adminApi"
 import { useBooking } from "@/state/booking"
 
 /* How the customer would like the remaining balance handled after the
-   deposit. A preference we record, nothing more: no charge and no reminder
+   retainer. A preference we record, nothing more: no charge and no reminder
    is set up from it yet, and the words say so plainly. The values are the
    admin's spelling; the labels are ours. */
 const OPTIONS: [Pref, string, string][] = [
@@ -18,7 +18,7 @@ export function BalancePreference({ className }: { className?: string }) {
   return (
     <div className={className}>
       <GoLabel className="mb-1.5">Remaining balance</GoLabel>
-      <p className="text-body text-charcoal-soft">How would you like to handle the remaining balance after the deposit?</p>
+      <p className="text-body text-charcoal-soft">How would you like to handle the remaining balance after the retainer?</p>
       <div className="mt-2 grid grid-cols-3 gap-2">
         {OPTIONS.map(([value, label, sub]) => (
           <Chip key={value} selected={b.balancePref === value} sub={sub} onClick={() => b.set("balancePref", value)}>
@@ -26,7 +26,7 @@ export function BalancePreference({ className }: { className?: string }) {
           </Chip>
         ))}
       </div>
-      <p className="mt-1.5 text-small text-muted">This is a preference. We'll confirm how it works with you when the deposit is due.</p>
+      <p className="mt-1.5 text-small text-muted">This is a preference. We'll confirm how it works with you when the retainer is due.</p>
     </div>
   )
 }

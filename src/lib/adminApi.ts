@@ -141,9 +141,15 @@ export async function bookDirect(input: {
   /* The real state of the checkbox, always sent (false when there is none). */
   agreedToPolicy: boolean
   balancePaymentPreference: BalancePreference
+  /* Bot checks. hpField is the hidden honeypot and must be empty;
+     formStartedAt is when the cart was started, in ms. An admin that ignores
+     them changes nothing here. */
+  hpField: string
+  formStartedAt: number | null
 }): Promise<DirectResult> {
-  const { customerName, phone, email, itemIds, packageId, addons, occasion, ...rest } = input
+  const { customerName, phone, email, itemIds, packageId, addons, occasion, formStartedAt, ...rest } = input
   const body: Record<string, unknown> = { ...rest }
+  if (formStartedAt !== null) body.formStartedAt = formStartedAt
   if (occasion) body.occasion = occasion
   if (itemIds.length === 1) body.itemId = itemIds[0]
   else body.itemIds = itemIds

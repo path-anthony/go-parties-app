@@ -82,11 +82,14 @@ function SignedView({ title, signed, fresh }: { title: string; signed: Signed; f
           <MetaCard label="Signed by" value={signed.signedName} />
           <MetaCard label="Signed" value={signedWhen(signed.signedAt)} />
         </div>
-        <Button asChild className="mt-4 w-full">
-          <a href={signed.pdfUrl} target="_blank" rel="noopener noreferrer">
-            Open your signed contract (PDF)
-          </a>
-        </Button>
+        {/* Only an https link is offered: the address comes from the API, and nothing else may be an href. */}
+        {signed.pdfUrl.startsWith("https://") && (
+          <Button asChild className="mt-4 w-full">
+            <a href={signed.pdfUrl} target="_blank" rel="noopener noreferrer">
+              Open your signed contract (PDF)
+            </a>
+          </Button>
+        )}
       </Body>
     </AppShell>
   )
@@ -148,7 +151,7 @@ function Contract({ contract, token, onStale }: { contract: UnsignedContract; to
               <dd className="text-[19px] font-bold">{usd(contract.total)}</dd>
             </div>
             <div className="flex items-baseline justify-between gap-3 border-b border-line py-2.5">
-              <dt>Deposit ({contract.depositPercentage}%), due to hold the date</dt>
+              <dt>Retainer ({contract.depositPercentage}%), due to hold the date</dt>
               <dd className="font-bold">{usd(contract.depositAmount)}</dd>
             </div>
             <div className="flex items-baseline justify-between gap-3 py-2.5">

@@ -12,5 +12,5 @@ export function CheckoutConcierge({ className }: { className?: string }) {
   const occasion = [b.occ ? OCC[b.occ].label : null, b.subOcc].filter((s): s is string => !!s).join(", ") || null
   const what = b.bundle ? b.bundle.name : b.items.map((i) => i.name).join(", ")
   const ctx: ConciergeContext = { source: "checkout", occasion, itemOrPackage: what || null, eventDate: b.itemDate }
-  return <ConciergeOffer ctx={ctx} className={className} quiet />
+  return <ConciergeOffer ctx={ctx} className={className} quiet startedAt={b.formStartedAt} />
 }

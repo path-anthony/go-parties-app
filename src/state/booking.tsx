@@ -55,6 +55,10 @@ export interface BookingState {
   addressLater: boolean
   /* The checkbox on the last screen, the real state, never pre-checked. */
   agreed: boolean
+  /* Bot checks sent with the booking: the honeypot (stays empty) and when the
+     cart was started, in milliseconds. */
+  hp: string
+  formStartedAt: number
   /* How the remaining balance should be handled. Auto-charge is what the
      screen opens on; it is only a preference the admin records. */
   balancePref: BalancePreference
@@ -79,6 +83,8 @@ const INITIAL: BookingState = {
   address: "",
   addressLater: false,
   agreed: false,
+  hp: "",
+  formStartedAt: 0,
   balancePref: "Auto-charge",
   direct: null,
   review: null,
@@ -115,10 +121,19 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           itemDate: null,
           itemTime: null,
           agreed: false,
+          hp: "",
+          formStartedAt: Date.now(),
           direct: null,
           review: null,
         })),
-      setItems: (items) => setS((prev) => ({ ...prev, items, bundle: null })),
+      // The cart's first item is when the form started; an emptied cart ends it.
+      setItems: (items) =>
+        setS((prev) => ({
+          ...prev,
+          items,
+          bundle: null,
+          formStartedAt: items.length === 0 ? 0 : prev.items.length === 0 || prev.formStartedAt === 0 ? Date.now() : prev.formStartedAt,
+        })),
       // Not setItems: choosing an option doesn't change what the cart is, so
       // a package stays the package.
       setPicks: (itemId, picks) => setS((prev) => ({ ...prev, items: prev.items.map((i) => (i.id === itemId ? { ...i, picks } : i)) })),

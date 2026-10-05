@@ -7,6 +7,7 @@ import { ADMIN_API } from "@/lib/adminApi"
 import { customerApi } from "@/lib/customerApi"
 import { needsConfig, type AddonGroup } from "@/lib/addons"
 import { Thumb } from "@/components/go/Thumb"
+import { Honeypot } from "@/components/go/Honeypot"
 import { ConciergeOffer } from "@/components/go/ConciergeOffer"
 import type { ConciergeContext } from "@/lib/concierge"
 import { useToast } from "@/hooks/use-toast"
@@ -82,6 +83,9 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [finalRec, setFinalRec] = useState<FinalRecommendation | null>(null)
+  // Bot checks: the honeypot, and when this conversation started (ms).
+  const [hp, setHp] = useState("")
+  const [startedAt, setStartedAt] = useState(0)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const script = ASK[ctx]
@@ -89,6 +93,8 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
   useEffect(() => {
     if (open) {
       setMessages([])
+      setStartedAt(0)
+      setHp("")
       setInput("")
       setError(null)
       setFinalRec(null)
@@ -116,6 +122,8 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
     if (!text || loading) return
 
     const nextMessages: ChatMessage[] = [...messages, { role: "user", content: text }]
+    const started = messages.length === 0 ? Date.now() : startedAt
+    if (messages.length === 0) setStartedAt(started)
     setMessages(nextMessages)
     setInput("")
     setLoading(true)
@@ -125,7 +133,7 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
       const response = await fetch(`${ADMIN_API}/api/recommend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subOcc, messages: nextMessages }),
+        body: JSON.stringify({ subOcc, messages: nextMessages, hpField: hp, formStartedAt: started }),
       })
       if (!response.ok) throw new Error("Server error")
       const data: AskApiResponse = await response.json()
@@ -195,6 +203,7 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
 
   const tryAnother = () => {
     setMessages([])
+    setStartedAt(0)
     setInput("")
     setError(null)
     setFinalRec(null)
@@ -280,7 +289,7 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
                   <div className="rounded-[12px] border border-line bg-cream px-3.5 py-3 text-[13.5px] leading-normal text-charcoal">
                     <b className="block font-bold">Want to talk it through instead?</b>
                     <span className="block text-[12.5px] text-charcoal-soft">Some parties are easier to plan with a real person. Grab 30 minutes with our team, on us.</span>
-                    <ConciergeOffer ctx={conciergeCtx(finalRec.items)} className="mt-2.5" />
+                    <ConciergeOffer ctx={conciergeCtx(finalRec.items)} className="mt-2.5" startedAt={startedAt} />
                   </div>
                 )}
                 {error && (
@@ -310,7 +319,8 @@ export function AskSheet({ open, ctx, onClose }: AskSheetProps) {
                     )}
                   </div>
                 ) : (
-                  <form onSubmit={handleSubmit} className="flex items-end gap-2">
+                  <form onSubmit={handleSubmit} className="relative flex items-end gap-2">
+                    <Honeypot value={hp} onChange={setHp} />
                     <textarea
                       ref={textareaRef}
                       rows={1}

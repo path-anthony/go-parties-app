@@ -7,6 +7,7 @@ import { Chip } from "@/components/go/Chip"
 import { MetaCard } from "@/components/go/MetaCard"
 import { CartItems } from "@/components/go/CartItems"
 import { CheckoutConcierge } from "@/components/go/CheckoutConcierge"
+import { Honeypot } from "@/components/go/Honeypot"
 import { CheckoutAgreement } from "@/components/go/CheckoutAgreement"
 import { BalancePreference } from "@/components/go/BalancePreference"
 import { Reveal } from "@/components/go/DatePicker"
@@ -186,7 +187,8 @@ export default function ItemAccount() {
             )}
           </div>
         )}
-        <p className="mt-2.5 text-small text-muted">Nothing to pay right now. Contract and deposit link come by text.</p>
+        <p className="mt-2.5 text-small text-muted">Nothing to pay right now. We'll reach out to confirm and finish your booking.</p>
+        <Honeypot value={b.hp} onChange={(v) => b.set("hp", v)} />
         <BalancePreference className="mt-4" />
         <CheckoutAgreement className="mt-4" />
         <CheckoutConcierge className="mt-1.5" />

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { renderPolicy, usePublicSettings } from "@/lib/settings"
 import { useBooking } from "@/state/booking"
 
-/* The cancellation and deposit policy, quiet, on the last screen next to
+/* The cancellation and retainer policy, quiet, on the last screen next to
    Hold my date (never a screen of its own). The admin's current text with its
    {{tokens}} filled from settings, clamped with a "Read the full policy"
    toggle, and a real checkbox that starts unchecked and stays disabled until
@@ -56,7 +56,7 @@ export function CheckoutAgreement({ className }: { className?: string }) {
           disabled={!read}
           onChange={(e) => b.set("agreed", e.target.checked)}
         />
-        <span>I have read and agree to the cancellation and deposit policy</span>
+        <span>I have read and agree to the cancellation and retainer policy</span>
       </label>
       {!read && <p className="mt-1 pl-8 text-small text-muted">Read the policy to continue.</p>}
       {read && !b.agreed && <p className="mt-1 pl-8 text-small text-muted">Check the box to hold your date.</p>}

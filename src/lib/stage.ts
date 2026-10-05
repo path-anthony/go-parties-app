@@ -21,7 +21,7 @@ export interface StageView {
 const VIEWS: Record<string, StageView> = {
   Held: {
     label: "Held",
-    message: "Your date is held for you. Your contract comes next, by text.",
+    message: "Your date is held. We'll reach out to confirm and finish your booking.",
     tone: "pending",
     live: true,
   },

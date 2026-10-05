@@ -53,7 +53,7 @@ export default function ItemHeld() {
         <p className="mt-2 text-body text-charcoal-soft">
           {rush
             ? `${day} is on our list. It's short notice, so a person confirms it first and texts you soon.`
-            : `${day} is yours. Contract and deposit link are on their way to your phone.`}
+            : `${day} is held. We'll reach out to confirm and finish your booking.`}
           {rush && settings?.rushContactPhone && ` Need it faster? Call or text ${settings.rushContactPhone}.`}
         </p>
         <div className="mt-5 grid grid-cols-2 gap-2 text-left">
@@ -69,7 +69,7 @@ export default function ItemHeld() {
           </div>
         )}
         <p className="mt-4 text-small text-muted">
-          Contract and payment run through our booking system. Reply STOP anytime to opt out of texts.
+          Reply STOP anytime to opt out of texts.
         </p>
       </Body>
       <Foot>

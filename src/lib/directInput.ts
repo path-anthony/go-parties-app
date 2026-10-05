@@ -36,5 +36,7 @@ export function directInput(b: BookingState, customer: Customer | null) {
     occasion: occasionOf(b),
     agreedToPolicy: b.agreed,
     balancePaymentPreference: b.balancePref,
+    hpField: b.hp,
+    formStartedAt: b.formStartedAt > 0 ? b.formStartedAt : null,
   }
 }

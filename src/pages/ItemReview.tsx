@@ -10,8 +10,8 @@ import { useBooking } from "@/state/booking"
    over its review threshold or is for an occasion it reviews by hand, so
    nothing was held and a request was opened for staff. That is an expected,
    good outcome for a big or one-of-a-kind event, not an error, and it must
-   never look like a booking: no check mark, no "Held", and the words are the
-   admin's own (message). The cart stays until Done. */
+   never look like a booking: no check mark, no "Held", and the words are ours
+   (the admin's message field is not shown). The cart stays until Done. */
 
 export default function ItemReview() {
   const navigate = useNavigate()
@@ -28,7 +28,7 @@ export default function ItemReview() {
           <Users className="size-[30px] stroke-orange" strokeWidth={2.25} />
         </div>
         <h1 className="text-hero text-charcoal">Our team takes it from here.</h1>
-        <p className="mt-2 text-body text-charcoal-soft">{review.message}</p>
+        <p className="mt-2 text-body text-charcoal-soft">Big events get a personal look. We'll reach out within one business day.</p>
         <div className="mt-5 grid grid-cols-2 gap-2 text-left">
           <MetaCard label="What" value={what} />
           <MetaCard label="When" value={labelForIso(review.eventDate)} />

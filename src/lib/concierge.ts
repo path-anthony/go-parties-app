@@ -43,8 +43,12 @@ export function calendlyUrl(ctx: ConciergeContext): string {
 }
 
 /* POST /api/leads/concierge. Never awaited by a screen. */
-export function logConcierge(ctx: ConciergeContext): void {
-  const body: Record<string, string> = { source: ctx.source }
+export function logConcierge(ctx: ConciergeContext, bot?: { hpField: string; formStartedAt: number }): void {
+  const body: Record<string, string | number> = { source: ctx.source }
+  if (bot) {
+    body.hpField = bot.hpField
+    if (bot.formStartedAt > 0) body.formStartedAt = bot.formStartedAt
+  }
   if (ctx.occasion) body.occasion = clip(ctx.occasion)
   if (ctx.itemOrPackage) body.itemOrPackage = clip(ctx.itemOrPackage)
   if (ctx.eventDate) body.eventDate = ctx.eventDate

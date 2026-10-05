@@ -80,7 +80,7 @@ export type SignResult = { ok: true; signed: Signed } | { ok: false; status: num
 const CONFLICT: Record<string, string> = {
   "already-signed": "This contract was already signed. Nothing more is needed from you.",
   "contract-changed": "This contract was updated since you opened it. Please refresh the page and read it again before signing.",
-  "no-policy": "This contract can't be signed yet: the cancellation and deposit policy hasn't been written in the admin. Please text us and we'll fix it.",
+  "no-policy": "This contract can't be signed yet: the cancellation and retainer policy hasn't been written in the admin. Please text us and we'll fix it.",
 }
 
 export async function signContract(
