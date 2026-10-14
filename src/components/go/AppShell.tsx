@@ -23,7 +23,9 @@ function activeTab(path: string): NavTab | null {
 /* bare: for a page reached from a text or email link (the contract to sign),
    not from inside the app: no header, menu or tab bar to wander off with; the
    page brings its own letterhead. */
-export function AppShell({ step, bare, children }: { step?: number; bare?: boolean; children: React.ReactNode }) {
+/* wide: a document page (the GO contract) that needs room for its two-column
+   grids on a desktop; the phone layout is unchanged. */
+export function AppShell({ step, bare, wide, children }: { step?: number; bare?: boolean; wide?: boolean; children: React.ReactNode }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { openAsk } = useAsk()
@@ -37,7 +39,7 @@ export function AppShell({ step, bare, children }: { step?: number; bare?: boole
   }
 
   return (
-    <div className={`mx-auto flex min-h-svh max-w-[480px] flex-col min-[900px]:max-w-[560px] ${bare ? "pb-[env(safe-area-inset-bottom)]" : "pb-[calc(76px+env(safe-area-inset-bottom))]"}`}>
+    <div className={`mx-auto flex min-h-svh flex-col ${wide ? "max-w-[860px]" : "max-w-[480px] min-[900px]:max-w-[560px]"} ${bare ? "pb-[env(safe-area-inset-bottom)]" : "pb-[calc(76px+env(safe-area-inset-bottom))]"}`}>
       {!bare && (
         <div className="flex items-center justify-between px-5 pt-[18px]">
           <Wordmark onClick={() => navigate("/home")} />

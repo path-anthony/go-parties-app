@@ -1,4 +1,5 @@
 import { ADMIN_API } from "@/lib/adminApi"
+import { parseGoDocument, type GoDocument } from "@/components/go/contract/types"
 
 /* The hosted contract, by its unguessable token. Public on the admin side (no
    session); reached from a texted link. GET returns the contract to read (or
@@ -27,6 +28,10 @@ export interface UnsignedContract {
   contentHash: string
   consentText: string
   termsText: string
+  /* The GO form itself, when the agreement uses the new template. Absent on
+     older agreements, which keep the section layout. */
+  format?: "go-v2"
+  document?: GoDocument
 }
 
 export interface SignedContract {
@@ -35,6 +40,15 @@ export interface SignedContract {
   signedName: string
   signedAt: string
   pdfUrl: string
+  format?: "go-v2"
+  document?: GoDocument
+}
+
+/* Keeps the document only when the admin says it is the GO form. */
+function withDocument<T extends { format?: "go-v2"; document?: GoDocument }>(data: Record<string, unknown>, base: T): T {
+  if (data.format !== "go-v2") return base
+  const document = parseGoDocument(data.document)
+  return document ? { ...base, format: "go-v2", document } : base
 }
 
 export type ContractLoad =
@@ -46,12 +60,15 @@ export type ContractLoad =
 const FALLBACK = "That didn't go through. Try again, or text us."
 
 export async function loadContract(token: string, signal?: AbortSignal): Promise<ContractLoad> {
+  if (import.meta.env.DEV && token.startsWith("mock-")) {
+    return (await import("./contractMock")).mockLoad(token)
+  }
   try {
     const res = await fetch(`${ADMIN_API}/api/contracts/${encodeURIComponent(token)}`, { signal })
     if (res.status === 404) return { kind: "invalid" }
     const data = await res.json().catch(() => null)
-    if (res.ok && data?.signed === true) return { kind: "signed", contract: data as SignedContract }
-    if (res.ok && data?.signed === false) return { kind: "unsigned", contract: data as UnsignedContract }
+    if (res.ok && data?.signed === true) return { kind: "signed", contract: withDocument(data, data as SignedContract) }
+    if (res.ok && data?.signed === false) return { kind: "unsigned", contract: withDocument(data, data as UnsignedContract) }
     // A 409 here is the admin's own no-policy state: the contract can't be
     // built yet. It is said plainly, not as a generic failure.
     if (res.status === 409 && data?.reason === "no-policy") {
@@ -85,8 +102,20 @@ const CONFLICT: Record<string, string> = {
 
 export async function signContract(
   token: string,
-  body: { fullName: string; consentToElectronicSignature: boolean; agreeToTerms: boolean; contentHash: string }
+  body: {
+    fullName: string
+    consentToElectronicSignature: boolean
+    agreeToTerms: boolean
+    contentHash: string
+    /* The GO form's one checkbox (ESIGN Act / Connecticut UETA); the admin
+       requires it true for a go-v2 agreement. */
+    esignConsent?: boolean
+    additionalSignerName?: string
+  }
 ): Promise<SignResult> {
+  if (import.meta.env.DEV && token.startsWith("mock-")) {
+    return (await import("./contractMock")).mockSign(token, body)
+  }
   try {
     const res = await fetch(`${ADMIN_API}/api/contracts/${encodeURIComponent(token)}/sign`, {
       method: "POST",

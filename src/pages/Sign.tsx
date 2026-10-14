@@ -8,7 +8,9 @@ import { GoLabel } from "@/components/go/GoLabel"
 import { Letterhead } from "@/components/go/Letterhead"
 import { useNoIndex } from "@/hooks/use-noindex"
 import { MetaCard } from "@/components/go/MetaCard"
-import { loadContract, signContract, type ContractLoad, type Signed, type UnsignedContract } from "@/lib/contractApi"
+import { loadContract, signContract, type ContractLoad, type Signed, type SignedContract, type UnsignedContract } from "@/lib/contractApi"
+import { GoContractDocument } from "@/components/go/contract/GoContractDocument"
+import type { GoDocument } from "@/components/go/contract/types"
 
 /* /sign/:token, the hosted contract. Reached only from the texted or emailed
    link, so it stands alone: the wordmark and nothing to wander off with (no
@@ -227,6 +229,117 @@ function Contract({ contract, token, onStale }: { contract: UnsignedContract; to
   )
 }
 
+/* The GO form (format "go-v2"): the paper contract itself, signed on the
+   form. The customer reads it top to bottom, ticks the one ESIGN box, types
+   their printed name (the signature draws itself from it), can add a second
+   signer, and submits. Signing the form is agreeing to its terms, which the
+   acceptance text says in so many words, so there is no second checkbox.
+   Signed, the same form shows with the signatures and dates filled and the
+   PDF link under it. */
+function GoSigned({ doc, signed, fresh }: { doc: GoDocument; signed: Signed; fresh: boolean }) {
+  return (
+    <AppShell bare wide>
+      <Body>
+        <div className="mx-auto mb-3.5 flex size-16 items-center justify-center rounded-full bg-orange-tint">
+          <Check className="size-[30px] stroke-orange" strokeWidth={2.5} />
+        </div>
+        <h1 className="text-center text-hero text-charcoal">{fresh ? "Signed. Thank you." : "Already signed."}</h1>
+        <p className="mt-2 text-center text-body text-charcoal-soft">
+          {fresh ? "Your contract is signed and on file. Nothing more to do here." : "This contract is signed. There is nothing more to do here."}
+        </p>
+        <div className="mx-auto mt-4 grid max-w-[560px] grid-cols-2 gap-2">
+          <MetaCard label="Signed by" value={signed.signedName} />
+          <MetaCard label="Signed" value={signedWhen(signed.signedAt)} />
+        </div>
+        {signed.pdfUrl.startsWith("https://") && (
+          <Button asChild className="mx-auto mt-4 flex max-w-[560px]">
+            <a href={signed.pdfUrl} target="_blank" rel="noopener noreferrer">
+              Open your signed contract (PDF)
+            </a>
+          </Button>
+        )}
+        <GoContractDocument doc={doc} className="mt-5" />
+      </Body>
+    </AppShell>
+  )
+}
+
+function GoContract({ contract, doc, token, onStale }: { contract: UnsignedContract; doc: GoDocument; token: string; onStale: () => void }) {
+  const [name, setName] = useState("")
+  const [additional, setAdditional] = useState("")
+  const [consent, setConsent] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<{ status: number; reason: string; message: string } | null>(null)
+  const [done, setDone] = useState<Signed | null>(null)
+
+  if (done) {
+    // The form as just signed: the client's lines from what was typed; GO's
+    // own line fills in on a later load, once the office has countersigned.
+    const signedDoc: GoDocument = {
+      ...doc,
+      signatures: {
+        ...doc.signatures,
+        client: { printedName: done.signedName, signedAt: done.signedAt },
+        additional: additional.trim() ? { printedName: additional.trim(), signedAt: done.signedAt } : doc.signatures.additional,
+      },
+    }
+    return <GoSigned doc={signedDoc} signed={done} fresh />
+  }
+
+  const ready = name.trim() !== "" && consent && !busy
+
+  const submit = async () => {
+    if (!ready) return
+    setBusy(true)
+    setError(null)
+    const result = await signContract(token, {
+      fullName: name.trim(),
+      consentToElectronicSignature: consent,
+      agreeToTerms: true,
+      esignConsent: consent,
+      ...(additional.trim() ? { additionalSignerName: additional.trim() } : {}),
+      contentHash: contract.contentHash,
+    })
+    setBusy(false)
+    if (result.ok) setDone(result.signed)
+    else setError({ status: result.status, reason: result.reason, message: result.message })
+  }
+
+  return (
+    <AppShell bare wide>
+      <Body>
+        <p className="text-center text-sm text-charcoal-soft">Please read this contract all the way through. The signature lines are at the bottom of the form.</p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            submit()
+          }}
+        >
+          <GoContractDocument
+            doc={doc}
+            className="mt-4"
+            live={{ name, onName: setName, additional, onAdditional: setAdditional, consent, onConsent: setConsent, busy }}
+          />
+          <p className="mt-3 text-small text-muted">Typing your name on the form is your legal signature. Tick the box above the signature lines to sign electronically.</p>
+          {error && (
+            <div role="alert" className="mt-3 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
+              {error.message}
+              {error.status === 409 && (
+                <Button type="button" variant="ghost" size="sm" className="mt-2.5 block" onClick={onStale}>
+                  Refresh this page
+                </Button>
+              )}
+            </div>
+          )}
+          <Button type="submit" className="mt-4 w-full" disabled={!ready}>
+            {busy ? "Signing" : "Sign contract"}
+          </Button>
+        </form>
+      </Body>
+    </AppShell>
+  )
+}
+
 export default function Sign() {
   useNoIndex()
   const { token = "" } = useParams()
@@ -270,6 +383,13 @@ export default function Sign() {
       </Notice>
     )
   }
-  if (state.kind === "signed") return <SignedView title={state.contract.title} signed={state.contract} fresh={false} />
+  if (state.kind === "signed") {
+    const c: SignedContract = state.contract
+    if (c.format === "go-v2" && c.document) return <GoSigned doc={c.document} signed={c} fresh={false} />
+    return <SignedView title={c.title} signed={c} fresh={false} />
+  }
+  if (state.contract.format === "go-v2" && state.contract.document) {
+    return <GoContract contract={state.contract} doc={state.contract.document} token={token} onStale={load} />
+  }
   return <Contract contract={state.contract} token={token} onStale={load} />
 }
