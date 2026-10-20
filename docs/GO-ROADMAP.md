@@ -21,6 +21,7 @@ Status: foundation built (2026-09-23). CrewMember, Gig and GigOffer exist; items
 
 ## Now
 
+- **Google Calendar: finish the connection** (Block H shipped 2026-10-20). In Google Cloud, register the OAuth client with redirect URI `https://go-parties-admin-production.up.railway.app/api/integrations/google/callback` and the scopes openid, email, calendar.events, calendar.calendarlist.readonly; set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_TOKEN_ENCRYPTION_KEY` on Railway; connect once as info@thegoeventgroup.com; make a "GO Client Invites" calendar and choose it on the card before switching invites on.
 - **Real unit counts from Andy.** Every physical item now has one default unit (144 were defaulted on 2026-09-23), so the catalog is bookable once per date. The real counts replace the defaults item by item in the item popup's Units section; anything with more than one piece is under-selling until then.
 - **Real crew members from Andy.** Since 2026-09-23 the DJ, photography, videography, photo booth and day-of planner items are bookable the moment someone with the skill exists under Crew & Gigs. Today nobody does, so those 17 items report no availability. Names, phones and skills for the real crew unblock them.
 - **Finish tagging skills.** 22 items carry a skill today, all single. Still undecided: DJ Additional Hours, DJs / Bands and Live Music (Live Musician exists as a skill for it), Additional Photo/Video Coverage, Photo Booth Package 5 (enclosed, no attendant), Photo Booth Scrapbook Add-on, Rush Photo Edit, Rush Video Edit, Same Day Photo Edit. And the multi-skill items (a cigar bar with waitstaff, bartender and photographer; anything staffed) need their full list checked in the item popup, which now takes any number.
@@ -62,6 +63,7 @@ These are the outstanding requirements, in the order they unblock each other.
 
 ## Later
 
+- **"Sign in with Google" for the customer portal login.** Basic profile scopes only (openid, email, profile), a separate OAuth client from the calendar one, never calendar scopes. Not built; the portal keeps its code login until this is decided.
 - A calendar view in Scheduling, unit status by date, gap tracking against inventory.
 - Leads reading n8n engagement (opens, clicks, replies). Ingestion exists; reading engagement back does not. Open question: whether n8n is posting to `/api/leads/external` yet.
 - Theme as a real object with AI-drafted, Mel-approved packages per theme, once real packages exist.
