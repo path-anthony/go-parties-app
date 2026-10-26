@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
@@ -14,7 +14,8 @@ import { Reveal } from "@/components/go/DatePicker"
 import { SignUpFields } from "@/components/go/SignUpFields"
 import { labelForIso } from "@/lib/availability"
 import { bookDirect, type DirectReason } from "@/lib/adminApi"
-import { directInput } from "@/lib/directInput"
+import { directInput, tierInput } from "@/lib/directInput"
+import { fetchTier } from "@/lib/tierApi"
 import { clockLabel } from "@/data/catalog"
 import { missingRequired } from "@/lib/addons"
 import { checkoutSteps } from "@/lib/steps"
@@ -48,12 +49,26 @@ export default function ItemAccount() {
   const [notice, setNotice] = useState<Notice | null>(null)
   const agreementBlocked = useAgreementBlocked()
 
+  const tierKey = `${b.items.map((i) => `${i.id}:${JSON.stringify(i.picks ?? {})}`).join(",")}|${b.bundle?.id ?? ""}|${b.itemDate}|${b.itemTime}`
+  useEffect(() => {
+    if (b.tier || !b.itemDate || b.items.length === 0) return
+    let live = true
+    fetchTier(tierInput(b)).then((r) => {
+      if (live && r.ok) b.set("tier", r.tier)
+    })
+    return () => {
+      live = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [b.tier, tierKey])
+
   if (b.items.length === 0) return <Navigate to="/browse" replace />
   if (b.items[0].id !== id) return <Navigate to={`/item/${b.items[0].id}/account`} replace />
   const firstId = b.items[0].id
   if (!b.itemDate) return <Navigate to={`/item/${firstId}`} replace />
   if (b.items.some((i) => missingRequired(i).length > 0)) return <Navigate to={`/item/${firstId}/options`} replace />
-  const steps = checkoutSteps(b.optionsStep, false)
+  const tier = b.tier?.tier ?? null
+  const steps = checkoutSteps(b.optionsStep, false, tier)
   const here = `/item/${firstId}/account`
   // Not while a hold is in flight, and not after one that left this screen.
   // A fresh sign-up sets the customer before the booking after it has
@@ -101,7 +116,20 @@ export default function ItemAccount() {
     }
     setBooking(true)
     try {
-      const result = await bookDirect(directInput({ ...b, contactName: values.name || b.contactName }, who))
+      // Asked again right before the hold. Tier 2 goes on to the contract
+      // instead of holding here; `booking` stays true so the guard above
+      // cannot bounce a freshly signed-up customer back to who on the way.
+      const t = await fetchTier(tierInput(b))
+      if (!t.ok) {
+        fail({ reason: "error", message: t.message }, who)
+        return
+      }
+      b.set("tier", t.tier)
+      if (t.tier.tier === 2) {
+        navigate(`/item/${firstId}/contract`)
+        return
+      }
+      const result = await bookDirect(directInput({ ...b, tier: t.tier, contactName: values.name || b.contactName }, who))
       if (result.ok) {
         // Leaving: `booking` stays true on purpose, see the guard above. The
         // admin's 202 (sent to the team, nothing held) leaves the same way.
@@ -111,7 +139,8 @@ export default function ItemAccount() {
           return
         }
         b.set("direct", result.booking)
-        navigate("/item/held")
+        b.set("payment", result.booking.payment ?? null)
+        navigate("/item/pay")
         return
       }
       fail({ reason: result.reason, message: result.message }, who)
@@ -190,12 +219,13 @@ export default function ItemAccount() {
         <p className="mt-2.5 text-small text-muted">Nothing to pay right now. We'll reach out to confirm and finish your booking.</p>
         <Honeypot value={b.hp} onChange={(v) => b.set("hp", v)} />
         <BalancePreference className="mt-4" />
-        <CheckoutAgreement className="mt-4" />
+        {tier !== 2 && <CheckoutAgreement className="mt-4" />}
+        {tier === 2 && <p className="mt-4 text-small text-charcoal-soft">This booking comes with a contract. You'll read and sign it on the next screen.</p>}
         <CheckoutConcierge className="mt-1.5" />
       </Body>
       <Foot>
         <Button variant="ghost" onClick={() => navigate(`/item/${firstId}/who`)}>Back</Button>
-        <Button disabled={!canHold} onClick={hold}>Hold my date</Button>
+        <Button disabled={!canHold} onClick={hold}>{tier === 2 ? "Next" : "Hold my date"}</Button>
       </Foot>
     </AppShell>
   )

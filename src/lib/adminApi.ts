@@ -2,6 +2,9 @@
    here are public on the admin side (no session) and rate limited there. */
 
 import type { AddonGroup } from "@/lib/addons"
+import { mockMode } from "@/lib/mock"
+import { parseOffer, type PaymentOffer } from "@/lib/paymentApi"
+import type { Tier } from "@/lib/tierApi"
 
 export const ADMIN_API = import.meta.env.VITE_ADMIN_API_URL || "http://localhost:3001"
 
@@ -37,6 +40,7 @@ export async function publicItems(
   date: string | null,
   signal?: AbortSignal
 ): Promise<{ items: PublicItem[]; categories: string[] }> {
+  if (import.meta.env.DEV && mockMode("checkout")) return (await import("./checkoutMock")).mockPublicItems(q, category)
   const params = new URLSearchParams()
   if (q.trim()) params.set("q", q.trim())
   if (category) params.set("category", category)
@@ -48,6 +52,7 @@ export async function publicItems(
 }
 
 export async function checkAvailability(itemId: string, iso: string): Promise<Availability> {
+  if (import.meta.env.DEV && mockMode("checkout")) return (await import("./checkoutMock")).mockAvailability(itemId, iso)
   const res = await fetch(`${ADMIN_API}/api/items/${encodeURIComponent(itemId)}/availability?date=${iso}`)
   if (!res.ok) throw new Error(`availability ${res.status}`)
   return res.json()
@@ -79,13 +84,32 @@ export interface DirectBooking {
   item?: { id: string; name: string }
   unit?: { id: string; label: string }
   /* One entry per unit held, so an item wanted twice appears twice. */
-  items?: Array<{ id: string; name: string; unit: { id: string; label: string } }>
+  items?: Array<{ id: string; name: string; unit: { id: string; label: string } | null }>
+  /* Block T2: which agreement this booking took, what the admin offers to
+     collect now (null when online payment is not available yet), and the
+     contract as signed in checkout. */
+  tier?: Tier
+  payment?: PaymentOffer | null
+  contract?: { agreementId: string; signed: boolean; signedAt: string | null; pdfUrl: string | null } | null
 }
 
 export const bookedNames = (b: DirectBooking): string[] =>
   b.items ? [...new Set(b.items.map((i) => i.name))] : b.item ? [b.item.name] : []
 
-export type DirectReason = "unavailable" | "not-tracked" | "addons" | "agreement" | "error"
+export type DirectReason = "unavailable" | "not-tracked" | "addons" | "agreement" | "quote-expired" | "contract-changed" | "tier-changed" | "error"
+
+/* The three refusals that mean the quote the customer read is no longer the
+   one the admin would hold: the page fetches the tier again and sends them
+   back to read it. */
+export const QUOTE_REASONS: readonly DirectReason[] = ["quote-expired", "contract-changed", "tier-changed"]
+
+export interface HoldSignature {
+  fullName: string
+  additionalSignerName?: string
+  esignConsent: true
+  contentHash: string
+  quoteId: string
+}
 
 /* The admin's 202: the cart is over the review threshold or is for an
    occasion on the review list, so nothing was held. It is a design request
@@ -146,9 +170,18 @@ export async function bookDirect(input: {
      them changes nothing here. */
   hpField: string
   formStartedAt: number | null
+  /* The tier the storefront was told (the admin recomputes and refuses a
+     mismatch) and, for tier 2, the signature taken on the contract. */
+  tier: Tier | null
+  signature: HoldSignature | null
 }): Promise<DirectResult> {
-  const { customerName, phone, email, itemIds, packageId, addons, occasion, formStartedAt, ...rest } = input
+  if (import.meta.env.DEV && mockMode("checkout")) {
+    return (await import("./checkoutMock")).mockHold(input)
+  }
+  const { customerName, phone, email, itemIds, packageId, addons, occasion, formStartedAt, tier, signature, ...rest } = input
   const body: Record<string, unknown> = { ...rest }
+  if (tier !== null) body.tier = tier
+  if (signature) body.signature = signature
   if (formStartedAt !== null) body.formStartedAt = formStartedAt
   if (occasion) body.occasion = occasion
   if (itemIds.length === 1) body.itemId = itemIds[0]
@@ -168,7 +201,11 @@ export async function bookDirect(input: {
     body: JSON.stringify(body),
   })
   const data = await res.json().catch(() => ({}))
-  if (res.status === 201) return { ok: true, kind: "held", booking: data as DirectBooking }
+  if (res.status === 201) {
+    const booking = data as DirectBooking
+    booking.payment = parseOffer(data.payment)
+    return { ok: true, kind: "held", booking }
+  }
   if (res.status === 202 && data.reviewRequired === true && typeof data.designRequestId === "string") {
     return {
       ok: true,
@@ -184,6 +221,8 @@ export async function bookDirect(input: {
   const reason: DirectReason =
     data.reason === "agreement-required"
       ? "agreement"
+      : QUOTE_REASONS.includes(data.reason)
+        ? (data.reason as DirectReason)
       : data.reason === "unavailable" || data.reason === "not-tracked"
         ? data.reason
         : data.reason === "addon-required" || data.reason === "addon-invalid"
@@ -194,6 +233,7 @@ export async function bookDirect(input: {
     console.warn(`direct booking refused (${res.status}): ${detail ?? "no detail"}`)
     return { ok: false, reason, message: FALLBACK, detail }
   }
+  if (QUOTE_REASONS.includes(reason)) return { ok: false, reason, message: "Your cart or the contract changed. Please read it again.", detail }
   return { ok: false, reason, message: detail ?? FALLBACK }
 }
 

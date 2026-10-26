@@ -16,6 +16,10 @@ import ItemAccount from "@/pages/ItemAccount"
 import Sign from "@/pages/Sign"
 import Bid from "@/pages/Bid"
 import ItemReview from "@/pages/ItemReview"
+import ItemContract from "@/pages/ItemContract"
+import ItemPay from "@/pages/ItemPay"
+import PartyContract from "@/pages/PartyContract"
+import PartyPay from "@/pages/PartyPay"
 import ItemHeld from "@/pages/ItemHeld"
 import Kit from "@/pages/Kit"
 
@@ -42,8 +46,12 @@ function App() {
             <Route path="/party/signup" element={<PartySignUp />} />
             <Route path="/party/:id/reschedule" element={<PartyReschedule />} />
             <Route path="/party/:id/change" element={<PartyChange />} />
+            <Route path="/party/:id/contract" element={<PartyContract />} />
+            <Route path="/party/:id/pay" element={<PartyPay />} />
             <Route path="/item/held" element={<ItemHeld />} />
             <Route path="/item/review" element={<ItemReview />} />
+            <Route path="/item/pay" element={<ItemPay />} />
+            <Route path="/item/:id/contract" element={<ItemContract />} />
             <Route path="/item/:id" element={<ItemDate />} />
             <Route path="/item/:id/options" element={<ItemOptions />} />
             <Route path="/item/:id/who" element={<ItemWho />} />

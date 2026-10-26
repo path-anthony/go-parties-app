@@ -58,7 +58,7 @@ const CLAUSES: GoDocument["terms"]["clauses"] = [
   ["Governing Law and General Terms", "This contract is governed by the laws of the State of Connecticut, and any dispute will be brought in the state or federal courts located in Connecticut. This contract is the entire agreement between the parties, may be changed only in a writing signed by both parties, and if any part is found unenforceable the rest remains in effect. The Client confirms that they are at least 18 years old and have authority to sign for any organization named in this contract."],
 ].map(([title, body], i) => ({ number: i + 1, title, body }))
 
-const BLANK: GoDocument = {
+export const BLANK: GoDocument = {
   header: HEADER,
   company: COMPANY,
   client: { nameOrg: null, email: null, mailingAddress: null, city: null, state: null, zip: null, phoneHome: null, phoneWork: null, phoneCell: null },
@@ -85,7 +85,7 @@ const BLANK: GoDocument = {
 const pick = (rows: typeof BLANK.services.left, filled: Record<string, [string, number | "-"]>) =>
   rows.map((r) => (r.label && filled[r.label] ? { ...r, checked: true, details: filled[r.label][0], fee: filled[r.label][1] } : r))
 
-const FULL: GoDocument = {
+export const FULL: GoDocument = {
   ...BLANK,
   header: { ...HEADER, confirmByDate: "Friday, October 30, 2026" },
   client: {
@@ -133,7 +133,7 @@ const FULL: GoDocument = {
   },
 }
 
-const SIGNED: GoDocument = {
+export const SIGNED_DOC: GoDocument = {
   ...FULL,
   signatures: {
     client: { printedName: "Jordan Sample", signedAt: "2026-10-12T18:20:00.000Z" },
@@ -147,7 +147,7 @@ const store = new Map<string, Row>()
 const SEED: Record<string, () => Row> = {
   "mock-contract": () => ({ signed: false, document: structuredClone(BLANK), signedName: "", signedAt: "" }),
   "mock-contract-full": () => ({ signed: false, document: structuredClone(FULL), signedName: "", signedAt: "" }),
-  "mock-contract-signed": () => ({ signed: true, document: structuredClone(SIGNED), signedName: "Jordan Sample", signedAt: "2026-10-12T18:20:00.000Z" }),
+  "mock-contract-signed": () => ({ signed: true, document: structuredClone(SIGNED_DOC), signedName: "Jordan Sample", signedAt: "2026-10-12T18:20:00.000Z" }),
 }
 function get(token: string): Row | null {
   if (!store.has(token)) {

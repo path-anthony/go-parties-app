@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +13,8 @@ import { CheckoutAgreement } from "@/components/go/CheckoutAgreement"
 import { BalancePreference } from "@/components/go/BalancePreference"
 import { labelForIso } from "@/lib/availability"
 import { bookDirect, type DirectReason } from "@/lib/adminApi"
-import { directInput } from "@/lib/directInput"
+import { directInput, tierInput } from "@/lib/directInput"
+import { fetchTier } from "@/lib/tierApi"
 import { clockLabel as clockFor } from "@/data/catalog"
 import { missingRequired } from "@/lib/addons"
 import { checkoutSteps } from "@/lib/steps"
@@ -47,6 +48,22 @@ export default function ItemWho() {
   const handed = (location.state as { notice?: Notice } | null)?.notice ?? null
   const [notice, setNotice] = useState<Notice | null>(handed)
 
+  // The tier is asked for as soon as this screen opens, so the button and
+  // the step count can say what comes next; it is cleared by the store
+  // whenever the cart or date changes, and asked again then.
+  const tierKey = `${b.items.map((i) => `${i.id}:${JSON.stringify(i.picks ?? {})}`).join(",")}|${b.bundle?.id ?? ""}|${b.itemDate}|${b.itemTime}`
+  useEffect(() => {
+    if (b.tier || !b.itemDate || b.items.length === 0) return
+    let live = true
+    fetchTier(tierInput(b)).then((r) => {
+      if (live && r.ok) b.set("tier", r.tier)
+    })
+    return () => {
+      live = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [b.tier, tierKey])
+
   if (b.items.length === 0) return <Navigate to="/browse" replace />
   if (b.items[0].id !== id) return <Navigate to={`/item/${b.items[0].id}/who`} replace />
   if (!b.itemDate) return <Navigate to={`/item/${b.items[0].id}`} replace />
@@ -63,7 +80,8 @@ export default function ItemWho() {
   // Only the last screen holds the date, so only there does the policy wait.
   const canSubmit = nameSettled && contactSettled && addressSettled && !submitting && !(onFile && agreementBlocked)
 
-  const steps = checkoutSteps(b.optionsStep, onFile)
+  const tier = b.tier?.tier ?? null
+  const steps = checkoutSteps(b.optionsStep, onFile, tier)
   const here = `/item/${firstId}/who`
 
   const removeItem = (rid: string) => b.setItems(items.filter((i) => i.id !== rid))
@@ -77,7 +95,18 @@ export default function ItemWho() {
     setSubmitting(true)
     setNotice(null)
     try {
-      const result = await bookDirect(directInput(b, customer))
+      // Asked again right before the hold: the cart may have changed here.
+      const t = await fetchTier(tierInput(b))
+      if (!t.ok) {
+        setNotice({ reason: "error", message: t.message })
+        return
+      }
+      b.set("tier", t.tier)
+      if (t.tier.tier === 2) {
+        navigate(`/item/${firstId}/contract`)
+        return
+      }
+      const result = await bookDirect(directInput({ ...b, tier: t.tier }, customer))
       if (result.ok) {
         if (result.kind === "review") {
           b.set("review", result.review)
@@ -85,7 +114,8 @@ export default function ItemWho() {
           return
         }
         b.set("direct", result.booking)
-        navigate("/item/held")
+        b.set("payment", result.booking.payment ?? null)
+        navigate("/item/pay")
         return
       }
       setNotice({ reason: result.reason, message: result.message })
@@ -218,14 +248,15 @@ export default function ItemWho() {
         {onFile && (
           <>
             <BalancePreference className="mt-4" />
-            <CheckoutAgreement className="mt-4" />
+            {tier !== 2 && <CheckoutAgreement className="mt-4" />}
+            {tier === 2 && <p className="mt-4 text-small text-charcoal-soft">This booking comes with a contract. You'll read and sign it on the next screen.</p>}
             <CheckoutConcierge className="mt-1.5" />
           </>
         )}
       </Body>
       <Foot>
         <Button variant="ghost" onClick={() => navigate(`/item/${firstId}`)}>Back</Button>
-        <Button disabled={!canSubmit} onClick={submit}>{onFile ? "Hold my date" : "Next"}</Button>
+        <Button disabled={!canSubmit} onClick={submit}>{onFile && tier !== 2 ? "Hold my date" : "Next"}</Button>
       </Foot>
     </AppShell>
   )

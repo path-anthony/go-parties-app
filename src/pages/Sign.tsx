@@ -10,6 +10,8 @@ import { useNoIndex } from "@/hooks/use-noindex"
 import { MetaCard } from "@/components/go/MetaCard"
 import { loadContract, signContract, type ContractLoad, type Signed, type SignedContract, type UnsignedContract } from "@/lib/contractApi"
 import { GoContractDocument } from "@/components/go/contract/GoContractDocument"
+import { GoContractSigner } from "@/components/go/contract/GoContractSigner"
+import { EMPTY_SIGNATURE, type SignatureValues } from "@/components/go/contract/signature"
 import type { GoDocument } from "@/components/go/contract/types"
 
 /* /sign/:token, the hosted contract. Reached only from the texted or emailed
@@ -265,9 +267,8 @@ function GoSigned({ doc, signed, fresh }: { doc: GoDocument; signed: Signed; fre
 }
 
 function GoContract({ contract, doc, token, onStale }: { contract: UnsignedContract; doc: GoDocument; token: string; onStale: () => void }) {
-  const [name, setName] = useState("")
-  const [additional, setAdditional] = useState("")
-  const [consent, setConsent] = useState(false)
+  const [sig, setSig] = useState<SignatureValues>(EMPTY_SIGNATURE)
+  const [ready, setReady] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<{ status: number; reason: string; message: string } | null>(null)
   const [done, setDone] = useState<Signed | null>(null)
@@ -275,29 +276,29 @@ function GoContract({ contract, doc, token, onStale }: { contract: UnsignedContr
   if (done) {
     // The form as just signed: the client's lines from what was typed; GO's
     // own line fills in on a later load, once the office has countersigned.
+    const additional = sig.additional.trim()
     const signedDoc: GoDocument = {
       ...doc,
       signatures: {
         ...doc.signatures,
         client: { printedName: done.signedName, signedAt: done.signedAt },
-        additional: additional.trim() ? { printedName: additional.trim(), signedAt: done.signedAt } : doc.signatures.additional,
+        additional: additional ? { printedName: additional, signedAt: done.signedAt } : doc.signatures.additional,
       },
     }
     return <GoSigned doc={signedDoc} signed={done} fresh />
   }
 
-  const ready = name.trim() !== "" && consent && !busy
-
   const submit = async () => {
     if (!ready) return
     setBusy(true)
     setError(null)
+    const additional = sig.additional.trim()
     const result = await signContract(token, {
-      fullName: name.trim(),
-      consentToElectronicSignature: consent,
+      fullName: sig.name.trim(),
+      consentToElectronicSignature: sig.consent,
       agreeToTerms: true,
-      esignConsent: consent,
-      ...(additional.trim() ? { additionalSignerName: additional.trim() } : {}),
+      esignConsent: sig.consent,
+      ...(additional ? { additionalSignerName: additional } : {}),
       contentHash: contract.contentHash,
     })
     setBusy(false)
@@ -315,12 +316,7 @@ function GoContract({ contract, doc, token, onStale }: { contract: UnsignedContr
             submit()
           }}
         >
-          <GoContractDocument
-            doc={doc}
-            className="mt-4"
-            live={{ name, onName: setName, additional, onAdditional: setAdditional, consent, onConsent: setConsent, busy }}
-          />
-          <p className="mt-3 text-small text-muted">Typing your name on the form is your legal signature. Tick the box above the signature lines to sign electronically.</p>
+          <GoContractSigner doc={doc} value={sig} onChange={setSig} busy={busy} onReadyChange={setReady} className="mt-4" />
           {error && (
             <div role="alert" className="mt-3 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
               {error.message}

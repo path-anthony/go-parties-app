@@ -2,6 +2,8 @@ import type { BookingState } from "@/state/booking"
 import type { Customer } from "@/lib/customerApi"
 import { OCC, clockLabel } from "@/data/catalog"
 import { addonsPayload } from "@/lib/addons"
+import type { HoldSignature } from "@/lib/adminApi"
+import type { TierInput } from "@/lib/tierApi"
 
 /* The request for POST /api/bookings/direct, built the same way from the
    who screen (signed in) and the account step (guest, or just signed up).
@@ -21,8 +23,37 @@ export function occasionOf(b: BookingState): string | null {
   return b.occ ? OCC[b.occ].label : null
 }
 
+/* What the tier decision is made from: the cart and the date, nothing about
+   the person. */
+export function tierInput(b: BookingState): TierInput {
+  return {
+    itemIds: b.items.map((i) => i.id),
+    packageId: b.bundle?.id ?? null,
+    addons: addonsPayload(b.items),
+    eventDate: b.itemDate ?? "",
+    eventTime: clockLabel(b.itemTime),
+    occasion: occasionOf(b),
+  }
+}
+
+/* The tier 2 signature as the hold carries it, or null when there is no
+   quote or nothing was signed. */
+export function holdSignature(b: BookingState): HoldSignature | null {
+  const quote = b.tier?.tier === 2 ? b.tier.contract : null
+  if (!quote || !b.signature.consent || b.signature.name.trim() === "") return null
+  const additional = b.signature.additional.trim()
+  return {
+    fullName: b.signature.name.trim(),
+    ...(additional ? { additionalSignerName: additional } : {}),
+    esignConsent: true,
+    contentHash: quote.contentHash,
+    quoteId: quote.quoteId,
+  }
+}
+
 export function directInput(b: BookingState, customer: Customer | null) {
   const typedName = b.contactName.trim() || null
+  const signature = holdSignature(b)
   return {
     itemIds: b.items.map((i) => i.id),
     packageId: b.bundle?.id ?? null,
@@ -34,7 +65,10 @@ export function directInput(b: BookingState, customer: Customer | null) {
     address: b.addressLater ? null : b.address.trim() || null,
     eventTime: clockLabel(b.itemTime),
     occasion: occasionOf(b),
-    agreedToPolicy: b.agreed,
+    // A signed contract covers the policy: tier 2 sends agreed as true.
+    agreedToPolicy: signature ? true : b.agreed,
+    tier: b.tier?.tier ?? null,
+    signature,
     balancePaymentPreference: b.balancePref,
     hpField: b.hp,
     formStartedAt: b.formStartedAt > 0 ? b.formStartedAt : null,

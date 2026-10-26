@@ -35,7 +35,7 @@ export interface LiveSignature {
   busy: boolean
 }
 
-export function GoContractDocument({ doc, live, className }: { doc: GoDocument; live?: LiveSignature; className?: string }) {
+export function GoContractDocument({ doc, live, className, signatureId }: { doc: GoDocument; live?: LiveSignature; className?: string; signatureId?: string }) {
   useSignatureFont()
   const { header, company, client, event, services, payment, terms, acceptance, signatures } = doc
   const retainerLabel = `RETAINER DUE AT SIGNING${payment.retainerPercent !== null ? ` - ${payment.retainerPercent}%` : ""} (AUTO)`
@@ -187,6 +187,7 @@ export function GoContractDocument({ doc, live, className }: { doc: GoDocument; 
         <SectionBar>{acceptance.heading ?? "ACCEPTANCE AND SIGNATURES"}</SectionBar>
         {acceptance.text && <p className="mt-2.5 text-[11.5px] leading-[1.45] whitespace-pre-line">{acceptance.text}</p>}
 
+        <div id={signatureId}>
         <label className={cn("mt-3 flex items-start gap-2.5 text-[11.5px]", live && !live.busy ? "cursor-pointer" : "")}>
           <input
             type="checkbox"
@@ -212,6 +213,7 @@ export function GoContractDocument({ doc, live, className }: { doc: GoDocument; 
           input={live ? { value: live.additional, onChange: live.onAdditional, placeholder: "Optional", id: "sign-additional", disabled: live.busy } : undefined}
         />
         <SignatureRow who="GO EVENT GROUP REPRESENTATIVE" signature={signatures.go} placeholderX={!signatures.go?.printedName} />
+        </div>
 
         {acceptance.confirmLine && <p className="mt-5 text-center text-[11px] font-black uppercase">{acceptance.confirmLine}</p>}
         {acceptance.nonRefundableLine && <p className="mt-0.5 text-center text-[11px]">{acceptance.nonRefundableLine}</p>}

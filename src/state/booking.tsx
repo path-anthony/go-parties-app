@@ -1,6 +1,9 @@
 import { createContext, useContext, useMemo, useState } from "react"
 import type { OccasionId } from "@/data/catalog"
 import type { BalancePreference, DirectBooking, ReviewReceipt } from "@/lib/adminApi"
+import type { PaymentOffer } from "@/lib/paymentApi"
+import type { TierInfo } from "@/lib/tierApi"
+import type { SignatureValues } from "@/components/go/contract/signature"
 import { needsConfig, type AddonGroup, type Picks } from "@/lib/addons"
 
 /* Single booking store. The occasion and sub-occasion picked on Home, then
@@ -62,6 +65,17 @@ export interface BookingState {
   /* How the remaining balance should be handled. Auto-charge is what the
      screen opens on; it is only a preference the admin records. */
   balancePref: BalancePreference
+  /* The admin's tier answer for this cart and date, with the contract quote
+     when it is tier 2. Null until asked, and cleared by anything that changes
+     what the contract would say (items, picks, package, date, time,
+     occasion), so a stale quote is never signed. */
+  tier: TierInfo | null
+  /* The signature typed on the tier 2 contract, kept here so the screen can
+     be left and come back to. Cleared with the tier. */
+  signature: SignatureValues
+  /* What the admin offered to collect after the hold (the retainer), or null
+     when online payment is not available. */
+  payment: PaymentOffer | null
   direct: DirectBooking | null
   /* The admin's 202: sent to the team, nothing held. Its own screen. */
   review: ReviewReceipt | null
@@ -86,6 +100,9 @@ const INITIAL: BookingState = {
   hp: "",
   formStartedAt: 0,
   balancePref: "Auto-charge",
+  tier: null,
+  signature: { name: "", additional: "", consent: false },
+  payment: null,
   direct: null,
   review: null,
   changeFor: null,
@@ -99,14 +116,19 @@ interface BookingApi extends BookingState {
   setPicks: (itemId: string, picks: Picks) => void
 }
 
+/* Anything that changes what the contract would say drops the tier answer,
+   the quote and the signature with it. */
+const CLEAR_TIER = { tier: null, signature: { name: "", additional: "", consent: false }, payment: null } as const
+
 const Ctx = createContext<BookingApi | null>(null)
 
 export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [s, setS] = useState<BookingState>(INITIAL)
 
   const api = useMemo<BookingApi>(() => {
+    const RESETS_TIER: (keyof BookingState)[] = ["itemDate", "itemTime", "occ", "subOcc"]
     const set = <K extends keyof BookingState>(key: K, value: BookingState[K]) =>
-      setS((prev) => ({ ...prev, [key]: value }))
+      setS((prev) => (RESETS_TIER.includes(key) && prev[key] !== value ? { ...prev, [key]: value, ...CLEAR_TIER } : { ...prev, [key]: value }))
     return {
       ...s,
       set,
@@ -123,6 +145,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           agreed: false,
           hp: "",
           formStartedAt: Date.now(),
+          ...CLEAR_TIER,
           direct: null,
           review: null,
         })),
@@ -132,11 +155,12 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           ...prev,
           items,
           bundle: null,
+          ...CLEAR_TIER,
           formStartedAt: items.length === 0 ? 0 : prev.items.length === 0 || prev.formStartedAt === 0 ? Date.now() : prev.formStartedAt,
         })),
       // Not setItems: choosing an option doesn't change what the cart is, so
       // a package stays the package.
-      setPicks: (itemId, picks) => setS((prev) => ({ ...prev, items: prev.items.map((i) => (i.id === itemId ? { ...i, picks } : i)) })),
+      setPicks: (itemId, picks) => setS((prev) => ({ ...prev, ...CLEAR_TIER, items: prev.items.map((i) => (i.id === itemId ? { ...i, picks } : i)) })),
     }
   }, [s])
 

@@ -21,25 +21,43 @@ export interface StageView {
 const VIEWS: Record<string, StageView> = {
   Held: {
     label: "Held",
-    message: "Your date is held. We'll reach out to confirm and finish your booking.",
+    message: "Your date is held.",
+    tone: "pending",
+    live: true,
+  },
+  Requested: {
+    label: "Requested",
+    message: "Your date is requested. Sign the contract and pay the retainer to confirm it.",
     tone: "pending",
     live: true,
   },
   "Contract Sent": {
-    label: "Contract sent",
-    message: "Booked, contract on its way. Sign it and pay the retainer to lock the date in.",
+    label: "Contract ready",
+    message: "Your contract is ready to sign.",
     tone: "pending",
     live: true,
   },
   Signed: {
     label: "Signed",
-    message: "Contract signed, thank you. The retainer is the last step to lock the date in.",
+    message: "Contract signed, thank you. The retainer confirms the date.",
     tone: "pending",
     live: true,
   },
   "Retainer Paid": {
     label: "Retainer paid",
-    message: "Retainer received, thank you. Signing your contract is the last step.",
+    message: "Retainer received, thank you. Signing your contract confirms the date.",
+    tone: "pending",
+    live: true,
+  },
+  "In review": {
+    label: "In review",
+    message: "Big events get a personal look. We'll reach out within one business day.",
+    tone: "pending",
+    live: true,
+  },
+  "Proposal ready": {
+    label: "Proposal ready",
+    message: "Your proposal is ready. GO will walk you through it.",
     tone: "pending",
     live: true,
   },
@@ -61,6 +79,12 @@ const VIEWS: Record<string, StageView> = {
     tone: "cancelled",
     live: false,
   },
+  Released: {
+    label: "Released",
+    message: "This hold wasn't confirmed in time, so the date was released. Book again, or call or text us.",
+    tone: "cancelled",
+    live: false,
+  },
 }
 
 /* An admin that doesn't send `stage` yet, or a stage this doesn't know, is
@@ -69,6 +93,7 @@ const VIEWS: Record<string, StageView> = {
 export function stageView(booking: Pick<CustomerBooking, "stage" | "status">): StageView {
   const known = booking.stage ? VIEWS[booking.stage] : undefined
   if (known) return known
+  if (booking.stage === "Released" || booking.status === "Released") return VIEWS.Released
   if (booking.status === "Cancelled") return VIEWS.Cancelled
   if (booking.status === "Completed") return VIEWS.Completed
   return VIEWS.Held

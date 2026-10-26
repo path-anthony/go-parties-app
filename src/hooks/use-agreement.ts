@@ -8,6 +8,7 @@ import { useBooking } from "@/state/booking"
    admin's "require the agreement" setting is enforced separately on its side. */
 export function useAgreementBlocked(): boolean {
   const settings = usePublicSettings()
-  const { agreed } = useBooking()
-  return !!settings?.policy && !agreed
+  const { agreed, tier } = useBooking()
+  if (tier?.tier === 2) return false
+  return !!(tier?.policy ?? settings?.policy) && !agreed
 }

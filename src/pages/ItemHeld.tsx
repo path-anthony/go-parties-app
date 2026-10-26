@@ -24,6 +24,10 @@ export default function ItemHeld() {
   if (!b.direct || b.items.length === 0) return <Navigate to="/home" replace />
   const { direct, items } = b
   const rush = direct.rush === true
+  const tier = direct.tier ?? b.tier?.tier ?? 1
+  // A tier 2 hold is signed but not yet confirmed; the retainer does that.
+  const requested = tier === 2
+  const retainerDue = b.payment !== null
   const day = labelForIso(direct.eventDate)
   const clock = clockFor(b.itemTime)
   const when = clock ? `${day}, ${clock}` : day
@@ -49,11 +53,15 @@ export default function ItemHeld() {
         <div className="mx-auto mb-3.5 flex size-16 items-center justify-center rounded-full bg-orange-tint">
           {rush ? <Clock className="size-[30px] stroke-orange" strokeWidth={2.5} /> : <Check className="size-[30px] stroke-orange" strokeWidth={2.5} />}
         </div>
-        <h1 className="text-hero text-charcoal">{rush ? "Pending. We'll be in touch." : "Held. You're good."}</h1>
+        <h1 className="text-hero text-charcoal">{rush ? "Pending. We'll be in touch." : requested ? "Signed. Your date is requested." : "Held. You're good."}</h1>
         <p className="mt-2 text-body text-charcoal-soft">
           {rush
             ? `${day} is on our list. It's short notice, so a person confirms it first and texts you soon.`
-            : `${day} is held. We'll reach out to confirm and finish your booking.`}
+            : requested
+              ? `${day} is yours once the retainer is paid.${retainerDue ? " Pay it any time from My party." : ""}`
+              : retainerDue
+                ? `${day} is held. Your retainer is still due; pay it any time from My party.`
+                : `${day} is held. We'll reach out to confirm and finish your booking.`}
           {rush && settings?.rushContactPhone && ` Need it faster? Call or text ${settings.rushContactPhone}.`}
         </p>
         <div className="mt-5 grid grid-cols-2 gap-2 text-left">
@@ -78,6 +86,7 @@ export default function ItemHeld() {
             // The booking is made; an emptied cart means Browse starts clean.
             b.setItems([])
             b.set("direct", null)
+            b.set("payment", null)
             b.set("agreed", false)
             navigate("/home")
           }}

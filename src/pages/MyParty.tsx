@@ -5,7 +5,8 @@ import { useToast } from "@/hooks/use-toast"
 import { AppShell, Body } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { Reveal } from "@/components/go/DatePicker"
-import { customerApi, whatOf, whenOf, type CustomerBooking } from "@/lib/customerApi"
+import { customerApi, whatOf, whenOf, type BookingStep, type CustomerBooking } from "@/lib/customerApi"
+import { usePublicSettings } from "@/lib/settings"
 import { stageView, type StageView } from "@/lib/stage"
 import { useCustomer } from "@/state/customer"
 import { cn } from "@/lib/utils"
@@ -42,14 +43,62 @@ function Status({ view }: { view: StageView }) {
   )
 }
 
+/* What is left to do on a booking, from the admin's steps list. "next" is a
+   real button into the page that does it; "done" a check; "waiting" is on
+   GO; "blocked" waits on an earlier step. Proposals and date confirmations
+   are listed but not actionable here yet (Block T3). */
+const STEP_LABEL: Record<BookingStep["key"], string> = {
+  sign: "Sign your contract",
+  retainer: "Pay your retainer",
+  balance: "Pay your balance",
+  proposal: "Review your proposal",
+  "confirm-date": "Confirm the new date",
+}
+
+function Steps({ booking }: { booking: CustomerBooking }) {
+  const navigate = useNavigate()
+  const steps = booking.steps ?? []
+  if (steps.length === 0) return null
+  const target = (s: BookingStep) =>
+    s.key === "sign" ? `/party/${booking.id}/contract` : s.key === "retainer" || s.key === "balance" ? `/party/${booking.id}/pay?kind=${s.key}` : null
+  return (
+    <ol className="mt-3 space-y-1.5">
+      {steps.map((s) => {
+        const to = target(s)
+        return (
+          <li key={s.key} className="flex items-center justify-between gap-3 text-sm">
+            <span className={cn("flex items-center gap-2", s.state === "done" ? "text-muted" : "text-charcoal")}>
+              {s.state === "done" && <i className="inline-block size-1.5 rounded-full bg-good" />}
+              {STEP_LABEL[s.key]}
+            </span>
+            {s.state === "next" && to ? (
+              <Button variant="dark" size="sm" onClick={() => navigate(to)}>
+                {s.key === "sign" ? "Sign" : s.key === "balance" ? "Pay balance" : s.key === "retainer" ? "Pay retainer" : "Open"}
+              </Button>
+            ) : (
+              <span className="text-small text-muted">{s.state === "done" ? "Done" : s.state === "waiting" || (s.state === "next" && !to) ? "Waiting on GO" : "After the step above"}</span>
+            )}
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
 function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChanged: (b: CustomerBooking) => void }) {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const settings = usePublicSettings()
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const view = stageView(booking)
   const live = view.live
+  // Tier 1 keeps self-serve changes. A booking with a contract (tier 2) or a
+  // proposal (tier 3) changes only through GO: the contract's reschedule fee
+  // and written-agreement terms apply, and that is a request, not a button.
+  const selfServe = (booking.tier ?? 1) === 1 && booking.rescheduleMode !== "request"
+  const phone = settings?.companyPhone ?? settings?.rushContactPhone ?? null
 
   const cancel = async () => {
     setBusy(true)
@@ -81,7 +130,16 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
         <Status view={view} />
       </div>
       <p className={`mt-2 text-small ${view.tone === "cancelled" ? "text-charcoal" : "text-charcoal-soft"}`}>{view.message}</p>
-      {live && (
+      {live && <Steps booking={booking} />}
+      {live && booking.contract?.status === "signed" && booking.contract.pdfUrl?.startsWith("https://") && (
+        <a href={booking.contract.pdfUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-small font-bold text-charcoal underline">
+          Your signed contract (PDF)
+        </a>
+      )}
+      {live && !selfServe && (
+        <p className="mt-3 text-small text-charcoal-soft">To change or cancel, call or text GO{phone ? ` at ${phone}` : ""}.</p>
+      )}
+      {live && selfServe && (
         <div className="mt-3 flex flex-wrap gap-2">
           <Button variant="ghost" size="sm" onClick={() => navigate(`/party/${booking.id}/reschedule`)}>
             Reschedule

@@ -18,8 +18,10 @@ export function CheckoutAgreement({ className }: { className?: string }) {
   const [opened, setOpened] = useState(b.agreed)
   const [fits, setFits] = useState(false)
   const textRef = useRef<HTMLParagraphElement>(null)
-  const policy = settings?.policy
-  const text = policy && settings ? renderPolicy(policy.text, settings) : ""
+  // Tier 1's policy arrives with the tier answer (the rental policy for this
+  // cart); the settings copy is the fallback until the tier is known.
+  const policy = b.tier?.policy ?? settings?.policy ?? null
+  const text = policy ? (settings ? renderPolicy(policy.text, settings) : policy.text) : ""
 
   // Three lines was enough to show all of it: nothing is hidden, so there is
   // nothing to open first.
@@ -56,7 +58,7 @@ export function CheckoutAgreement({ className }: { className?: string }) {
           disabled={!read}
           onChange={(e) => b.set("agreed", e.target.checked)}
         />
-        <span>I have read and agree to the cancellation and retainer policy</span>
+        <span>I have read and agree to the rental policy</span>
       </label>
       {!read && <p className="mt-1 pl-8 text-small text-muted">Read the policy to continue.</p>}
       {read && !b.agreed && <p className="mt-1 pl-8 text-small text-muted">Check the box to hold your date.</p>}

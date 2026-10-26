@@ -1,5 +1,9 @@
 import { ADMIN_API } from "@/lib/adminApi"
 import { labelForIso } from "@/lib/availability"
+import type { GoDocument } from "@/components/go/contract/types"
+import { parseGoDocument } from "@/components/go/contract/types"
+import { mockMode } from "@/lib/mock"
+import { parseOffer, type PaymentOffer } from "@/lib/paymentApi"
 
 /* The customer portal's calls to go-parties-admin. Every request sends
    credentials: "include": the customer_session cookie is SameSite=None in
@@ -36,9 +40,52 @@ export interface CustomerBooking {
   stage?: string
   depositPaid: boolean
   createdAt: string
+  /* Block T2: which agreement the booking took, the steps left to do, and
+     the contract and money as the admin sees them. Absent from an older
+     admin; every screen treats absent as "nothing to do here". */
+  tier?: 1 | 2 | 3
+  steps?: BookingStep[]
+  contract?: { agreementId: string; status: "none" | "ready" | "sent" | "signed"; signedAt?: string | null; pdfUrl?: string | null } | null
+  retainer?: { amount: number | null; paid: boolean; paidAt?: string | null; payable: boolean } | null
+  balance?: { amount: number | null; dueDate: string | null; paid: boolean; payable: boolean } | null
+  rescheduleMode?: "self" | "request"
+  pendingRequest?: { kind: "reschedule" | "cancel"; eventDate?: string; reason?: string; requestedAt: string } | null
   units: BookingUnit[]
   /* What was picked for which item, as booked. */
   addons?: Array<{ itemId: string | null; itemName: string; groupName: string; addonName: string; priceDelta: number; quantity: number }>
+}
+
+export type StepKey = "sign" | "retainer" | "balance" | "proposal" | "confirm-date"
+export type StepState = "done" | "next" | "waiting" | "blocked"
+export interface BookingStep {
+  key: StepKey
+  state: StepState
+  at?: string | null
+}
+
+/* The customer's own contract, same shape as the public signing link's. */
+export interface CustomerContract {
+  signed: boolean
+  title: string
+  format?: "go-v2"
+  document?: GoDocument
+  contentHash?: string
+  signedName?: string
+  signedAt?: string
+  pdfUrl?: string
+  consentText?: string
+  termsText?: string
+  sections?: { heading: string; body: string }[]
+  text?: string
+}
+
+export interface SignBody {
+  fullName: string
+  additionalSignerName?: string
+  esignConsent?: boolean
+  consentToElectronicSignature: boolean
+  agreeToTerms: boolean
+  contentHash?: string
 }
 
 export type ApiResult<T> =
@@ -72,13 +119,46 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<ApiResult<
 const post = <T,>(path: string, body?: unknown) =>
   call<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) })
 
+/* Every mock branch is written out in full, `import.meta.env.DEV && ...`
+   with the dynamic import inside it, so a production build drops the branch
+   and the fixture chunk with it. */
+
+function withDocument(data: CustomerContract): CustomerContract {
+  const raw = data as unknown as Record<string, unknown>
+  if (raw.format !== "go-v2") return data
+  const document = parseGoDocument(raw.document)
+  return document ? { ...data, format: "go-v2", document } : { ...data, format: undefined, document: undefined }
+}
+
 export const customerApi = {
-  me: () => call<{ customer: Customer }>("/api/customer/me"),
+  me: async () => {
+    if (import.meta.env.DEV && mockMode("portal")) return (await import("./portalMock")).mockMe()
+    return call<{ customer: Customer }>("/api/customer/me")
+  },
   signup: (input: { name: string | null; phone: string; email: string; password: string }) =>
     post<{ customer: Customer }>("/api/customer/signup", input),
   login: (input: { identifier: string; password: string }) => post<{ customer: Customer }>("/api/customer/login", input),
   logout: () => post<{ ok: boolean }>("/api/customer/logout"),
-  bookings: () => call<CustomerBooking[]>("/api/customer/bookings"),
+  bookings: async () => {
+    if (import.meta.env.DEV && mockMode("portal")) return (await import("./portalMock")).mockBookings()
+    return call<CustomerBooking[]>("/api/customer/bookings")
+  },
+  contract: async (id: string): Promise<ApiResult<CustomerContract>> => {
+    if (import.meta.env.DEV && mockMode("portal")) return (await import("./portalMock")).mockContract(id)
+    const r = await call<CustomerContract>(`/api/customer/bookings/${encodeURIComponent(id)}/contract`)
+    return r.ok ? { ok: true, data: withDocument(r.data) } : r
+  },
+  sign: async (id: string, body: SignBody) => {
+    if (import.meta.env.DEV && mockMode("portal")) return (await import("./portalMock")).mockSign(id, body)
+    return post<{ signed: true; signedAt: string; signedName: string; pdfUrl: string }>(`/api/customer/bookings/${encodeURIComponent(id)}/sign`, body)
+  },
+  paymentSession: async (id: string, kind: "retainer" | "balance"): Promise<ApiResult<PaymentOffer>> => {
+    if (import.meta.env.DEV && mockMode("portal")) return (await import("./portalMock")).mockPaymentSession(id, kind)
+    const r = await post<Record<string, unknown>>(`/api/customer/bookings/${encodeURIComponent(id)}/payments/session`, { kind })
+    if (!r.ok) return r
+    const offer = parseOffer({ ...r.data, kind })
+    return offer ? { ok: true, data: offer } : { ok: false, status: 0, message: FALLBACK }
+  },
   cancel: (id: string) => post<CustomerBooking>(`/api/customer/bookings/${encodeURIComponent(id)}/cancel`),
   reschedule: (id: string, change: { eventDate?: string; eventTime?: string | null }) =>
     post<CustomerBooking>(`/api/customer/bookings/${encodeURIComponent(id)}/reschedule`, change),

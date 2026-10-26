@@ -11,6 +11,9 @@ import { ADMIN_API } from "@/lib/adminApi"
 export interface PublicSettings {
   minBookingNoticeHours: number
   rushContactPhone: string | null
+  /* The number to call or text about a booking; falls back to the rush
+     phone until the admin sends one. */
+  companyPhone: string | null
   /* The current cancellation and deposit policy, or null until the admin has
      written one. Null hides the agreement checkbox entirely. */
   policy: { version: number; text: string } | null
@@ -54,6 +57,7 @@ function load(): Promise<PublicSettings | null> {
         return {
           minBookingNoticeHours: data.minBookingNoticeHours,
           rushContactPhone: phone || null,
+          companyPhone: (typeof data.companyPhone === "string" && data.companyPhone.trim()) || phone || null,
           policy,
           tokens: Object.fromEntries(
             Object.entries(data as Record<string, unknown>).flatMap(([k, v]) => {
