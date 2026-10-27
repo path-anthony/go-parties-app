@@ -34,6 +34,8 @@ export interface BidGig {
   myBid: { amount: number; note: string | null; submittedAt: string | null } | null
   /* Only when accepted. */
   address: string | null
+  /* A Google Maps link to the setup pin, https only; may be null. */
+  mapsUrl: string | null
   arrivalNotes: string | null
   contactPhone: string | null
   crewFirstName: string | null
@@ -91,6 +93,7 @@ export function parseGig(data: unknown): BidGig | null {
     deadlineAt: str(d.deadlineAt),
     myBid: bid && bidAmount !== null ? { amount: bidAmount, note: str(bid.note), submittedAt: str(bid.submittedAt) } : null,
     address: str(d.address),
+    mapsUrl: str(d.mapsUrl)?.startsWith("https://") ? str(d.mapsUrl) : null,
     arrivalNotes: str(d.arrivalNotes),
     contactPhone: str(d.contactPhone),
     crewFirstName: str(d.crewFirstName),

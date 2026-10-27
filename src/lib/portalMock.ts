@@ -20,7 +20,8 @@ const base = (id: string, stage: string, tier: 1 | 2 | 3, units: ReturnType<type
   id,
   eventDate: day(30),
   eventTime: "2 PM",
-  address: "14 Maple Ln, Avon",
+  address: "14 Maple Ln, Avon, CT 06001, USA",
+  delivery: { formattedAddress: "14 Maple Ln, Avon, CT 06001, USA", setupLat: 41.8102, setupLng: -72.8309, setupNotes: "Backyard, gate on the left", verified: true },
   customerName: CUSTOMER.name,
   phone: CUSTOMER.phone,
   email: CUSTOMER.email,
@@ -38,6 +39,9 @@ const base = (id: string, stage: string, tier: 1 | 2 | 3, units: ReturnType<type
 
 const rows: Row[] = [
   base("bk-held", "Held", 1, [unit("Test Gladiator Bounce House")], {
+    // Booked before the address was verified: plain address, no map.
+    address: "9 Elm St, Farmington",
+    delivery: null,
     steps: [{ key: "retainer", state: "next" }],
     contract: null,
     retainer: { amount: 210, paid: false, payable: true },

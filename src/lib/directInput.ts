@@ -4,6 +4,7 @@ import { OCC, clockLabel } from "@/data/catalog"
 import { addonsPayload } from "@/lib/addons"
 import type { HoldSignature } from "@/lib/adminApi"
 import type { TierInput } from "@/lib/tierApi"
+import type { Delivery } from "@/lib/places"
 
 /* The request for POST /api/bookings/direct, built the same way from the
    who screen (signed in) and the account step (guest, or just signed up).
@@ -51,7 +52,17 @@ export function holdSignature(b: BookingState): HoldSignature | null {
   }
 }
 
+/* The delivery object as locked: the verified address, its point, the setup
+   pin and the notes. Null when the address is skipped, typed without a
+   pick (no key), or never verified. */
+export function deliveryOf(b: BookingState): Delivery | null {
+  if (b.addressLater || !b.verified) return null
+  const setup = b.setup ?? { lat: b.verified.addressLat, lng: b.verified.addressLng }
+  return { ...b.verified, setupLat: setup.lat, setupLng: setup.lng, setupNotes: b.setupNotes.trim() }
+}
+
 export function directInput(b: BookingState, customer: Customer | null) {
+  const delivery = deliveryOf(b)
   const typedName = b.contactName.trim() || null
   const signature = holdSignature(b)
   return {
@@ -62,7 +73,8 @@ export function directInput(b: BookingState, customer: Customer | null) {
     customerName: customer ? customer.name?.trim() || typedName : typedName,
     phone: customer ? customer.phone : b.phone.trim(),
     email: customer ? customer.email : b.email.trim(),
-    address: b.addressLater ? null : b.address.trim() || null,
+    address: delivery ? delivery.formattedAddress : b.addressLater ? null : b.address.trim() || null,
+    delivery,
     eventTime: clockLabel(b.itemTime),
     occasion: occasionOf(b),
     // A signed contract covers the policy: tier 2 sends agreed as true.

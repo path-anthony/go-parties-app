@@ -3,6 +3,7 @@
 
 import type { AddonGroup } from "@/lib/addons"
 import { mockMode } from "@/lib/mock"
+import type { Delivery } from "@/lib/places"
 import { parseOffer, type PaymentOffer } from "@/lib/paymentApi"
 import type { Tier } from "@/lib/tierApi"
 
@@ -159,6 +160,10 @@ export async function bookDirect(input: {
   phone: string | null
   email: string | null
   address: string | null
+  /* Block M: the Google-verified address, the setup pin and the notes, or
+     null when the address was skipped or never verified (no key). The plain
+     address above is the formatted address whenever this is set. */
+  delivery: Delivery | null
   eventTime: string | null
   /* A group or sub-occasion in the admin's spelling, when the cart has one. */
   occasion: string | null

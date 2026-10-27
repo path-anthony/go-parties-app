@@ -4,6 +4,8 @@ import type { BalancePreference, DirectBooking, ReviewReceipt } from "@/lib/admi
 import type { PaymentOffer } from "@/lib/paymentApi"
 import type { TierInfo } from "@/lib/tierApi"
 import type { SignatureValues } from "@/components/go/contract/signature"
+import type { VerifiedAddress } from "@/lib/places"
+import type { LatLng } from "@/lib/maps"
 import { needsConfig, type AddonGroup, type Picks } from "@/lib/addons"
 
 /* Single booking store. The occasion and sub-occasion picked on Home, then
@@ -56,6 +58,14 @@ export interface BookingState {
   email: string
   address: string
   addressLater: boolean
+  /* Block M: the address as Google verified it (a full street address with
+     its point), the setup pin, and the notes for the crew. Null until a
+     suggestion is picked; cleared only when the address text changes, so
+     the pin survives every other step. The plain `address` is the formatted
+     address while this is set. */
+  verified: VerifiedAddress | null
+  setup: LatLng | null
+  setupNotes: string
   /* The checkbox on the last screen, the real state, never pre-checked. */
   agreed: boolean
   /* Bot checks sent with the booking: the honeypot (stays empty) and when the
@@ -96,6 +106,9 @@ const INITIAL: BookingState = {
   email: "",
   address: "",
   addressLater: false,
+  verified: null,
+  setup: null,
+  setupNotes: "",
   agreed: false,
   hp: "",
   formStartedAt: 0,

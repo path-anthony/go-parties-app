@@ -11,6 +11,10 @@ import { CheckoutConcierge } from "@/components/go/CheckoutConcierge"
 import { Honeypot } from "@/components/go/Honeypot"
 import { CheckoutAgreement } from "@/components/go/CheckoutAgreement"
 import { BalancePreference } from "@/components/go/BalancePreference"
+import { AddressField } from "@/components/go/AddressField"
+import { SetupMap } from "@/components/go/SetupMap"
+import { mapsAvailable } from "@/lib/maps"
+import type { VerifiedAddress } from "@/lib/places"
 import { labelForIso } from "@/lib/availability"
 import { bookDirect, type DirectReason } from "@/lib/adminApi"
 import { directInput, tierInput } from "@/lib/directInput"
@@ -27,8 +31,12 @@ import { useCustomer } from "@/state/customer"
    and aren't asked again (only a name, if the account has none yet), and
    this is the last step: "Hold my date" posts here. A guest goes on to the
    account step (make one, or continue as a guest) before the date is held.
-   Address is plain text, no validation service, skippable with the "Add the
-   address later" switch. A 409 from the race (someone took the last unit
+   Address (Block M): with a Google key the customer picks a full street
+   address from Places suggestions, then drags a pin to the setup spot and
+   adds a short note; a town, a business with no number or free typing
+   keeps Next off. Without a key it is the plain text field it was, with a
+   note that the exact address is confirmed by text. Either way the "Add
+   the address later" switch skips it. A 409 from the race (someone took the last unit
    between the check and this tap) is shown as the server says it, with a
    way back to the calendar. Any other refusal shows the bank's calm line
    and a Try again; nothing typed is lost, every field here lives in the
@@ -74,7 +82,14 @@ export default function ItemWho() {
 
   const onFile = customer !== null
   const needsName = !customer?.name
-  const addressSettled = b.address.trim() !== "" || b.addressLater
+  const mapsOn = mapsAvailable()
+  const addressSettled = b.addressLater || (mapsOn ? b.verified !== null : b.address.trim() !== "")
+  const setVerified = (v: VerifiedAddress | null) => {
+    b.set("verified", v)
+    b.set("setup", v ? { lat: v.addressLat, lng: v.addressLng } : null)
+    if (!v) b.set("setupNotes", "")
+  }
+  const SETUP_MAX = 200
   const contactSettled = onFile ? true : b.phone.trim() !== "" && b.email.trim() !== ""
   const nameSettled = needsName ? b.contactName.trim() !== "" : true
   // Only the last screen holds the date, so only there does the policy wait.
@@ -194,14 +209,35 @@ export default function ItemWho() {
         )}
         <div className="mt-2.5">
           <GoLabel className="mb-1.5 tracking-[.1em]">Address</GoLabel>
-          <Input
-            placeholder="14 Maple Ln, Farmington"
-            autoComplete="street-address"
-            value={b.address}
-            disabled={b.addressLater}
-            onChange={(e) => b.set("address", e.target.value)}
-          />
+          {mapsOn ? (
+            <AddressField value={b.address} verified={b.verified} disabled={b.addressLater} onText={(t) => b.set("address", t)} onVerified={setVerified} />
+          ) : (
+            <>
+              <Input
+                placeholder="14 Maple Ln, Farmington"
+                autoComplete="street-address"
+                value={b.address}
+                disabled={b.addressLater}
+                onChange={(e) => b.set("address", e.target.value)}
+              />
+              <p className="mt-1.5 text-small text-muted">We'll confirm your exact address by text.</p>
+            </>
+          )}
         </div>
+        {mapsOn && b.verified && !b.addressLater && (
+          <div className="mt-3">
+            <SetupMap
+              address={{ lat: b.verified.addressLat, lng: b.verified.addressLng }}
+              setup={b.setup ?? { lat: b.verified.addressLat, lng: b.verified.addressLng }}
+              onSetup={(p) => b.set("setup", p)}
+            />
+            <div className="mt-2.5">
+              <GoLabel className="mb-1.5 tracking-[.1em]">Setup notes</GoLabel>
+              <Input placeholder="Backyard, gate on the left" maxLength={SETUP_MAX} value={b.setupNotes} onChange={(e) => b.set("setupNotes", e.target.value.slice(0, SETUP_MAX))} />
+              <small className="mt-1 block text-[11.5px] text-muted">Optional. Where the crew should set up, in a line.</small>
+            </div>
+          </div>
+        )}
         <div className="mt-2 flex items-center justify-between rounded-[14px] border border-line bg-white px-3.5 py-[13px] text-sm font-semibold text-charcoal">
           <div>
             Add the address later
@@ -211,7 +247,10 @@ export default function ItemWho() {
             checked={b.addressLater}
             onCheckedChange={(v) => {
               b.set("addressLater", v)
-              if (v) b.set("address", "")
+              if (v) {
+                b.set("address", "")
+                setVerified(null)
+              }
             }}
           />
         </div>

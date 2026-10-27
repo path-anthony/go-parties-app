@@ -48,6 +48,9 @@ export interface CustomerBooking {
   contract?: { agreementId: string; status: "none" | "ready" | "sent" | "signed"; signedAt?: string | null; pdfUrl?: string | null } | null
   retainer?: { amount: number | null; paid: boolean; paidAt?: string | null; payable: boolean } | null
   balance?: { amount: number | null; dueDate: string | null; paid: boolean; payable: boolean } | null
+  /* Block M: the verified address and the setup pin as the admin holds
+     them; null or absent when the booking was made without one. */
+  delivery?: { formattedAddress: string; setupLat: number | null; setupLng: number | null; setupNotes: string | null; verified: boolean } | null
   rescheduleMode?: "self" | "request"
   pendingRequest?: { kind: "reschedule" | "cancel"; eventDate?: string; reason?: string; requestedAt: string } | null
   units: BookingUnit[]

@@ -65,6 +65,11 @@ export function GigPage({ token, gig, onGig }: { token: string; gig: BidGig; onG
             <div className="border-b border-line pb-3 last:border-b-0 last:pb-0">
               <div className="text-[10.5px] font-bold tracking-[.1em] text-taupe uppercase">Address</div>
               <div className="mt-[3px] text-sm font-bold whitespace-pre-line text-charcoal">{gig.address}</div>
+              {gig.mapsUrl && (
+                <a href={gig.mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block rounded-[12px] border-[1.5px] border-line bg-white px-3.5 py-2 text-sm font-extrabold text-charcoal">
+                  Open in Maps
+                </a>
+              )}
             </div>
           )}
           {gig.arrivalNotes && (

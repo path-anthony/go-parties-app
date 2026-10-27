@@ -62,8 +62,9 @@ export async function mockTier(input: TierInput): Promise<TierResult> {
   return { ok: true, tier: tierFor(mockMode("checkout") ?? "tier1", input) }
 }
 
-export async function mockHold(input: { itemIds: string[]; eventDate: string; eventTime: string | null; address: string | null; customerName: string | null; tier: number | null; signature: { contentHash: string } | null }): Promise<DirectResult> {
+export async function mockHold(input: { itemIds: string[]; eventDate: string; eventTime: string | null; address: string | null; delivery: unknown; customerName: string | null; tier: number | null; signature: { contentHash: string } | null }): Promise<DirectResult> {
   await new Promise((r) => setTimeout(r, 400))
+  console.debug("mock hold delivery", JSON.stringify(input.delivery))
   const scenario = mockMode("checkout") ?? "tier1"
   const refuse = (reason: "quote-expired" | "contract-changed" | "tier-changed"): DirectResult => ({
     ok: false,

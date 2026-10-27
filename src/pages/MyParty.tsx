@@ -7,6 +7,7 @@ import { GoLabel } from "@/components/go/GoLabel"
 import { Reveal } from "@/components/go/DatePicker"
 import { customerApi, whatOf, whenOf, type BookingStep, type CustomerBooking } from "@/lib/customerApi"
 import { usePublicSettings } from "@/lib/settings"
+import { MiniMap } from "@/components/go/MiniMap"
 import { stageView, type StageView } from "@/lib/stage"
 import { useCustomer } from "@/state/customer"
 import { cn } from "@/lib/utils"
@@ -85,6 +86,13 @@ function Steps({ booking }: { booking: CustomerBooking }) {
   )
 }
 
+/* The setup pin when the admin has one; the address point is never shown
+   without it. */
+function setupOf(b: CustomerBooking): { lat: number; lng: number } | null {
+  const d = b.delivery
+  return d && typeof d.setupLat === "number" && typeof d.setupLng === "number" ? { lat: d.setupLat, lng: d.setupLng } : null
+}
+
 function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChanged: (b: CustomerBooking) => void }) {
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -125,11 +133,15 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
             </span>
           ))}
           <span className="block text-small text-charcoal-soft">{whenOf(booking)}</span>
-          {booking.address && <span className="block text-small text-muted">{booking.address}</span>}
+          {(booking.delivery?.formattedAddress ?? booking.address) && (
+            <span className="block text-small text-muted">{booking.delivery?.formattedAddress ?? booking.address}</span>
+          )}
+          {booking.delivery?.setupNotes && <span className="block text-small text-muted">Setup: {booking.delivery.setupNotes}</span>}
         </div>
         <Status view={view} />
       </div>
       <p className={`mt-2 text-small ${view.tone === "cancelled" ? "text-charcoal" : "text-charcoal-soft"}`}>{view.message}</p>
+      {setupOf(booking) && <MiniMap setup={setupOf(booking)!} className="mt-3" />}
       {live && <Steps booking={booking} />}
       {live && booking.contract?.status === "signed" && booking.contract.pdfUrl?.startsWith("https://") && (
         <a href={booking.contract.pdfUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-small font-bold text-charcoal underline">
