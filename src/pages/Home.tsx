@@ -5,7 +5,7 @@ import { ImagePlaceholder } from "@/components/go/ImagePlaceholder"
 import { Button } from "@/components/ui/button"
 import type { PublicPackage } from "@/lib/adminApi"
 import { needsConfig } from "@/lib/addons"
-import { useAllPackages, useCatalog } from "@/lib/storeCatalog"
+import { retryCatalog, useAllPackages, useCatalog } from "@/lib/storeCatalog"
 import { fmt } from "@/data/catalog"
 import { useBooking, type DirectItem } from "@/state/booking"
 import { useStoreUi } from "@/state/store"
@@ -152,11 +152,26 @@ function ShopPanel({ id, labelledBy }: { id?: string; labelledBy?: string }) {
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <h2 className="text-[17px] font-extrabold tracking-[-.01em] text-charcoal min-[641px]:text-[21px]">Shop by category</h2>
         <button className="min-h-[44px] text-[13px] font-bold whitespace-nowrap text-[#8A4E00]" onClick={() => navigate("/browse")}>
-          See all {items.length} items
+          {catalog.status === "ready" ? `See all ${items.length} items` : "See the store"}
         </button>
       </div>
-      {catalog.status === "failed" && <p className="text-body text-charcoal">That didn't go through. Try again, or text us.</p>}
+      {catalog.status === "loading" && <p className="mb-3 text-body text-muted">Loading the catalog.</p>}
+      {catalog.status === "failed" && (
+        <p className="mb-3 text-body text-charcoal">
+          That didn't go through.{" "}
+          <button className="min-h-[44px] font-bold underline underline-offset-2" onClick={retryCatalog}>
+            Try again
+          </button>
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-2.5 min-[641px]:grid-cols-4 min-[641px]:gap-3.5">
+        {catalog.status === "loading" &&
+          [0, 1, 2, 3].map((i) => (
+            <div key={i} aria-hidden="true" className="grid gap-2">
+              <ImagePlaceholder className="aspect-[3/2] w-full rounded-[10px]" />
+              <span className="h-4 w-2/3 rounded bg-[#ECE7E0]" />
+            </div>
+          ))}
         {cats.map((c) => {
           const photo = photoFor(c)
           const n = items.filter((i) => i.category === c).length

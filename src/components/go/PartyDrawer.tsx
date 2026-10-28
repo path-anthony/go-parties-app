@@ -38,7 +38,7 @@ export function PartyDrawer() {
   const desktop = useDesktop()
   const items = b.items
   const total = cartTotal(items, b.bundle)
-  const tier = useCartTier()
+  const tier = useCartTier(partyOpen)
   const retainer = useRetainer(total, tier)
   const count = items.reduce((n, i) => n + qtyOf(i), 0)
   // Free units on the party date: an item with more than one gets a

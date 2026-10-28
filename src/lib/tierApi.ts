@@ -95,9 +95,13 @@ export async function fetchTier(input: TierInput, signal?: AbortSignal): Promise
     const data = await res.json().catch(() => null)
     const tier = res.ok ? parseTier(data) : null
     if (tier) return { ok: true, tier }
-    // A tier 2 answer that cannot be rendered is not a tier 2 the customer can
-    // sign; treated as a failed read rather than a silent downgrade.
-    return { ok: false, message: FALLBACK }
+    // A refusal with the admin's own sentence (a 429 says the connection has
+    // made too many booking attempts) is shown as written, so the customer
+    // knows what happened; anything else is the bank's calm line.
+    // A tier 2 answer that cannot be rendered is not a tier 2 the customer
+    // can sign; treated as a failed read rather than a silent downgrade.
+    const said = (data as { error?: unknown } | null)?.error
+    return { ok: false, message: !res.ok && typeof said === "string" && said.trim() ? said : FALLBACK }
   } catch (err) {
     if ((err as { name?: string }).name === "AbortError") throw err
     return { ok: false, message: FALLBACK }

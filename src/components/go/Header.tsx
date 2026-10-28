@@ -2,15 +2,14 @@ import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router
 import { Logo } from "@/components/go/Logo"
 import { SearchBox } from "@/components/go/SearchBox"
 import { labelForIso } from "@/lib/availability"
-import { useCatalog } from "@/lib/storeCatalog"
 import { useBooking } from "@/state/booking"
 import { useStoreUi } from "@/state/store"
 import { cn } from "@/lib/utils"
 
 /* The store header (Block S1). From 641px: the badge and wordmark, one
    search bar, a "Party date" button and the dark "Your party (n)" button,
-   then one wrapping text row: Home, Shop all, the catalog's categories,
-   Ask GO. On a phone: badge, "Menu", "Your party (n)", then the search bar
+   then one text row: Home, Shop all, Ask GO, and My party on the right
+   (categories live on the Home tiles, the store sidebar and the menu). On a phone: badge, "Menu", "Your party (n)", then the search bar
    full width; the bottom bar carries the tabs. Nothing scrolls sideways. */
 
 const navLink = "min-h-[44px] border-b-2 py-2.5 text-[14px] font-semibold"
@@ -21,10 +20,9 @@ export function Header() {
   const [params] = useSearchParams()
   const b = useBooking()
   const { setPartyOpen, setDateOpen, setMenuOpen } = useStoreUi()
-  const catalog = useCatalog()
   const count = b.items.reduce((n, i) => n + (i.quantity ?? 1), 0)
   const inStore = pathname === "/browse"
-  const activeCat = inStore ? params.get("cat") ?? "" : null
+  const shopAll = inStore && !params.get("cat")
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-white">
@@ -51,15 +49,9 @@ export function Header() {
         <NavLink to="/" end className={({ isActive }) => cn(navLink, isActive ? "border-orange text-charcoal" : "border-transparent text-charcoal-soft")}>
           Home
         </NavLink>
-        <button className={cn(navLink, activeCat === "" ? "border-orange text-charcoal" : "border-transparent text-charcoal-soft")} onClick={() => navigate("/browse")}>
+        <button className={cn(navLink, shopAll ? "border-orange text-charcoal" : "border-transparent text-charcoal-soft")} onClick={() => navigate("/browse")}>
           Shop all
         </button>
-        {catalog.status === "ready" &&
-          catalog.categories.map((c) => (
-            <button key={c} className={cn(navLink, activeCat === c ? "border-orange text-charcoal" : "border-transparent text-charcoal-soft")} onClick={() => navigate(`/browse?cat=${encodeURIComponent(c)}`)}>
-              {c}
-            </button>
-          ))}
         <NavLink to="/ask" className={({ isActive }) => cn(navLink, isActive ? "border-orange text-charcoal" : "border-transparent text-charcoal-soft")}>
           Ask GO
         </NavLink>

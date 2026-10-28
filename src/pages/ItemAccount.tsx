@@ -116,10 +116,14 @@ export default function ItemAccount() {
     }
     setBooking(true)
     try {
-      // Asked again right before the hold. Tier 2 goes on to the contract
-      // instead of holding here; `booking` stays true so the guard above
-      // cannot bounce a freshly signed-up customer back to who on the way.
-      const t = await fetchTier(tierInput(b))
+      // The tier held in the store is used when there is one (the store drops
+      // it on any cart or date change); the admin recomputes the tier at the
+      // hold anyway and refuses a mismatch. Asking again here cost one of
+      // the five booking calls an hour the admin allows per connection
+      // (S1.2), and that budget is what broke the live hold. Tier 2 goes on
+      // to the contract instead of holding here; `booking` stays true so
+      // the guard above cannot bounce a freshly signed-up customer back.
+      const t = b.tier ? ({ ok: true, tier: b.tier } as const) : await fetchTier(tierInput(b))
       if (!t.ok) {
         fail({ reason: "error", message: t.message }, who)
         return

@@ -117,7 +117,21 @@ export async function mockHold(input: { itemIds: string[]; eventDate: string; ev
 const ITEMS: PublicItem[] = [
   { id: "it-bounce", name: "Test Gladiator Bounce House", category: "Bounce House", price: 700, priceUnit: "per day", photoUrl: null, hasUnits: true, freeUnits: 1, addonGroups: [] },
   { id: "it-dj", name: "Go DJ", category: "DJ and MC", price: 1800, priceUnit: "per event", photoUrl: null, hasUnits: true, freeUnits: 2, addonGroups: [] },
-  { id: "it-uplight", name: "Uplighting", category: "Lighting and Decor", price: 450, priceUnit: "per event", photoUrl: null, hasUnits: true, freeUnits: 4, addonGroups: [] },
+  {
+    id: "it-uplight",
+    name: "Uplighting",
+    category: "Lighting and Decor",
+    price: 450,
+    priceUnit: "per event",
+    photoUrl: null,
+    hasUnits: true,
+    freeUnits: 4,
+    // Block A3 shapes: a "one" group and a "many" group with a limit.
+    addonGroups: [
+      { id: "g-color", name: "Color", required: true, selectMode: "one", maxSelect: null, addons: [{ id: "a-amber", name: "Amber", priceDelta: 0 }, { id: "a-blue", name: "Blue", priceDelta: 0 }, { id: "a-pink", name: "Pink", priceDelta: 25 }] },
+      { id: "g-extras", name: "Extras", required: false, selectMode: "many", maxSelect: 2, addons: [{ id: "a-gobo", name: "Gobo monogram", priceDelta: 150 }, { id: "a-stand", name: "Extra stands", priceDelta: 40 }, { id: "a-wash", name: "Wall wash", priceDelta: 60 }] },
+    ],
+  },
 ]
 
 export async function mockPublicItems(q: string, category: string): Promise<{ items: PublicItem[]; categories: string[] }> {

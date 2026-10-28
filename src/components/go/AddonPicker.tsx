@@ -2,12 +2,14 @@ import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Chip } from "@/components/go/Chip"
 import { cn } from "@/lib/utils"
-import { LARGE_GROUP, deltaText, groupsOf, type AddonGroup, type Picks } from "@/lib/addons"
+import { LARGE_GROUP, deltaText, groupsOf, limitOf, modeOf, pickedIn, type AddonGroup, type Picks } from "@/lib/addons"
 
-/* The add-on groups of one item: a label per group (its name, and whether
-   it has to be answered), then its options. One pick per group. Tapping the
-   pick of an optional group clears it; a required group can only be
-   switched. Always rendered under the item it belongs to, never on its own.
+/* The add-on groups of one item: a label per group (its name, "Choose one"
+   or "Choose any", "Choose up to N" when the admin set a limit, and whether
+   it has to be answered), then its options. A "one" group works like radio
+   buttons (tap another to switch; tapping the pick of an optional group
+   clears it). A "many" group ticks several, and past the limit the rest
+   are disabled. Always rendered under the item it belongs to.
 
    Up to LARGE_GROUP options are chips, same Chip pattern as times and
    guests. Above that a wall of chips stops being readable, so the group
@@ -21,7 +23,7 @@ export function AddonPicker({
 }: {
   item: { id: string; addonGroups?: AddonGroup[]; quantity?: number }
   picks: Picks
-  onPick: (groupId: string, addonId: string | null) => void
+  onPick: (group: AddonGroup, addonId: string) => void
 }) {
   const each = (item.quantity ?? 1) > 1
   const priceOf = (delta: number) => `${deltaText(delta)}${each && delta !== 0 ? " each" : ""}`
@@ -29,20 +31,28 @@ export function AddonPicker({
   return (
     <div className="space-y-3.5">
       {groupsOf(item).map((group) => {
-        const picked = picks[group.id]
-        const toggle = (addonId: string) => onPick(group.id, picked === addonId && !group.required ? null : addonId)
+        const picked = pickedIn(picks, group.id)
+        const many = modeOf(group) === "many"
+        const limit = limitOf(group)
+        const full = limit !== null && picked.length >= limit
+        const isOn = (id: string) => picked.includes(id)
+        const locked = (id: string) => many && full && !isOn(id)
+        const toggle = (addonId: string) => onPick(group, addonId)
+        const how = many ? (limit !== null ? `Choose up to ${limit}` : "Choose any") : "Choose one"
         return (
           <div key={group.id} role="group" aria-label={group.name}>
             <div className="mb-2 flex items-baseline justify-between gap-3">
               <small className="text-[10.5px] font-bold tracking-[.1em] text-taupe uppercase">{group.name}</small>
-              <small className="text-[11px] font-medium text-muted">{group.required ? "Pick one" : "Optional"}</small>
+              <small className="text-[11px] font-medium text-muted">
+                {how} · {group.required ? "Required" : "Optional"}
+              </small>
             </div>
             {group.addons.length > LARGE_GROUP ? (
-              <LargeGroup group={group} picked={picked} priceOf={priceOf} onToggle={toggle} />
+              <LargeGroup group={group} picked={picked} locked={locked} priceOf={priceOf} onToggle={toggle} />
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 {group.addons.map((addon) => (
-                  <Chip key={addon.id} selected={picked === addon.id} aria-pressed={picked === addon.id} sub={priceOf(addon.priceDelta)} onClick={() => toggle(addon.id)}>
+                  <Chip key={addon.id} selected={isOn(addon.id)} aria-pressed={isOn(addon.id)} disabled={locked(addon.id)} className="disabled:opacity-40" sub={priceOf(addon.priceDelta)} onClick={() => toggle(addon.id)}>
                     {addon.name}
                   </Chip>
                 ))}
@@ -58,18 +68,20 @@ export function AddonPicker({
 function LargeGroup({
   group,
   picked,
+  locked,
   priceOf,
   onToggle,
 }: {
   group: AddonGroup
-  picked: string | undefined
+  picked: string[]
+  locked: (addonId: string) => boolean
   priceOf: (delta: number) => string
   onToggle: (addonId: string) => void
 }) {
   const [q, setQ] = useState("")
   const needle = q.trim().toLowerCase()
   const shown = needle ? group.addons.filter((a) => a.name.toLowerCase().includes(needle)) : group.addons
-  const current = group.addons.find((a) => a.id === picked)
+  const current = group.addons.filter((a) => picked.includes(a.id))
 
   return (
     <div>
@@ -81,9 +93,14 @@ function LargeGroup({
         onChange={(e) => setQ(e.target.value)}
       />
       <p className="mt-1.5 text-small text-charcoal-soft" aria-live="polite">
-        {current ? (
+        {current.length > 0 ? (
           <>
-            Picked: <b className="font-bold text-charcoal">{current.name}</b>, {priceOf(current.priceDelta)}
+            Picked: {current.map((c, i) => (
+              <span key={c.id}>
+                {i > 0 ? ", " : ""}
+                <b className="font-bold text-charcoal">{c.name}</b> ({priceOf(c.priceDelta)})
+              </span>
+            ))}
           </>
         ) : (
           <span className="text-muted">Nothing picked yet.</span>
@@ -95,14 +112,15 @@ function LargeGroup({
         className="mt-1.5 max-h-[232px] overflow-y-auto overscroll-contain rounded-[12px] border-[1.5px] border-line bg-white"
       >
         {shown.map((addon) => {
-          const on = picked === addon.id
+          const on = picked.includes(addon.id)
           return (
             <button
               key={addon.id}
               role="option"
               aria-selected={on}
+              disabled={locked(addon.id)}
               className={cn(
-                "flex min-h-[44px] w-full items-center justify-between gap-3 border-b border-line px-3.5 py-2.5 text-left text-[13px] last:border-b-0",
+                "flex min-h-[44px] w-full items-center justify-between gap-3 border-b border-line px-3.5 py-2.5 text-left text-[13px] last:border-b-0 disabled:opacity-40",
                 on ? "bg-orange-tint" : "bg-white hover:bg-cream"
               )}
               onClick={() => onToggle(addon.id)}

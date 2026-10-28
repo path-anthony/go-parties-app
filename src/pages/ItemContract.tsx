@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { GoContractSigner } from "@/components/go/contract/GoContractSigner"
-import { CHANGED_MESSAGE, EMPTY_SIGNATURE } from "@/components/go/contract/signature"
+import { EMPTY_SIGNATURE } from "@/components/go/contract/signature"
 import { QUOTE_REASONS, bookDirect, type DirectReason } from "@/lib/adminApi"
 import { directInput, tierInput } from "@/lib/directInput"
 import { missingRequired } from "@/lib/addons"
@@ -34,6 +34,9 @@ export default function ItemContract() {
   const [busy, setBusy] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
+  useEffect(() => {
+    if (notice) document.querySelector("[role=alert]")?.scrollIntoView({ block: "center", behavior: "smooth" })
+  }, [notice])
 
   const refreshTier = useCallback(async () => {
     setLoadError(null)
@@ -72,20 +75,12 @@ export default function ItemContract() {
     setBusy(true)
     setNotice(null)
     try {
-      // The quote is checked again before the hold: a different hash means
-      // the customer read something the admin would no longer hold.
-      const t = await fetchTier(tierInput(b))
-      if (!t.ok) {
-        setNotice({ reason: "error", message: t.message })
-        return
-      }
-      if (t.tier.tier !== 2 || t.tier.contract?.contentHash !== quote.contentHash) {
-        b.set("tier", t.tier)
-        b.set("signature", EMPTY_SIGNATURE)
-        setNotice({ reason: "contract-changed", message: CHANGED_MESSAGE })
-        if (t.tier.tier !== 2) navigate(`/item/${firstId}/who`)
-        return
-      }
+      // The hold carries the quote that was read and signed. The admin
+      // rebuilds the contract from the cart at the hold and refuses a
+      // changed or expired quote (409, handled below), so no second tier
+      // call is made here: every tier call mints a new quote and counts
+      // against the five booking calls an hour the admin allows per
+      // connection, which is what left the live button doing nothing (S1.2).
       const result = await bookDirect(directInput(b, customer))
       if (result.ok) {
         if (result.kind === "review") {
@@ -118,24 +113,6 @@ export default function ItemContract() {
         </GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">Your contract</h1>
         <p className="mt-2 text-body text-charcoal-soft">Read it all the way through, then sign on the form. Signing holds the date.</p>
-        {notice && (
-          <div role="alert" className="mt-3.5 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
-            {notice.message}
-            {notice.reason === "unavailable" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-2.5 block"
-                onClick={() => {
-                  b.set("itemDate", null)
-                  navigate(`/item/${firstId}`)
-                }}
-              >
-                Pick another date
-              </Button>
-            )}
-          </div>
-        )}
         {quote ? (
           <GoContractSigner doc={quote.document} value={b.signature} onChange={(v) => b.set("signature", v)} busy={busy} onReadyChange={setReady} className="mt-4" />
         ) : loadError ? (
@@ -149,6 +126,25 @@ export default function ItemContract() {
           <p className="mt-4 text-body text-muted">Preparing your contract.</p>
         )}
       </Body>
+      {/* The notice sits by the button, where the customer is after signing. */}
+        {notice && (
+        <div role="alert" className="mx-5 mb-2 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
+          {notice.message}
+          {notice.reason === "unavailable" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2.5 block"
+              onClick={() => {
+                b.set("itemDate", null)
+                navigate(`/item/${firstId}`)
+              }}
+            >
+              Pick another date
+            </Button>
+          )}
+        </div>
+      )}
       <Foot>
         <Button variant="ghost" disabled={busy} onClick={() => navigate(onFile ? `/item/${firstId}/who` : `/item/${firstId}/account`)}>
           Back

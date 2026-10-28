@@ -10,20 +10,29 @@ import { usePublicSettings } from "@/lib/settings"
    and Ask GO for their one-line note. Nothing about money is decided here:
    the retainer comes from the tier answer, or from the settings'
    depositPercentage while the tier is not known yet. */
-export function useCartTier(): TierInfo | null {
+/* `enabled` is the drawer being open: the tier endpoint shares the admin's
+   booking budget (five calls an hour per connection), so it is asked only
+   when the note is on screen, after a short pause, and never twice for the
+   same cart and date. */
+const PAUSE_MS = 1500
+
+export function useCartTier(enabled = true): TierInfo | null {
   const b = useBooking()
   const key = `${b.items.map((i) => `${i.id}:${i.quantity ?? 1}:${JSON.stringify(i.picks ?? {})}`).join(",")}|${b.bundle?.id ?? ""}|${b.itemDate}|${b.itemTime}`
   useEffect(() => {
-    if (b.tier || !b.itemDate || b.items.length === 0) return
+    if (!enabled || b.tier || !b.itemDate || b.items.length === 0) return
     let live = true
-    fetchTier(tierInput(b)).then((r) => {
-      if (live && r.ok) b.set("tier", r.tier)
-    })
+    const t = setTimeout(() => {
+      fetchTier(tierInput(b)).then((r) => {
+        if (live && r.ok) b.set("tier", r.tier)
+      })
+    }, PAUSE_MS)
     return () => {
       live = false
+      clearTimeout(t)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [b.tier, key])
+  }, [enabled, b.tier, key])
   return b.tier
 }
 

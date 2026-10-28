@@ -61,16 +61,25 @@ export default function Ask() {
   // The tier note for the party as it stands: asked with the party date
   // once there is one; the admin alone decides it.
   const partyKey = party.map((i) => i.id).join(",")
+  // Asked after a pause, once per party and date, and only once the party
+  // pane is in view (the tier endpoint shares the admin's booking budget).
+  const partyShown = pane === "party" || window.matchMedia("(min-width: 901px)").matches
   useEffect(() => {
-    setTier(null)
-    if (!b.itemDate || party.length === 0) return
+    if (!b.itemDate || party.length === 0 || !partyShown) return
     let live = true
-    fetchTier(tierInput({ ...b, items: party, bundle: null })).then((r) => {
-      if (live && r.ok) setTier(r.tier)
-    })
+    const t = setTimeout(() => {
+      fetchTier(tierInput({ ...b, items: party, bundle: null })).then((r) => {
+        if (live && r.ok) setTier(r.tier)
+      })
+    }, 1500)
     return () => {
       live = false
+      clearTimeout(t)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [partyKey, b.itemDate, b.itemTime, partyShown])
+  useEffect(() => {
+    setTier(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [partyKey, b.itemDate, b.itemTime])
 

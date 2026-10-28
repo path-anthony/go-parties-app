@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useSyncExternalStore } from "react"
 import { publicItems, publicPackages, type PublicItem, type PublicPackage } from "@/lib/adminApi"
 import { OCC, SUB_OCC, type OccasionId } from "@/data/catalog"
 
@@ -17,33 +17,81 @@ export interface Catalog {
   categories: string[]
 }
 
-let catalogP: Promise<Catalog> | null = null
-export function loadCatalog(): Promise<Catalog> {
-  if (!catalogP) {
-    catalogP = publicItems("", "", null)
-      .then((d) => ({ items: d.items, categories: d.categories }))
-      .catch((e) => {
-        catalogP = null
-        throw e
-      })
-  }
-  return catalogP
-}
+/* One shared catalog state for every subscriber (the header, the menu,
+   Home, the store, Ask GO): the first read starts the fetch, every later
+   mount joins it, and one success updates all of them at once. A failed
+   read is retried a few times with a pause (the catalog is a 400 KB
+   answer and a phone on a weak signal drops it), and `retryCatalog` is
+   the "Try again" for the screens. S1.2: Home used to render "See all 0
+   items" with no tiles while the fetch was in flight or after one
+   failure, with no way back. */
 
 export type CatalogState = { status: "loading" } | { status: "ready"; items: PublicItem[]; categories: string[] } | { status: "failed" }
 
-export function useCatalog(): CatalogState {
-  const [s, setS] = useState<CatalogState>({ status: "loading" })
-  useEffect(() => {
-    let live = true
-    loadCatalog()
-      .then((c) => live && setS({ status: "ready", ...c }))
-      .catch(() => live && setS({ status: "failed" }))
-    return () => {
-      live = false
+const RETRIES = 3
+const RETRY_MS = [1200, 3000, 6000]
+let state: CatalogState = { status: "loading" }
+let inFlight = false
+const listeners = new Set<() => void>()
+const emit = () => listeners.forEach((l) => l())
+
+async function fetchCatalog(attempt = 0): Promise<void> {
+  inFlight = true
+  try {
+    const d = await publicItems("", "", null)
+    state = { status: "ready", items: d.items, categories: d.categories }
+    inFlight = false
+    emit()
+  } catch {
+    if (attempt < RETRIES) {
+      await new Promise((r) => setTimeout(r, RETRY_MS[attempt] ?? 6000))
+      return fetchCatalog(attempt + 1)
     }
+    state = { status: "failed" }
+    inFlight = false
+    emit()
+  }
+}
+
+/* Starts the read if nothing is loaded or in flight. */
+export function loadCatalog(): Promise<Catalog> {
+  if (state.status !== "ready" && !inFlight) {
+    state = { status: "loading" }
+    emit()
+    void fetchCatalog()
+  }
+  if (state.status === "ready") return Promise.resolve({ items: state.items, categories: state.categories })
+  return new Promise((resolve, reject) => {
+    const l = () => {
+      if (state.status === "ready") {
+        listeners.delete(l)
+        resolve({ items: state.items, categories: state.categories })
+      } else if (state.status === "failed") {
+        listeners.delete(l)
+        reject(new Error("catalog failed"))
+      }
+    }
+    listeners.add(l)
+  })
+}
+
+export function retryCatalog() {
+  if (state.status === "failed") loadCatalog().catch(() => {})
+}
+
+const subscribe = (l: () => void) => {
+  listeners.add(l)
+  return () => {
+    listeners.delete(l)
+  }
+}
+const snapshot = () => state
+
+export function useCatalog(): CatalogState {
+  useEffect(() => {
+    loadCatalog().catch(() => {})
   }, [])
-  return s
+  return useSyncExternalStore(subscribe, snapshot, snapshot)
 }
 
 /* Free units by item id on one date; an item missing from the map is

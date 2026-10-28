@@ -31,23 +31,44 @@ export function GoContractSigner({
   const [seen, setSeen] = useState(false)
   const seenRef = useRef(false)
 
+  const reached = () => {
+    if (seenRef.current) return
+    seenRef.current = true
+    setSeen(true)
+  }
+
   // Once the signature block has been on screen, it counts as reached; the
   // flag never drops, so scrolling back up does not take the button away.
+  // Three ways to know, so one browser quirk never leaves the button off:
+  // an IntersectionObserver, a scroll and resize check of the block's own
+  // position, and typing or ticking inside the block (S1.2: on the live
+  // site the button stayed off for a customer who was at the block).
   useEffect(() => {
     const el = document.getElementById(sigId)
     if (!el || seenRef.current) return
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          seenRef.current = true
-          setSeen(true)
-          io.disconnect()
-        }
-      },
-      { threshold: 0.2 }
-    )
-    io.observe(el)
-    return () => io.disconnect()
+    const inView = () => {
+      const r = el.getBoundingClientRect()
+      const vh = window.innerHeight || document.documentElement.clientHeight
+      return r.top < vh - 80 && r.bottom > 80
+    }
+    const check = () => {
+      if (inView()) reached()
+    }
+    const io = typeof IntersectionObserver !== "undefined" ? new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && reached(), { threshold: 0.1 }) : null
+    io?.observe(el)
+    check()
+    window.addEventListener("scroll", check, { passive: true })
+    window.addEventListener("resize", check)
+    el.addEventListener("focusin", reached)
+    el.addEventListener("input", reached)
+    return () => {
+      io?.disconnect()
+      window.removeEventListener("scroll", check)
+      window.removeEventListener("resize", check)
+      el.removeEventListener("focusin", reached)
+      el.removeEventListener("input", reached)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sigId, doc])
 
   const ready = seen && value.name.trim() !== "" && value.consent && !busy
@@ -58,7 +79,16 @@ export function GoContractSigner({
   return (
     <div className={className}>
       <div className="mb-3 flex justify-end min-[640px]:hidden">
-        <Button type="button" variant="ghost" size="sm" onClick={() => document.getElementById(sigId)?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            document.getElementById(sigId)?.scrollIntoView({ behavior: "smooth", block: "start" })
+            // Jumping there is reaching it; the scroll check backs this up.
+            setTimeout(reached, 600)
+          }}
+        >
           Jump to signature
         </Button>
       </div>
