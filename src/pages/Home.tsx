@@ -18,11 +18,21 @@ import { cn } from "@/lib/utils"
    time; on a desktop both panels show in order. Packages come from
    /api/packages/public (every group, merged). Nothing else lives here. */
 
+/* Each hero photo ships as WebP with a JPEG fallback, 1200px wide, under
+   180 KB each (the originals live in reference/photos-original, out of
+   the bundle). */
 const HERO = [
-  { src: "/photos/welcome/wedding.jpg", alt: "A wedding couple sharing a quiet moment", position: "56% center" },
-  { src: "/photos/welcome/adult-party.jpg", alt: "A party crowd on the dance floor", position: "center" },
-  { src: "/photos/welcome/corporate.jpg", alt: "A corporate event audience facing the stage", position: "center" },
+  { src: "/photos/welcome/wedding", alt: "A wedding couple sharing a quiet moment", position: "56% center" },
+  { src: "/photos/welcome/adult-party", alt: "A party crowd on the dance floor", position: "center" },
+  { src: "/photos/welcome/corporate", alt: "A corporate event audience facing the stage", position: "center" },
 ]
+const webpOk = () => {
+  try {
+    return document.createElement("canvas").toDataURL("image/webp").startsWith("data:image/webp")
+  } catch {
+    return false
+  }
+}
 const CROSSFADE_MS = 6000
 
 function Hero() {
@@ -43,7 +53,7 @@ function Hero() {
   useEffect(() => {
     const t = setTimeout(() => {
       const img = new Image()
-      img.src = HERO[(on + 1) % HERO.length].src
+      img.src = `${HERO[(on + 1) % HERO.length].src}.${webpOk() ? "webp" : "jpg"}`
     }, CROSSFADE_MS / 2)
     return () => clearTimeout(t)
   }, [on])
@@ -54,17 +64,19 @@ function Hero() {
       <div className="relative aspect-[4/3] overflow-hidden bg-[#ECE7E0] min-[641px]:aspect-auto min-[641px]:h-[260px] min-[641px]:rounded-[14px]">
         {HERO.map((h, i) =>
           i === on || i === prev ? (
-            <img
-              key={h.src}
-              src={h.src}
-              alt={i === on ? h.alt : ""}
-              width={1200}
-              height={798}
-              loading="eager"
-              fetchPriority={i === 0 ? "high" : "auto"}
-              className={cn("absolute inset-0 h-full w-full object-cover transition-opacity duration-1000", i === on ? "opacity-100" : "opacity-0")}
-              style={{ objectPosition: h.position }}
-            />
+            <picture key={h.src}>
+              <source srcSet={`${h.src}.webp`} type="image/webp" />
+              <img
+                src={`${h.src}.jpg`}
+                alt={i === on ? h.alt : ""}
+                width={1200}
+                height={798}
+                loading="eager"
+                fetchPriority={i === 0 ? "high" : "auto"}
+                className={cn("absolute inset-0 h-full w-full object-cover transition-opacity duration-1000", i === on ? "opacity-100" : "opacity-0")}
+                style={{ objectPosition: h.position }}
+              />
+            </picture>
           ) : null
         )}
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(33,29,28,.05)_30%,rgba(33,29,28,.82)_100%)] min-[641px]:hidden" />
@@ -217,7 +229,7 @@ function Packages() {
                 <ImagePlaceholder className="aspect-[16/10] w-full" />
               )}
               <div className="grid gap-2 p-4">
-                {p.theme && <span className="text-[11px] font-bold tracking-[.08em] text-[#8A4E00] uppercase">{p.theme}</span>}
+                {p.tag && <span className="text-[11px] font-bold tracking-[.08em] text-[#8A4E00] uppercase">{p.tag}</span>}
                 <h3 className="text-[17px] font-extrabold text-charcoal">{p.name}</h3>
                 <ul className="text-[13px] leading-[1.6] text-charcoal-soft">
                   {p.items.map((i) => (
@@ -230,7 +242,7 @@ function Packages() {
                 <div className="mt-1 flex items-center justify-between gap-2.5">
                   <span className="text-[18px] font-extrabold text-charcoal">
                     {fmt(p.price)}
-                    {p.description && <small className="block max-w-[22ch] truncate text-[11px] font-semibold text-muted">{p.description}</small>}
+                    {p.guestNote && <small className="block max-w-[22ch] truncate text-[11px] font-semibold text-muted">{p.guestNote}</small>}
                   </span>
                   <Button variant="dark" size="sm" className="min-h-[44px]" onClick={() => add(p)}>
                     Add package

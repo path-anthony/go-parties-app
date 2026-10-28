@@ -21,7 +21,8 @@ import { cn } from "@/lib/utils"
    the sort at the grid's top right; phone: a Filters button and the sort
    select side by side, the filters in a bottom panel. Add puts the item in
    Your party and opens the drawer; an item with add-on groups answers them
-   first. Availability is the admin's answer for the date in the booking
+   first; tapping Add on something already in Your party only opens the
+   drawer, where the quantity lives. Availability is the admin's answer for the date in the booking
    store; with no date, cards show no line and the filter is off. */
 
 const PRICES: [string, string, (p: number) => boolean][] = [
@@ -31,7 +32,7 @@ const PRICES: [string, string, (p: number) => boolean][] = [
   ["o1000", "Over $1,000", (p) => p > 1000],
 ]
 const SORTS: [string, string][] = [
-  ["pop", "Popular"],
+  ["featured", "Featured"],
   ["lo", "Price low to high"],
   ["hi", "Price high to low"],
   ["az", "Name A to Z"],
@@ -64,7 +65,9 @@ export default function Browse() {
   const cats = list(params.get("cat"))
   const prices = list(params.get("price"))
   const free = params.get("free") === "1" && !!iso
-  const sort = params.get("sort") ?? "pop"
+  // "pop" is the old spelling of featured and still works from a shared link.
+  const rawSort = params.get("sort") ?? "featured"
+  const sort = rawSort === "pop" ? "featured" : rawSort
   const q = params.get("q") ?? ""
 
   const update = (patch: Record<string, string | null>) => {
@@ -107,10 +110,7 @@ export default function Browse() {
   const add = (item: PublicItem) => {
     const have = inCart(item.id)
     if (have) {
-      const cap = freeUnits(item.id)
-      const qty = have.quantity ?? 1
-      if (cap !== null && qty >= cap) return
-      b.setItems(b.items.map((i) => (i.id === item.id ? { ...i, quantity: qty + 1 } : i)))
+      // Already in Your party: just show it. Quantity changes live in the drawer.
     } else if (needsConfig(item)) {
       setConfiguring(item)
       return
@@ -183,7 +183,7 @@ export default function Browse() {
   )
 
   const sortSelect = (cls: string) => (
-    <select aria-label="Sort" value={sort} onChange={(e) => update({ sort: e.target.value === "pop" ? null : e.target.value })} className={cls}>
+    <select aria-label="Sort" value={sort} onChange={(e) => update({ sort: e.target.value === "featured" ? null : e.target.value })} className={cls}>
       {SORTS.map(([k, label]) => (
         <option key={k} value={k}>
           Sort: {label}
@@ -235,7 +235,6 @@ export default function Browse() {
               const have = inCart(item.id)
               const units = freeUnits(item.id)
               const booked = units !== null && units === 0
-              const atCap = !!have && units !== null && (have.quantity ?? 1) >= units
               return (
                 <article key={item.id} className="grid min-w-0 content-start gap-1.5 rounded-[12px] border border-line bg-white p-2 pb-2.5">
                   {item.photoUrl ? (
@@ -262,7 +261,7 @@ export default function Browse() {
                         have ? "bg-orange text-charcoal" : "bg-charcoal text-white",
                         "disabled:bg-line disabled:text-muted"
                       )}
-                      disabled={booked || atCap}
+                      disabled={booked}
                       onClick={() => add(item)}
                     >
                       {have ? `Added ${have.quantity ?? 1}` : "Add"}

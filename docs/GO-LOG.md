@@ -1,5 +1,13 @@
 # GO! Event Group · project log
 
+## 2026-10-28 (Block S1.1, branch store-refresh, not merged)
+
+**Where we are:** S1 follow-ups on the same branch. Packages: one `GET /api/packages/public` with no occasion first (Block A2), falling back to the per-occasion calls when that answers 400 or fails; the card shows the admin's `tag` and `guestNote` and nothing when they are null (theme and description are no longer used for those spots). The sort reads "Featured" (`sort=featured`; `sort=pop` from an old link still works). One orange action per phone screen: under 901px the Ask GO panel's "Book this party" is hidden and the pinned bar carries it; the drawer's only orange button is Checkout. Add stays at one: tapping Add on something already in Your party only opens the drawer, where an item with more than one free unit on the party date has a "-" / "+" control capped at the free units. Hero photos: WebP with a JPEG fallback, under 180 KB each, originals kept in reference/photos-original (out of the bundle).
+
+**What we decided:** The quantity lives in the drawer, not on the card, so the free-unit cap is checked in one place against the party date. "Featured" is still the catalog's own order until the admin sends a rank.
+
+**What's next:** The local admin is ahead of its local database (the `packages.tag` column is missing there), so the real package call could not be seen end to end on this machine; the two paths were checked against a stubbed fetch. Merge when the admin's A2 is on Railway.
+
 ## 2026-10-28 (Block S1, branch store-refresh, not merged)
 
 **Where we are:** The store refresh, storefront only, on the `store-refresh` branch. No icons anywhere (lucide-react is gone; every control is a word). The round badge logo in a new sticky header with search and suggestions, a "Party date" button and the dark "Your party (n)" button, a wrapping text nav on a desktop and a "Menu" panel on a phone; the phone bottom bar is text with an orange rule. Home is the hero (no buttons), the two ways to start (tabs on a phone, both panels on a desktop) and the party packages. The store at `/browse` is the whole catalog with multi-select filters, a separate sort, pills and a live count, all in the URL. Ask GO is a page (`/ask`) with the chat and the party side by side on a desktop and a Chat / Your party switch plus a pinned dark bar on a phone. "Your party" is the drawer and the name everywhere. One image placeholder. Checkout, contract, pay and the portal are unchanged in flow; their icons became text tags and every tap target is 44px on a phone.

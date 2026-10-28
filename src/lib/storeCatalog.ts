@@ -9,9 +9,8 @@ import { OCC, SUB_OCC, type OccasionId } from "@/data/catalog"
      counts, search suggestions and the grid;
    - what is free on one date (GET /api/items/public?date=), kept per date,
      for the availability line, the filter and the swaps;
-   - every published package: the endpoint takes one occasion, so every
-     occasion name is asked in parallel and the answers merged by id (no
-     new endpoint). */
+   - every published package: one call with no occasion (Block A2), or, on
+     an older admin, one call per occasion name merged by id. */
 
 export interface Catalog {
   items: PublicItem[]
@@ -93,12 +92,16 @@ export function loadPackages(): Promise<PublicPackage[]> {
     // and sometimes a group ("Kids party"); every name the storefront knows
     // is asked, in parallel, well inside the admin's public rate limit.
     const names = [...new Set([...(Object.keys(OCC) as OccasionId[]).map((k) => OCC[k].label), ...(Object.values(SUB_OCC).flat().filter((o) => o !== "Other"))])]
-    packagesP = Promise.all(names.map((g) => publicPackages(g).catch(() => [] as PublicPackage[])))
-      .then((lists) => {
+    const perOccasion = () =>
+      Promise.all(names.map((g) => publicPackages(g).catch(() => [] as PublicPackage[]))).then((lists) => {
         const seen = new Map<string, PublicPackage>()
         for (const p of lists.flat()) if (!seen.has(p.id)) seen.set(p.id, p)
         return [...seen.values()]
       })
+    // One call with no occasion first (Block A2); a 400 from an older admin
+    // falls back to the per-occasion calls.
+    packagesP = publicPackages(null)
+      .catch(perOccasion)
       .catch((e) => {
         packagesP = null
         throw e

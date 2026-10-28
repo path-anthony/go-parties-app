@@ -261,14 +261,21 @@ export interface PublicPackage {
   description: string | null
   price: number
   theme: string | null
+  /* Block A2: a short label for the card ("Most booked") and a guest note
+     ("Up to 25 kids"); null shows nothing in that spot. */
+  tag?: string | null
+  guestNote?: string | null
   occasion: string
   photoUrl: string | null
   items: PublicPackageItem[]
 }
 
-export async function publicPackages(occasion: string, signal?: AbortSignal): Promise<PublicPackage[]> {
-  const params = new URLSearchParams({ occasion })
-  const res = await fetch(`${ADMIN_API}/api/packages/public?${params}`, { signal })
+/* With no occasion (Block A2) one call answers every published package; an
+   older admin answers 400 and the caller falls back to one call per
+   occasion. */
+export async function publicPackages(occasion: string | null, signal?: AbortSignal): Promise<PublicPackage[]> {
+  const params = occasion ? `?${new URLSearchParams({ occasion })}` : ""
+  const res = await fetch(`${ADMIN_API}/api/packages/public${params}`, { signal })
   if (!res.ok) throw new Error(`packages ${res.status}`)
   const data = (await res.json()) as { packages: PublicPackage[] }
   return data.packages

@@ -5,6 +5,7 @@ import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from "@/components/ui
 import { Thumb } from "@/components/go/Thumb"
 import { cartTotal, lineTotal, qtyOf } from "@/components/go/CartItems"
 import { labelForIso } from "@/lib/availability"
+import { useOpenOn } from "@/lib/storeCatalog"
 import { fmt } from "@/data/catalog"
 import { TIER_LINE, useCartTier, useRetainer } from "@/hooks/use-cart-tier"
 import { useBooking } from "@/state/booking"
@@ -12,7 +13,8 @@ import { useStoreUi } from "@/state/store"
 
 /* Your party, the drawer (Block S1): from the right on a desktop, a bottom
    sheet up to 80% on a phone. One line per item with a small image, the
-   name, qty x price and a "Remove" text button. The footer has the total,
+   name, qty x price, a "-" / "+" quantity control when the date has more
+   than one free unit (capped there), and a "Remove" text button. The footer has the total,
    one plain line on what checkout will ask for (from the tier call) and
    the retainer due today (from the tier, else settings), then "Keep
    shopping" and "Checkout". Checkout hands the cart to the existing
@@ -39,8 +41,13 @@ export function PartyDrawer() {
   const tier = useCartTier()
   const retainer = useRetainer(total, tier)
   const count = items.reduce((n, i) => n + qtyOf(i), 0)
+  // Free units on the party date: an item with more than one gets a
+  // quantity control, capped there; a single-unit item shows none.
+  const open = useOpenOn(b.itemDate)
+  const capOf = (id: string): number | null => (open.status === "ready" ? open.open.get(id) ?? 0 : null)
 
   const remove = (id: string) => b.setItems(items.filter((i) => i.id !== id))
+  const setQty = (id: string, qty: number) => b.setItems(items.map((i) => (i.id === id ? { ...i, quantity: qty } : i)))
   const checkout = () => {
     if (items.length === 0) return
     setPartyOpen(false)
@@ -75,6 +82,17 @@ export function PartyDrawer() {
                       {i.price !== null && qtyOf(i) > 1 ? ` = ${fmt(lineTotal(i))}` : ""}
                     </small>
                   </div>
+                  {(capOf(i.id) ?? 1) > 1 && (
+                    <div className="flex flex-none items-center rounded-[10px] border-[1.5px] border-line" aria-label={`Quantity of ${i.name}`}>
+                      <button className="min-h-[44px] min-w-[40px] px-2 text-[15px] font-bold text-charcoal disabled:opacity-40" disabled={qtyOf(i) <= 1} aria-label="Fewer" onClick={() => setQty(i.id, qtyOf(i) - 1)}>
+                        -
+                      </button>
+                      <span className="min-w-[20px] text-center text-sm font-bold text-charcoal">{qtyOf(i)}</span>
+                      <button className="min-h-[44px] min-w-[40px] px-2 text-[15px] font-bold text-charcoal disabled:opacity-40" disabled={qtyOf(i) >= (capOf(i.id) ?? 1)} aria-label="More" onClick={() => setQty(i.id, qtyOf(i) + 1)}>
+                        +
+                      </button>
+                    </div>
+                  )}
                   <button className="min-h-[44px] flex-none px-2 text-[13px] font-bold text-charcoal underline underline-offset-2" onClick={() => remove(i.id)}>
                     Remove
                   </button>

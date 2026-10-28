@@ -306,7 +306,8 @@ export default function Ask() {
               </div>
               <div className="px-4 pb-4">
                 <p className="mb-3 text-small text-charcoal-soft">{tier ? TIER_LINE[tier.tier] : b.itemDate ? "Checking what checkout will ask for." : "Pick a party date to see what checkout asks for."}</p>
-                <Button className="w-full" disabled={party.length === 0} onClick={book}>
+                {/* Under 901px the pinned bar carries the one orange action. */}
+                <Button className="hidden w-full min-[901px]:inline-flex" disabled={party.length === 0} onClick={book}>
                   Book this party
                 </Button>
               </div>
