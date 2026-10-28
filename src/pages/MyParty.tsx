@@ -144,7 +144,7 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
       {setupOf(booking) && <MiniMap setup={setupOf(booking)!} className="mt-3" />}
       {live && <Steps booking={booking} />}
       {live && booking.contract?.status === "signed" && booking.contract.pdfUrl?.startsWith("https://") && (
-        <a href={booking.contract.pdfUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-small font-bold text-charcoal underline">
+        <a href={booking.contract.pdfUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex min-h-[44px] items-center text-small font-bold text-charcoal underline">
           Your signed contract (PDF)
         </a>
       )}

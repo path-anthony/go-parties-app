@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { MetaCard } from "@/components/go/MetaCard"
-import { AiLine } from "@/components/go/AiLine"
 import { customerApi, isoDay, whatOf, whenOf, type CustomerBooking } from "@/lib/customerApi"
 import { useBooking } from "@/state/booking"
 import { useCustomer } from "@/state/customer"
@@ -21,7 +20,7 @@ export default function PartyChange() {
   const navigate = useNavigate()
   const { id } = useParams()
   const { customer, ready } = useCustomer()
-  const { openAsk } = useAsk()
+  const { start } = useAsk()
   const b = useBooking()
   const [booking, setBooking] = useState<CustomerBooking | null | undefined>(undefined)
 
@@ -52,7 +51,9 @@ export default function PartyChange() {
             <MetaCard label="When" value={whenOf(booking)} />
           </div>
         )}
-        <AiLine prompt="What would you rather have?" onClick={() => openAsk("home")} />
+        <Button variant="dark" className="mt-3 w-full" onClick={() => start()}>
+          Ask GO what else is open
+        </Button>
       </Body>
       <Foot>
         <Button variant="ghost" onClick={() => navigate("/party")}>Back</Button>

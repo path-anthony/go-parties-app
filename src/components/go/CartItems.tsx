@@ -1,10 +1,9 @@
-import { Trash2 } from "lucide-react"
 import { fmt } from "@/data/catalog"
 import { addonsTotal, deltaText, needsConfig, pickedOf } from "@/lib/addons"
 import { Thumb } from "@/components/go/Thumb"
 import type { Bundle, DirectItem } from "@/state/booking"
 
-/* The items in a booking, one row each with a trash can, so anything can be
+/* The items in a booking, one row each with a Remove button, so anything can be
    removed at any step before the date is held: the cart sheet, the date
    screen, who, and the account step all use this one list. A quantity above
    one shows on the row and multiplies its price. Add-on choices sit under
@@ -59,10 +58,10 @@ export function CartItems({
                 {item.price !== null && <b className="text-sm text-charcoal">{fmt(lineTotal(item))}</b>}
                 <button
                   aria-label={`Remove ${item.name}`}
-                  className="flex size-9 items-center justify-center rounded-[10px] border-[1.5px] border-line bg-white hover:border-charcoal"
+                  className="min-h-[44px] rounded-[10px] px-1.5 text-[12.5px] font-bold text-charcoal underline underline-offset-2"
                   onClick={() => onRemove(item.id)}
                 >
-                  <Trash2 className="size-4 stroke-charcoal" strokeWidth={1.75} />
+                  Remove
                 </button>
               </div>
             </div>

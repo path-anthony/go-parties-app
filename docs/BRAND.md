@@ -8,7 +8,7 @@ Read fully before writing any UI or copy. These rules are not suggestions.
 - Job of the product: make throwing a party feel like two minutes of easy decisions. Kids, adult, wedding, corporate. Same ease every route.
 
 ## 2. Naming
-- Wordmark in app: **GO! EVENT GROUP** (orange "GO!", charcoal "EVENT GROUP").
+- Wordmark in app: **GO! EVENT GROUP** (orange "GO!", charcoal "EVENT GROUP"), after the round badge logo (`public/brand/go-logo.png`, the orange monogram on black, 40px, links to Home; the badge alone on a phone).
 - Listings and legal: **The Go Event Group**.
 - The product has no sub-brand. It is GO's app. Never invent a product name.
 - Never use the phrase "party in a box". Never.
@@ -50,11 +50,12 @@ Rules
 ## 6. Imagery
 - Real photos by Mel. Candid, warm, daylight, real Connecticut backyards and venues, real crew. No stock, no renders.
 - Photo treatment: bottom gradient to charcoal at 72% so white type can sit on any photo.
+- No image yet: the one placeholder (`ImagePlaceholder`): a light warm grey box with a grey mountain and sun drawn inline, no text, no gradient, never a silhouette. Items, categories, packages and heroes all use it. Lazy-load below the fold, always with width and height or an aspect ratio.
 - Until photos exist use **photo plates**: warm gradient (taupe, slate, amber, stone variants), faint 135° texture, corner marks, spec line at top `MEL · 01 · BACKYARD WIDE · 4:5`. The spec line is Mel's shot list. Swapping a plate for a photo changes one file.
 - Ratios: hero 4:5, package hero 4:3, rail card 5:4, occasion card 1:1, thumbnails 1:1.
 
 ## 7. Icons
-- **Lucide** only. Stroke 1.75, round caps. Charcoal at rest, orange when active, muted in the nav.
+- No icons anywhere in the storefront (Block S1): every control is a word ("Close", "Remove", "Menu", "Back", "Earlier", "Later"). The only marks allowed are native checkbox and radio marks, the "×" on a removable filter pill, and whatever Stripe draws inside its own frame.
 - No emoji in UI, copy, or data. Ever.
 
 ## 8. Components (what exists, and the rule for each)
@@ -70,7 +71,10 @@ Rules
 - **Item row with Swap**: thumbnail, name, category, Swap button that unfolds alternatives with price deltas.
 - **Add-on row**: thumbnail, name, category, price, plus button. Selected = orange-tint. Live total in a **sticky bar** above the nav.
 - **Sheet**: bottom sheet for Ask GO and any secondary flow. Never a modal popup.
-- **Bottom nav**: Home, Book, Ask, My party. Fixed, white, safe-area padded. Four tabs, never five.
+- **Bottom bar** (phone only): Home, Shop, Ask GO, My party as text, the active one with an orange top rule. Fixed, white, safe-area padded. Four, never five. From 641px the header's text row takes over.
+- **Header**: badge, search, "Party date", dark "Your party (n)"; one wrapping nav row. Never a sideways scroll, in the header or anywhere.
+- **Your party drawer**: from the right on a desktop, a bottom sheet on a phone. The customer's assembled selection is "Your party" everywhere; never "cart" in a heading, never "party board".
+- **Tap targets** on a phone: 44px tall at least. Text inputs 16px so iOS Safari does not zoom. No position:fixed inputs on a phone.
 - **Progress marker**: 4px bars skewed -24°. The only diagonal in the system.
 
 ## 9. Motion
@@ -100,6 +104,13 @@ Bank (use these, extend in this register)
 - Home: What are we celebrating? / Ask GO (label) / The AI event builder. / Tell it the party. It builds one from what's actually in the warehouse, real items, real prices. / Build it with Ask GO / Build your own. Pick a day, add what's open. (row, right label Build) / Or pick the occasion (label) / What kind (label) / Packages for Birthday (label, the sub-occasion) / See what's open (button into Browse) / Finding packages. / No packages for Birthday yet. Ask GO can build one, or build your own. / 3 items, all real (card line) / Continue
 - My party, recommended stub: Recommended for you / Book a few things and picks for you show up here.
 - Cart rows (every checkout step): trash can per item, aria "Remove {item}" / Snow Cone Station x 2 (quantity on the row) / Total / Package price, Backyard Bash. (under the total when the cart is a package)
+- Home (Block S1): Farmington, CT · 5.0 on Google / Parties and events, done door to door. / Bounce houses, games, DJs, photo booths and lighting. The GO crew delivers it, sets it up and takes it down. / Build my party / Tell GO what you're planning / Shop by category / Pick items yourself / Not sure what you need? Ask GO. / Kid's birthday, 25 guests, backyard, about $800 (placeholder) / Graduation party, Company picnic, Sweet 16 (pills) / See all 367 items / Not listed? Ask GO / Something else / Party packages / Add package / No packages yet. Ask GO can build one, or shop by category.
+- Header and menu: Search bounce houses, DJs, photo booths (placeholder) / Party date / Pick a date / Your party (3) / Menu / Close / Shop / All items / Account / Ask GO about "{text}" / Category (suggestion sub-label)
+- Date sheet: Party date / Tap a day. We show what's free on it. / {Day}. Tap another day to change it. / Clear date / Done / Earlier, Later (month buttons)
+- Store: Filters (2) / Sort: Popular / Price low to high / Price high to low / Name A to Z / Category / Availability / Free on {date} / Pick a date to see what's free / Price / Under $200 / $200 to $500 / $500 to $1,000 / Over $1,000 / Clear all / Show 9 items / 9 of 24 items / Loading the catalog. / Free on Nov 14 / Booked Nov 14 / Add / Added 1 / Nothing matches that yet. / Ask GO to find it
+- Your party drawer: Your party · {date} / Nothing yet. Add items or a package. / 1 × $250 / Remove / Total / Checkout asks you to agree to the rental policy. / Checkout includes GO's contract to sign. / GO reviews this one and sends you a proposal. / $75 today holds the date. / Pick a date to see what checkout asks for. / Keep shopping / Checkout
+- Ask GO page: Tell me the party. I'll build it. / Thinking. / Describe your party / Tell GO what to change (placeholders) / Send / Add something for the parents, Keep it under $800, It might rain (quick replies) / Your party: 5 items, $813 / Updated just now / See it / Chat / Your party (5) / GO just updated this / GO just updated it / Built for {date} / Built from the catalog / No date yet / Swap / Close / Remove / Also free {date} / Also in this category / Nothing else in {category} is free that day. / Your party is empty. Ask GO or add items from the shop. / Add an item from the shop / Due today to hold the date (30%) / Checking what checkout will ask for. / Pick a party date to see what checkout asks for. / See your party / Book this party / Switch to this / Ask GO what else is open (portal change item)
+- Result tags (in place of the old icons): Held / Pending / Requested / Paid / Signed / In review / Booked (crew page) / The map didn't load. Your pin stays on the address.
 - Browse: Pick a day. See what's open. / Tap a day. We show only what's open. / Open Sat Dec 5 (label) / 12 items / Bounce house, DJ, snow cones (placeholder) / All (category chip) / Checking the calendar. / Nothing open by that name Sat Dec 5. Try another word, or another day. / 2 open / Add / Added / Text us for a price
 - Cart: 3 items · Sat Dec 5 (sticky line) / 1 not open / Check out / In the cart / Nothing in it yet. / Remove / Total / Snow Cone Station isn't open Sat Dec 5. / Not open Sat Dec 5. Remove it or pick another day.
 - Menu: Menu / Signed in as / My party / Sign in / Create account / Sign out

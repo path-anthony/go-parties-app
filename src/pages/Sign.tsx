@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
-import { Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AppShell, Body } from "@/components/go/AppShell"
@@ -75,9 +74,7 @@ function SignedView({ title, signed, fresh }: { title: string; signed: Signed; f
     <AppShell bare>
       <Letterhead />
       <Body>
-        <div className="mx-auto mb-3.5 flex size-16 items-center justify-center rounded-full bg-orange-tint">
-          <Check className="size-[30px] stroke-orange" strokeWidth={2.5} />
-        </div>
+        <div className="text-center"><span className="mx-auto mb-3.5 inline-block rounded-full bg-orange-tint px-3 py-1 text-[11px] font-bold tracking-[.14em] text-charcoal uppercase">Signed</span></div>
         <h1 className="text-center text-hero text-charcoal">{fresh ? "Signed. Thank you." : "Already signed."}</h1>
         <p className="mt-2 text-center text-body text-charcoal-soft">
           {fresh ? `Your ${title.toLowerCase()} is signed and on file. Nothing more to do here.` : `This ${title.toLowerCase()} is signed. There is nothing more to do here.`}
@@ -242,9 +239,7 @@ function GoSigned({ doc, signed, fresh }: { doc: GoDocument; signed: Signed; fre
   return (
     <AppShell bare wide>
       <Body>
-        <div className="mx-auto mb-3.5 flex size-16 items-center justify-center rounded-full bg-orange-tint">
-          <Check className="size-[30px] stroke-orange" strokeWidth={2.5} />
-        </div>
+        <div className="text-center"><span className="mx-auto mb-3.5 inline-block rounded-full bg-orange-tint px-3 py-1 text-[11px] font-bold tracking-[.14em] text-charcoal uppercase">Signed</span></div>
         <h1 className="text-center text-hero text-charcoal">{fresh ? "Signed. Thank you." : "Already signed."}</h1>
         <p className="mt-2 text-center text-body text-charcoal-soft">
           {fresh ? "Your contract is signed and on file. Nothing more to do here." : "This contract is signed. There is nothing more to do here."}

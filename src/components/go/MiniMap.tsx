@@ -22,7 +22,7 @@ export function MiniMap({ setup, className = "" }: { setup: LatLng; className?: 
           )}
         </div>
       )}
-      <a href={mapsUrlFor(setup)} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-block py-1 text-small font-bold text-charcoal underline">
+      <a href={mapsUrlFor(setup)} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex min-h-[44px] items-center text-small font-bold text-charcoal underline">
         Open in Maps
       </a>
     </div>

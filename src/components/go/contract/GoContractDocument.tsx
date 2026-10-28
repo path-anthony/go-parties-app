@@ -1,4 +1,3 @@
-import { Check } from "lucide-react"
 import { money, percent, signedOn } from "@/components/go/contract/format"
 import type { GoDocument, GoField, GoSignature } from "@/components/go/contract/types"
 import { SIGNATURE_FONT, useSignatureFont } from "@/components/go/contract/useSignatureFont"
@@ -280,7 +279,7 @@ function ServiceColumn({ rows }: { rows: GoField[] }) {
           <div key={i} className="grid grid-cols-[1fr_96px_72px] items-center gap-x-1.5 border-b py-1" style={{ borderColor: "#D5D5D5" }}>
             <span className="flex items-center gap-1.5 text-[11.5px] font-bold">
               <span className="flex size-3.5 flex-none items-center justify-center border" style={{ borderColor: INK, background: "#fff" }}>
-                {r.checked && <Check className="size-3" strokeWidth={3} style={{ color: INK }} />}
+                {r.checked && <span className="text-[10px] leading-none font-black" style={{ color: INK }}>X</span>}
               </span>
               {r.label}
             </span>
@@ -320,7 +319,7 @@ function SignatureRow({
         {input ? (
           <input
             id={input.id}
-            className="mt-0.5 h-7 w-full border-b px-1.5 text-[12px] outline-none focus:border-black"
+            className="mt-0.5 min-h-[44px] w-full border-b px-1.5 text-[16px] outline-none focus:border-black min-[641px]:min-h-7 min-[641px]:text-[12px]"
             style={{ background: BOX, borderColor: RULE, color: INK }}
             autoComplete="name"
             placeholder={input.placeholder}

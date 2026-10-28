@@ -1,59 +1,76 @@
-import { useState } from "react"
+import { useEffect, useRef } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
-import { Menu } from "lucide-react"
 import { Toaster } from "@/components/ui/toaster"
-import { Wordmark } from "@/components/go/Wordmark"
+import { Header } from "@/components/go/Header"
 import { Progress } from "@/components/go/Progress"
-import { MenuSheet } from "@/components/go/MenuSheet"
+import { MenuPanel } from "@/components/go/MenuPanel"
+import { DateSheet } from "@/components/go/DateSheet"
+import { PartyDrawer } from "@/components/go/PartyDrawer"
 import { BottomNav, type NavTab } from "@/components/go/BottomNav"
-import { useAsk } from "@/state/ask"
 
-/* App frame: header with wordmark, progress and the menu button, fixed
-   bottom nav, toast host. Mobile first at 390. Desktop centers at 560 with
-   more air; no desktop layout. */
+/* App frame (Block S1): the store header on top (sticky, full width), the
+   screen, and on a phone the text-only bottom bar. The store screens
+   (Home, the shop, Ask GO) use the wide layout, up to 1280px; checkout and
+   the portal keep their centered column. The header's height is published
+   as --hdr so anything pinned under it can sit right below. */
 
-/* Book is the real checkout: Browse and every /item screen. */
 function activeTab(path: string): NavTab | null {
   if (path === "/" || path === "/home") return "home"
   if (path.startsWith("/party")) return "party"
+  if (path === "/ask") return "ask"
   if (path === "/browse" || path.startsWith("/item")) return "book"
   return null
 }
 
-/* bare: for a page reached from a text or email link (the contract to sign),
-   not from inside the app: no header, menu or tab bar to wander off with; the
-   page brings its own letterhead. */
-/* wide: a document page (the GO contract) that needs room for its two-column
-   grids on a desktop; the phone layout is unchanged. */
-export function AppShell({ step, bare, wide, children }: { step?: number; bare?: boolean; wide?: boolean; children: React.ReactNode }) {
+/* bare: a page reached from a text or email link (the contract to sign,
+   the crew gig): no header, menu or tab bar; the page brings its own
+   letterhead. wide: the GO contract's document width on a desktop.
+   layout="store": the wide store layout. */
+export function AppShell({ step, bare, wide, layout, children }: { step?: number; bare?: boolean; wide?: boolean; layout?: "store"; children: React.ReactNode }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { openAsk } = useAsk()
-  const [menuOpen, setMenuOpen] = useState(false)
+  const root = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (bare) return
+    const el = root.current
+    const hdr = el?.querySelector("header")
+    if (!el || !hdr) return
+    const set = () => el.style.setProperty("--hdr", `${hdr.getBoundingClientRect().height}px`)
+    set()
+    const ro = new ResizeObserver(set)
+    ro.observe(hdr)
+    return () => ro.disconnect()
+  }, [bare])
 
   const onPick = (tab: NavTab) => {
-    if (tab === "home") navigate("/home")
+    if (tab === "home") navigate("/")
     if (tab === "party") navigate("/party")
-    if (tab === "ask") openAsk("home")
+    if (tab === "ask") navigate("/ask")
     if (tab === "book") navigate("/browse")
   }
 
+  const column = layout === "store" ? "max-w-[1280px] px-4 min-[641px]:px-6" : wide ? "max-w-[860px]" : "max-w-[480px] min-[900px]:max-w-[560px]"
+
   return (
-    <div className={`mx-auto flex min-h-svh flex-col ${wide ? "max-w-[860px]" : "max-w-[480px] min-[900px]:max-w-[560px]"} ${bare ? "pb-[env(safe-area-inset-bottom)]" : "pb-[calc(76px+env(safe-area-inset-bottom))]"}`}>
-      {!bare && (
-        <div className="flex items-center justify-between px-5 pt-[18px]">
-          <Wordmark onClick={() => navigate("/home")} />
-          <div className="flex items-center gap-3">
-            {step !== undefined && <Progress step={step} />}
-            <button aria-label="Menu" className="-mr-1.5 flex size-11 items-center justify-center" onClick={() => setMenuOpen(true)}>
-              <Menu className="size-[22px] stroke-charcoal" strokeWidth={1.75} />
-            </button>
+    <div ref={root} className={`flex min-h-svh flex-col ${bare ? "pb-[env(safe-area-inset-bottom)]" : "pb-[calc(60px+env(safe-area-inset-bottom))] min-[641px]:pb-0"}`}>
+      {!bare && <Header />}
+      <div className={`mx-auto flex w-full flex-1 flex-col ${column}`}>
+        {step !== undefined && (
+          <div className="flex justify-end px-5 pt-3">
+            <Progress step={step} />
           </div>
-        </div>
-      )}
-      {children}
+        )}
+        {children}
+      </div>
       {!bare && <BottomNav active={activeTab(pathname)} onPick={onPick} />}
-      {!bare && <MenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} />}
+      {!bare && (
+        <>
+          <MenuPanel />
+          <DateSheet />
+          <PartyDrawer />
+        </>
+      )}
       <Toaster />
     </div>
   )

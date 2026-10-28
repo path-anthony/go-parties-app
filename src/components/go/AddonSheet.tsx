@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react"
-import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer"
 import { AddonPicker } from "@/components/go/AddonPicker"
@@ -51,9 +50,7 @@ export function AddonSheet({
             <DrawerTitle className="flex shrink-0 items-center justify-between gap-3 text-base font-extrabold text-charcoal">
               <span className="min-w-0 truncate">{item.name}</span>
               <DrawerClose asChild>
-                <button aria-label="Close" className="p-1">
-                  <X className="size-5 stroke-muted" strokeWidth={1.75} />
-                </button>
+                <button className="min-h-[44px] flex-none px-2 text-sm font-bold text-charcoal">Close</button>
               </DrawerClose>
             </DrawerTitle>
             <DrawerDescription className="shrink-0 text-small text-charcoal-soft">A couple of picks and it's in.</DrawerDescription>

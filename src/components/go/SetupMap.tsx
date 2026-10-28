@@ -1,5 +1,4 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react"
-import { MapPin } from "lucide-react"
 import { loadMaps, MAP_ID, latLngOf, mapsMocked, metersBetween, type LatLng } from "@/lib/maps"
 
 /* The setup map: centered on the verified address with one draggable pin,
@@ -104,8 +103,8 @@ export function GoogleMap({ address, setup, onSetup, draggable, zoom = 18 }: { a
    is still verified, the pin stays on the address point. */
 function Fallback() {
   return (
-    <div className="absolute inset-0 flex items-center justify-center">
-      <MapPin className="size-[34px] fill-orange stroke-white" strokeWidth={1.5} />
+    <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-small text-charcoal-soft">
+      The map didn't load. Your pin stays on the address.
     </div>
   )
 }

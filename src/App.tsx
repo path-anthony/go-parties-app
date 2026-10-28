@@ -2,6 +2,8 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { BookingProvider } from "@/state/booking"
 import { CustomerProvider } from "@/state/customer"
 import { AskProvider } from "@/state/ask"
+import { StoreUiProvider } from "@/state/store"
+import Ask from "@/pages/Ask"
 import Home from "@/pages/Home"
 import Browse from "@/pages/Browse"
 import MyParty from "@/pages/MyParty"
@@ -29,6 +31,7 @@ function App() {
       <CustomerProvider>
       <BrowserRouter>
         <AskProvider>
+          <StoreUiProvider>
           <Routes>
             {/* Welcome and Home are one screen; both paths render it so old links keep working. */}
             <Route path="/" element={<Home />} />
@@ -36,6 +39,7 @@ function App() {
             {/* The old click-through gate is gone; sign in is the portal's. */}
             <Route path="/signin" element={<Navigate to="/party/signin" replace />} />
             <Route path="/browse" element={<Browse />} />
+            <Route path="/ask" element={<Ask />} />
             {/* The old static package flow lived at /book/* and /held. It never
                 made a real booking; any old link now lands on Browse, the real
                 checkout's door. */}
@@ -63,6 +67,7 @@ function App() {
             <Route path="/kit" element={<Kit />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </StoreUiProvider>
         </AskProvider>
       </BrowserRouter>
       </CustomerProvider>

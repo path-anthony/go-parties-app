@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { GoLabel } from "@/components/go/GoLabel"
 import { GigFacts } from "@/components/go/bid/GigFacts"
@@ -53,9 +52,7 @@ export function GigPage({ token, gig, onGig }: { token: string; gig: BidGig; onG
 
   return (
     <>
-      <div className="mb-3.5 flex size-12 items-center justify-center rounded-full bg-orange-tint">
-        <Check className="size-6 stroke-orange" strokeWidth={2.5} />
-      </div>
+      <span className="mb-3 inline-block rounded-full bg-orange-tint px-3 py-1 text-[11px] font-bold tracking-[.14em] text-charcoal uppercase">Booked</span>
       <p className="mb-4 text-body text-charcoal-soft">{gig.crewFirstName ? `${gig.crewFirstName}, you're on this one.` : "You're on this one."}</p>
       <GigFacts gig={gig} />
 
@@ -66,7 +63,7 @@ export function GigPage({ token, gig, onGig }: { token: string; gig: BidGig; onG
               <div className="text-[10.5px] font-bold tracking-[.1em] text-taupe uppercase">Address</div>
               <div className="mt-[3px] text-sm font-bold whitespace-pre-line text-charcoal">{gig.address}</div>
               {gig.mapsUrl && (
-                <a href={gig.mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block rounded-[12px] border-[1.5px] border-line bg-white px-3.5 py-2 text-sm font-extrabold text-charcoal">
+                <a href={gig.mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex min-h-[44px] items-center rounded-[12px] border-[1.5px] border-line bg-white px-3.5 py-2 text-sm font-extrabold text-charcoal">
                   Open in Maps
                 </a>
               )}

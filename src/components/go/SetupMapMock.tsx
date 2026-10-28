@@ -1,5 +1,4 @@
 import { useRef } from "react"
-import { MapPin } from "lucide-react"
 import type { LatLng } from "@/lib/maps"
 
 /* Dev-only stand-in for the Google map, loaded lazily behind the checkout
@@ -65,8 +64,8 @@ export function SetupMapMock({ address, setup, onSetup, readOnly }: { address: L
       }}
     >
       <div className="absolute top-1/2 -right-[10%] -left-[10%] h-3.5 -rotate-12 border-y border-line bg-white" />
-      <div className="pointer-events-none absolute -translate-x-1/2 -translate-y-full" style={{ left: `${at.x}%`, top: `${at.y}%` }}>
-        <MapPin className="size-[34px] fill-orange stroke-white" strokeWidth={1.5} />
+      <div className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${at.x}%`, top: `${at.y}%` }}>
+        <span className="block size-5 rounded-full border-[3px] border-white bg-orange shadow-float" />
       </div>
       <span className="absolute bottom-2.5 left-3 text-[9px] font-bold tracking-[.14em] text-muted">MAP · LOCAL MOCK · {readOnly ? "SETUP PIN" : "DRAG THE PIN"}</span>
     </div>

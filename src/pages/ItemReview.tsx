@@ -1,5 +1,4 @@
 import { Navigate, useNavigate } from "react-router-dom"
-import { Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { MetaCard } from "@/components/go/MetaCard"
@@ -24,9 +23,7 @@ export default function ItemReview() {
   return (
     <AppShell>
       <Body className="text-center">
-        <div className="mx-auto mb-3.5 flex size-16 items-center justify-center rounded-full bg-orange-tint">
-          <Users className="size-[30px] stroke-orange" strokeWidth={2.25} />
-        </div>
+        <span className="mx-auto mb-3.5 inline-block rounded-full bg-orange-tint px-3 py-1 text-[11px] font-bold tracking-[.14em] text-charcoal uppercase">In review</span>
         <h1 className="text-hero text-charcoal">Our team takes it from here.</h1>
         <p className="mt-2 text-body text-charcoal-soft">Big events get a personal look. We'll reach out within one business day.</p>
         <div className="mt-5 grid grid-cols-2 gap-2 text-left">

@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { Check } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Chip } from "@/components/go/Chip"
 import { cn } from "@/lib/utils"
@@ -109,7 +108,7 @@ function LargeGroup({
               onClick={() => onToggle(addon.id)}
             >
               <span className="flex min-w-0 items-center gap-2 font-bold text-charcoal">
-                <Check className={cn("size-4 flex-none stroke-charcoal", on ? "opacity-100" : "opacity-0")} strokeWidth={2.25} />
+                <input type="checkbox" checked={on} readOnly tabIndex={-1} aria-hidden="true" className="pointer-events-none size-4 flex-none accent-charcoal" />
                 <span className="truncate">{addon.name}</span>
               </span>
               <span className="flex-none text-[11.5px] font-medium text-muted">{priceOf(addon.priceDelta)}</span>

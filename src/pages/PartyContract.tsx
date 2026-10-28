@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
 import { Navigate, useNavigate, useParams } from "react-router-dom"
-import { Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
@@ -105,9 +104,7 @@ function PartyContractFor({ id }: { id: string }) {
           : null
       body = (
         <>
-          <div className="mx-auto mt-2 mb-3.5 flex size-16 items-center justify-center rounded-full bg-orange-tint">
-            <Check className="size-[30px] stroke-orange" strokeWidth={2.5} />
-          </div>
+          <div className="text-center"><span className="mx-auto mb-3.5 inline-block rounded-full bg-orange-tint px-3 py-1 text-[11px] font-bold tracking-[.14em] text-charcoal uppercase">Signed</span></div>
           <h1 className="text-center text-hero text-charcoal">{done ? "Signed. Thank you." : "Signed."}</h1>
           <p className="mt-2 text-center text-body text-charcoal-soft">{done ? "Your contract is signed and on file. The retainer is the next step." : "This contract is signed and on file."}</p>
           <div className="mt-4 grid grid-cols-2 gap-2">

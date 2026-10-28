@@ -1,12 +1,13 @@
 /* Dev-only mock switches. `?mock=<name>` on any page turns a mock on for the
-   rest of the tab (sessionStorage); `?mock=off` turns every mock off. Two
-   areas: the checkout (tier, hold and payment answers) and the portal (a
-   signed-in customer with bookings in every stage). Every caller checks
+   rest of the tab (sessionStorage); `?mock=off` turns every mock off. Three
+   areas: the checkout (tier, hold and payment answers), the portal (a
+   signed-in customer with bookings in every stage) and Ask GO (`?mock=ask`:
+   a recommendation built from the real catalog, no AI call). Every caller checks
    `import.meta.env.DEV && mockMode(...)` inline, so a production build folds
    the branch away and never carries the fixtures. The names are listed in
    docs/SCREENS.md. */
 
-const KEYS = { checkout: "go-mock-checkout", portal: "go-mock-portal" } as const
+const KEYS = { checkout: "go-mock-checkout", portal: "go-mock-portal", ask: "go-mock-ask" } as const
 export type MockArea = keyof typeof KEYS
 
 function readQuery() {
@@ -16,9 +17,10 @@ function readQuery() {
     if (q === "off") {
       sessionStorage.removeItem(KEYS.checkout)
       sessionStorage.removeItem(KEYS.portal)
+      sessionStorage.removeItem(KEYS.ask)
       return
     }
-    sessionStorage.setItem(q === "portal" ? KEYS.portal : KEYS.checkout, q)
+    sessionStorage.setItem(q === "portal" ? KEYS.portal : q === "ask" ? KEYS.ask : KEYS.checkout, q)
   } catch {
     /* no storage, no mock */
   }

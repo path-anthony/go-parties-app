@@ -1,36 +1,34 @@
-import { Calendar, Home, Sparkle, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-/* Bottom nav. BRAND.md section 8: Home, Book, Ask, My party. Fixed, white,
-   safe-area padded. Four tabs, never five. */
+/* Bottom bar, phone only (Block S1): four text items, Home, Shop, Ask GO,
+   My party. The active one carries an orange top rule. No icons. Hidden
+   from 641px up, where the header's nav row takes over. */
 
 export type NavTab = "home" | "book" | "ask" | "party"
 
-const TABS: { id: NavTab; label: string; Icon: typeof Home }[] = [
-  { id: "home", label: "Home", Icon: Home },
-  { id: "book", label: "Book", Icon: Calendar },
-  { id: "ask", label: "Ask", Icon: Sparkle },
-  { id: "party", label: "My party", Icon: User },
+const TABS: { id: NavTab; label: string }[] = [
+  { id: "home", label: "Home" },
+  { id: "book", label: "Shop" },
+  { id: "ask", label: "Ask GO" },
+  { id: "party", label: "My party" },
 ]
 
 export function BottomNav({ active, onPick }: { active: NavTab | null; onPick: (t: NavTab) => void }) {
   return (
-    <nav className="fixed right-0 bottom-0 left-0 z-40 border-t border-line bg-white pt-2 pb-[calc(8px+env(safe-area-inset-bottom))]">
-      <div className="mx-auto flex max-w-[480px] justify-around min-[900px]:max-w-[560px]">
-        {TABS.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            className={cn(
-              "flex min-h-[44px] flex-col items-center gap-1 px-2.5 py-1 text-[10.5px] font-semibold",
-              active === id ? "text-charcoal" : "text-muted"
-            )}
-            onClick={() => onPick(id)}
-          >
-            <Icon className="size-[22px]" strokeWidth={1.75} />
-            {label}
-          </button>
-        ))}
-      </div>
+    <nav className="fixed right-0 bottom-0 left-0 z-40 grid grid-cols-4 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] min-[641px]:hidden">
+      {TABS.map(({ id, label }) => (
+        <button
+          key={id}
+          aria-current={active === id ? "page" : undefined}
+          className={cn(
+            "-mt-px min-h-[52px] border-t-2 px-1 py-3.5 text-[13px] font-semibold",
+            active === id ? "border-orange text-charcoal" : "border-transparent text-muted"
+          )}
+          onClick={() => onPick(id)}
+        >
+          {label}
+        </button>
+      ))}
     </nav>
   )
 }

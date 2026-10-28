@@ -1,5 +1,4 @@
 import { Navigate, useNavigate } from "react-router-dom"
-import { Check, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { MetaCard } from "@/components/go/MetaCard"
@@ -51,9 +50,7 @@ export default function ItemHeld() {
   return (
     <AppShell>
       <Body className="text-center">
-        <div className="mx-auto mb-3.5 flex size-16 items-center justify-center rounded-full bg-orange-tint">
-          {rush ? <Clock className="size-[30px] stroke-orange" strokeWidth={2.5} /> : <Check className="size-[30px] stroke-orange" strokeWidth={2.5} />}
-        </div>
+        <span className="mx-auto mb-3.5 inline-block rounded-full bg-orange-tint px-3 py-1 text-[11px] font-bold tracking-[.14em] text-charcoal uppercase">{rush ? "Pending" : requested ? "Requested" : "Held"}</span>
         <h1 className="text-hero text-charcoal">{rush ? "Pending. We'll be in touch." : requested ? "Signed. Your date is requested." : "Held. You're good."}</h1>
         <p className="mt-2 text-body text-charcoal-soft">
           {rush

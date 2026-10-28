@@ -1,4 +1,3 @@
-import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MONTH_WINDOW } from "@/data/catalog"
 import { calendarMonth, labelForIso } from "@/lib/availability"
@@ -28,19 +27,19 @@ export function MonthCalendar({
         <button
           aria-label="Previous month"
           disabled={month <= 0}
-          className="flex size-11 items-center justify-center rounded-[10px] border-[1.5px] border-line bg-white transition-colors hover:border-charcoal disabled:opacity-35 disabled:hover:border-line"
+          className="flex h-11 min-w-11 items-center justify-center rounded-[10px] border-[1.5px] px-2.5 text-[12.5px] font-bold text-charcoal border-line bg-white transition-colors hover:border-charcoal disabled:opacity-35 disabled:hover:border-line"
           onClick={() => onMonth(month - 1)}
         >
-          <ChevronLeft className="size-[18px] stroke-charcoal" strokeWidth={2} />
+          Earlier
         </button>
         <div aria-live="polite" className="text-base font-extrabold text-charcoal">{cal.title}</div>
         <button
           aria-label="Next month"
           disabled={month >= MONTH_WINDOW - 1}
-          className="flex size-11 items-center justify-center rounded-[10px] border-[1.5px] border-line bg-white transition-colors hover:border-charcoal disabled:opacity-35 disabled:hover:border-line"
+          className="flex h-11 min-w-11 items-center justify-center rounded-[10px] border-[1.5px] px-2.5 text-[12.5px] font-bold text-charcoal border-line bg-white transition-colors hover:border-charcoal disabled:opacity-35 disabled:hover:border-line"
           onClick={() => onMonth(month + 1)}
         >
-          <ChevronRight className="size-[18px] stroke-charcoal" strokeWidth={2} />
+          Later
         </button>
       </div>
       <div className="mt-2 grid grid-cols-7 gap-1 text-center">

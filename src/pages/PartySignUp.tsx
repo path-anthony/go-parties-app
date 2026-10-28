@@ -33,7 +33,7 @@ export default function PartySignUp() {
         )}
         <p className="mt-3.5 text-small text-muted">
           Have an account?{" "}
-          <Link to="/party/signin" className="font-bold text-charcoal">
+          <Link to="/party/signin" className="inline-flex min-h-[44px] items-center font-bold text-charcoal">
             Sign in
           </Link>
         </p>
