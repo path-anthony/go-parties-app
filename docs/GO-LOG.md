@@ -23,6 +23,13 @@
 **What we decided:** The party date is one value in the booking store, picked from the header or the menu, read by the store (availability), the drawer and Ask GO (the tier line), and carried into checkout. No money rule is hard-coded: the tier line and the retainer come from `POST /api/bookings/tier`, with the settings' deposit percent as the fallback while the tier is being asked. Packages are published per sub-occasion, so every occasion name the storefront knows is asked in parallel and merged; no new endpoint. The admin has no guest count or setting on a booking, so the party header shows the date and the sub-occasion. "Popular" sorts in the catalog's own order. The calendar's month buttons read "Earlier" and "Later" so they never collide with the "Next" button under them.
 
 **What's next:** Merge when the admin side of T1 lands. Compress the three hero photos (1200px wide, 123 to 293 KB each; the first paint loads one). A product page does not exist yet, so "Goes well with" has nowhere to live.
+## 2026-10-28 (Block A2, branch packages-public, admin only)
+
+**Where we are:** The public packages feed can be asked for everything at once. `GET /api/packages/public` with no occasion returns every published package across all occasions in the per-occasion shape, each with its sub-occasions (`occasions`), the groups they fall under (`groups`, "Kids party", "Wedding") and `occasion` set to the first group; with an occasion the answer is exactly what it was. The no-occasion answer is cached in memory for a minute and dropped the moment a package is written in the admin. Packages carry two optional display lines, `tag` (up to 20 characters, "Most booked") and `guestNote` (up to 40, "Up to 25 kids"), edited under the name in the Packages editor and sent on the public response as null when empty. Migration `20261028150000_package_display_fields` adds the two columns; nothing is deployed and the branch is not merged.
+
+**What we decided:** The per-occasion call is never cached, so an occasion page reads a save at once. Blank, null and absent all clear a field; links and control characters are stripped the way a name is, since the storefront prints them. Drafts never appear in either answer.
+
+**What's next:** Merge; the pre-deploy step applies the migration. The storefront's Home can then load the whole catalog of packages in one call and read the tag and the guest note on the card.
 
 ## 2026-10-27 (Block T1, branch block-t1-tiers)
 
