@@ -1,7 +1,7 @@
 import { createContext, useContext, useState } from "react"
 
 /* The store's overlays (Block S1), opened from the header, the menu, the
-   grid and Ask GO: the Your party drawer, the party date sheet and the
+   grid and Ask GO: the cart drawer, the party date sheet and the
    phone menu. One place so every screen opens the same one. */
 
 interface StoreUi {

@@ -6,7 +6,7 @@ import { useBooking } from "@/state/booking"
 import { useCustomer } from "@/state/customer"
 import { useStoreUi } from "@/state/store"
 
-/* The phone menu (Block S1), opened by the header's "Menu" text button: a
+/* The phone menu (Block S1), opened by the header's hamburger button: a
    bottom panel listing Home, Ask GO, My party, the shop (All items and
    each category from the catalog), the party date, and the account doors. */
 

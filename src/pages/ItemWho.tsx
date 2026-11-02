@@ -2,7 +2,6 @@ import { useEffect, useState } from "react"
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { MetaCard } from "@/components/go/MetaCard"
@@ -10,7 +9,8 @@ import { CartItems } from "@/components/go/CartItems"
 import { CheckoutConcierge } from "@/components/go/CheckoutConcierge"
 import { Honeypot } from "@/components/go/Honeypot"
 import { CheckoutAgreement } from "@/components/go/CheckoutAgreement"
-import { BalancePreference } from "@/components/go/BalancePreference"
+import { BalanceLine, CheckoutNext } from "@/components/go/CheckoutNotes"
+import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { AddressField } from "@/components/go/AddressField"
 import { SetupMap } from "@/components/go/SetupMap"
 import { mapsAvailable } from "@/lib/maps"
@@ -35,12 +35,13 @@ import { useCustomer } from "@/state/customer"
    address from Places suggestions, then drags a pin to the setup spot and
    adds a short note; a town, a business with no number or free typing
    keeps Next off. Without a key it is the plain text field it was, with a
-   note that the exact address is confirmed by text. Either way the "Add
-   the address later" switch skips it. A 409 from the race (someone took the last unit
-   between the check and this tap) is shown as the server says it, with a
-   way back to the calendar. Any other refusal shows the bank's calm line
-   and a Try again; nothing typed is lost, every field here lives in the
-   booking store. The account step can hand a notice over in location
+   note that the exact address is confirmed by text. The address is
+   required (the "add it later" switch is gone, S2). A 409 from the race
+   (someone took the last unit between the check and this tap) is shown as
+   the server says it, with a way back to the calendar. Any other refusal
+   shows the bank's calm line and a Try again. Every refusal is the red
+   notice directly above the button (S2); nothing typed is lost, every
+   field here lives in the booking store. The account step can hand a notice over in location
    state when a fresh sign-up succeeded but the booking after it didn't. */
 
 type Notice = { reason: DirectReason; message: string }
@@ -83,7 +84,7 @@ export default function ItemWho() {
   const onFile = customer !== null
   const needsName = !customer?.name
   const mapsOn = mapsAvailable()
-  const addressSettled = b.addressLater || (mapsOn ? b.verified !== null : b.address.trim() !== "")
+  const addressSettled = mapsOn ? b.verified !== null : b.address.trim() !== ""
   const setVerified = (v: VerifiedAddress | null) => {
     b.set("verified", v)
     b.set("setup", v ? { lat: v.addressLat, lng: v.addressLng } : null)
@@ -214,21 +215,20 @@ export default function ItemWho() {
         <div className="mt-2.5">
           <GoLabel className="mb-1.5 tracking-[.1em]">Address</GoLabel>
           {mapsOn ? (
-            <AddressField value={b.address} verified={b.verified} disabled={b.addressLater} onText={(t) => b.set("address", t)} onVerified={setVerified} />
+            <AddressField value={b.address} verified={b.verified} onText={(t) => b.set("address", t)} onVerified={setVerified} />
           ) : (
             <>
               <Input
                 placeholder="14 Maple Ln, Farmington"
                 autoComplete="street-address"
                 value={b.address}
-                disabled={b.addressLater}
                 onChange={(e) => b.set("address", e.target.value)}
               />
               <p className="mt-1.5 text-small text-muted">We'll confirm your exact address by text.</p>
             </>
           )}
         </div>
-        {mapsOn && b.verified && !b.addressLater && (
+        {mapsOn && b.verified && (
           <div className="mt-3">
             <SetupMap
               address={{ lat: b.verified.addressLat, lng: b.verified.addressLng }}
@@ -242,61 +242,45 @@ export default function ItemWho() {
             </div>
           </div>
         )}
-        <div className="mt-2 flex items-center justify-between rounded-[14px] border border-line bg-white px-3.5 py-[13px] text-sm font-semibold text-charcoal">
-          <div>
-            Add the address later
-            <small className="block text-[11.5px] font-medium text-muted">We'll text you for it.</small>
-          </div>
-          <Switch
-            checked={b.addressLater}
-            onCheckedChange={(v) => {
-              b.set("addressLater", v)
-              if (v) {
-                b.set("address", "")
-                setVerified(null)
-              }
-            }}
-          />
-        </div>
-        {notice && (
-          <div className="mt-3.5 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
-            {notice.message}
-            {notice.reason === "unavailable" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-2.5 block"
-                onClick={() => {
-                  b.set("itemDate", null)
-                  navigate(`/item/${firstId}`)
-                }}
-              >
-                Pick another date
-              </Button>
-            )}
-            {notice.reason === "addons" && (
-              <Button variant="ghost" size="sm" className="mt-2.5 block" onClick={() => navigate(`/item/${firstId}/options`, { state: { from: here } })}>
-                Pick options
-              </Button>
-            )}
-            {notice.reason === "error" && onFile && (
-              <Button variant="ghost" size="sm" className="mt-2.5 block" disabled={!canSubmit} onClick={submit}>
-                Try again
-              </Button>
-            )}
-          </div>
-        )}
-        <p className="mt-2.5 text-small text-muted">Nothing to pay right now. We'll reach out to confirm and finish your booking.</p>
         <Honeypot value={b.hp} onChange={(v) => b.set("hp", v)} />
         {onFile && (
           <>
-            <BalancePreference className="mt-4" />
+            <CheckoutNext tier={tier} className="mt-3.5" />
+            <BalanceLine className="mt-1.5" />
             {tier !== 2 && <CheckoutAgreement className="mt-4" />}
-            {tier === 2 && <p className="mt-4 text-small text-charcoal-soft">This booking comes with a contract. You'll read and sign it on the next screen.</p>}
             <CheckoutConcierge className="mt-1.5" />
           </>
         )}
       </Body>
+      {/* The refusal sits directly above the button that was tapped. */}
+      {notice && (
+        <ErrorNotice className="mx-5 mb-2">
+          {notice.message}
+          {notice.reason === "unavailable" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2.5 block"
+              onClick={() => {
+                b.set("itemDate", null)
+                navigate(`/item/${firstId}`)
+              }}
+            >
+              Pick another date
+            </Button>
+          )}
+          {notice.reason === "addons" && (
+            <Button variant="ghost" size="sm" className="mt-2.5 block" onClick={() => navigate(`/item/${firstId}/options`, { state: { from: here } })}>
+              Pick options
+            </Button>
+          )}
+          {notice.reason === "error" && onFile && (
+            <Button variant="ghost" size="sm" className="mt-2.5 block" disabled={!canSubmit} onClick={submit}>
+              Try again
+            </Button>
+          )}
+        </ErrorNotice>
+        )}
       <Foot>
         <Button variant="ghost" onClick={() => navigate(`/item/${firstId}`)}>Back</Button>
         <Button disabled={!canSubmit} onClick={submit}>{onFile && tier !== 2 ? "Hold my date" : "Next"}</Button>

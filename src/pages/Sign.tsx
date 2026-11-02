@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AppShell, Body } from "@/components/go/AppShell"
+import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { GoLabel } from "@/components/go/GoLabel"
 import { Letterhead } from "@/components/go/Letterhead"
 import { useNoIndex } from "@/hooks/use-noindex"
@@ -209,14 +210,14 @@ function Contract({ contract, token, onStale }: { contract: UnsignedContract; to
           </label>
 
           {error && (
-            <div role="alert" className="mt-4 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
+            <ErrorNotice className="mt-4">
               {error.message}
               {error.status === 409 && (
                 <Button type="button" variant="ghost" size="sm" className="mt-2.5 block" onClick={onStale}>
                   Refresh this page
                 </Button>
               )}
-            </div>
+            </ErrorNotice>
           )}
 
           <Button type="submit" className="mt-4 w-full" disabled={!ready}>
@@ -313,14 +314,14 @@ function GoContract({ contract, doc, token, onStale }: { contract: UnsignedContr
         >
           <GoContractSigner doc={doc} value={sig} onChange={setSig} busy={busy} onReadyChange={setReady} className="mt-4" />
           {error && (
-            <div role="alert" className="mt-3 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
+            <ErrorNotice className="mt-3">
               {error.message}
               {error.status === 409 && (
                 <Button type="button" variant="ghost" size="sm" className="mt-2.5 block" onClick={onStale}>
                   Refresh this page
                 </Button>
               )}
-            </div>
+            </ErrorNotice>
           )}
           <Button type="submit" className="mt-4 w-full" disabled={!ready}>
             {busy ? "Signing" : "Sign contract"}
@@ -367,10 +368,12 @@ export default function Sign() {
   if (state.kind === "error") {
     return (
       <Notice title="We couldn't open it.">
-        {state.message}
-        <Button variant="ghost" size="sm" className="mt-3 block" onClick={load}>
-          Try again
-        </Button>
+        <ErrorNotice>
+          {state.message}
+          <Button variant="ghost" size="sm" className="mt-2.5 block" onClick={load}>
+            Try again
+          </Button>
+        </ErrorNotice>
       </Notice>
     )
   }

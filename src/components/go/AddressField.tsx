@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react"
 import { Input } from "@/components/ui/input"
+import { FieldError } from "@/components/go/ErrorNotice"
 import { PICK_MESSAGE, resolveAddress, suggestAddresses, type Suggestion, type VerifiedAddress } from "@/lib/places"
 
 /* The address input with Google's suggestions under it. Typing asks Places
    (New) after a short pause; tapping a row resolves it. Only a full street
    address becomes `verified`; anything else (a town, a business with no
    number, free typing) leaves the field unverified and shows the bank's
-   line, so the screen keeps Next off. The text shown is the customer's
+   line in red under a red border (S2), so the screen keeps Next off. The text shown is the customer's
    until a pick lands, then the formatted address. Changing the text after
    a pick drops the verified address: the parent clears the pin with it. */
 
@@ -92,6 +93,8 @@ export function AddressField({
         aria-autocomplete="list"
         aria-expanded={open && rows.length > 0}
         aria-controls="address-suggestions"
+        aria-invalid={showMessage || undefined}
+        aria-describedby={showMessage ? "address-error" : undefined}
         value={value}
         disabled={disabled || busy}
         onFocus={() => setOpen(true)}
@@ -127,7 +130,7 @@ export function AddressField({
           ))}
         </ul>
       )}
-      {showMessage && <p className="mt-1.5 text-small text-charcoal">{PICK_MESSAGE}</p>}
+      {showMessage && <FieldError id="address-error">{PICK_MESSAGE}</FieldError>}
     </div>
   )
 }

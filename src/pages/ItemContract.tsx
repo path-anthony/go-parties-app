@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import { Navigate, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
+import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { GoLabel } from "@/components/go/GoLabel"
 import { GoContractSigner } from "@/components/go/contract/GoContractSigner"
 import { EMPTY_SIGNATURE } from "@/components/go/contract/signature"
@@ -34,9 +35,6 @@ export default function ItemContract() {
   const [busy, setBusy] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
-  useEffect(() => {
-    if (notice) document.querySelector("[role=alert]")?.scrollIntoView({ block: "center", behavior: "smooth" })
-  }, [notice])
 
   const refreshTier = useCallback(async () => {
     setLoadError(null)
@@ -116,19 +114,19 @@ export default function ItemContract() {
         {quote ? (
           <GoContractSigner doc={quote.document} value={b.signature} onChange={(v) => b.set("signature", v)} busy={busy} onReadyChange={setReady} className="mt-4" />
         ) : loadError ? (
-          <div className="mt-4 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
+          <ErrorNotice className="mt-4">
             {loadError}
             <Button variant="ghost" size="sm" className="mt-2.5 block" onClick={() => void refreshTier()}>
               Try again
             </Button>
-          </div>
+          </ErrorNotice>
         ) : (
           <p className="mt-4 text-body text-muted">Preparing your contract.</p>
         )}
       </Body>
-      {/* The notice sits by the button, where the customer is after signing. */}
-        {notice && (
-        <div role="alert" className="mx-5 mb-2 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
+      {/* The notice sits directly above the button, where the customer is after signing. */}
+      {notice && (
+        <ErrorNotice className="mx-5 mb-2">
           {notice.message}
           {notice.reason === "unavailable" && (
             <Button
@@ -143,7 +141,7 @@ export default function ItemContract() {
               Pick another date
             </Button>
           )}
-        </div>
+        </ErrorNotice>
       )}
       <Foot>
         <Button variant="ghost" disabled={busy} onClick={() => navigate(onFile ? `/item/${firstId}/who` : `/item/${firstId}/account`)}>

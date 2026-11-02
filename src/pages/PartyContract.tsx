@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import { Navigate, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
+import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { GoLabel } from "@/components/go/GoLabel"
 import { MetaCard } from "@/components/go/MetaCard"
 import { GoContractDocument } from "@/components/go/contract/GoContractDocument"
@@ -15,7 +16,8 @@ import { useCustomer } from "@/state/customer"
    same signing rule as the texted link, behind the customer's session
    instead of a token. Unsigned, it is signed here; signed, it is shown as
    signed with the PDF. An older contract without the GO format shows its
-   text with the two original checkboxes. */
+   text with the two original checkboxes. A refusal is the red notice
+   directly above the Sign contract button (S2). */
 
 const signedWhen = (iso: string) => {
   try {
@@ -84,12 +86,12 @@ function PartyContractFor({ id }: { id: string }) {
     body = <p className="mt-2 text-body text-muted">Opening your contract.</p>
   } else if (state.kind === "error") {
     body = (
-      <div className="mt-3.5 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
+      <ErrorNotice className="mt-3.5">
         {state.message}
         <Button variant="ghost" size="sm" className="mt-2.5 block" onClick={load}>
           Try again
         </Button>
-      </div>
+      </ErrorNotice>
     )
   } else {
     const c = state.contract
@@ -128,16 +130,6 @@ function PartyContractFor({ id }: { id: string }) {
           <h1 className="mt-1.5 text-hero text-charcoal">Your contract</h1>
           <p className="mt-2 text-body text-charcoal-soft">Read it all the way through, then sign on the form.</p>
           <GoContractSigner doc={c.document} value={sig} onChange={setSig} busy={busy} onReadyChange={setSigReady} className="mt-4" />
-          {error && (
-            <div role="alert" className="mt-3 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
-              {error.message}
-              {error.status === 409 && (
-                <Button variant="ghost" size="sm" className="mt-2.5 block" onClick={load}>
-                  Refresh this page
-                </Button>
-              )}
-            </div>
-          )}
         </>
       )
       foot = (
@@ -178,11 +170,6 @@ function PartyContractFor({ id }: { id: string }) {
             <input type="checkbox" className="mt-0.5 size-5 flex-none accent-charcoal" checked={terms} onChange={(e) => setTerms(e.target.checked)} />
             <span>{c.termsText ?? "I have read this contract and agree to its terms."}</span>
           </label>
-          {error && (
-            <div role="alert" className="mt-3 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
-              {error.message}
-            </div>
-          )}
         </>
       )
       foot = (
@@ -204,6 +191,16 @@ function PartyContractFor({ id }: { id: string }) {
         <GoLabel>Contract</GoLabel>
         {body}
       </Body>
+      {error && (
+        <ErrorNotice className="mx-5 mb-2">
+          {error.message}
+          {error.status === 409 && (
+            <Button variant="ghost" size="sm" className="mt-2.5 block" onClick={load}>
+              Refresh this page
+            </Button>
+          )}
+        </ErrorNotice>
+      )}
       <Foot>{foot}</Foot>
     </AppShell>
   )

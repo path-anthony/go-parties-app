@@ -3,20 +3,27 @@ import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
+import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { GoLabel } from "@/components/go/GoLabel"
 import { customerApi } from "@/lib/customerApi"
 import { useCustomer } from "@/state/customer"
 
 /* Customer sign in. Phone or email, password. The admin answers wrong
-   identifier and wrong password with the same sentence on purpose. */
+   identifier and wrong password with the same sentence on purpose; it shows
+   in red directly above the Sign in button (Block S2). A sign-up that hit an
+   existing account sends the typed email or phone along in location state
+   so it is filled in here, and returnTo brings the customer back to the
+   checkout step they left, cart and date intact. */
+
+type Handed = { returnTo?: unknown; identifier?: unknown } | null
 
 export default function PartySignIn() {
   const navigate = useNavigate()
   const location = useLocation()
-  // A booking in progress can send someone here to sign in and come back.
-  const returnTo = typeof (location.state as { returnTo?: unknown } | null)?.returnTo === "string" ? (location.state as { returnTo: string }).returnTo : "/party"
+  const handed = location.state as Handed
+  const returnTo = typeof handed?.returnTo === "string" ? handed.returnTo : "/party"
   const { setCustomer } = useCustomer()
-  const [identifier, setIdentifier] = useState("")
+  const [identifier, setIdentifier] = useState(typeof handed?.identifier === "string" ? handed.identifier : "")
   const [password, setPassword] = useState("")
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
@@ -56,14 +63,12 @@ export default function PartySignIn() {
           <Input
             type="password"
             autoComplete="current-password"
+            autoFocus={identifier !== ""}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           <button type="submit" className="hidden" aria-hidden />
         </form>
-        {notice && (
-          <div className="mt-3.5 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">{notice}</div>
-        )}
         <p className="mt-3.5 text-small text-muted">
           New here?{" "}
           <Link to="/party/signup" className="inline-flex min-h-[44px] items-center font-bold text-charcoal">
@@ -71,6 +76,7 @@ export default function PartySignIn() {
           </Link>
         </p>
       </Body>
+      {notice && <ErrorNotice className="mx-5 mb-2">{notice}</ErrorNotice>}
       <Foot>
         <Button variant="ghost" onClick={() => navigate("/party")}>Back</Button>
         <Button disabled={!canSubmit} onClick={() => submit()}>Sign in</Button>

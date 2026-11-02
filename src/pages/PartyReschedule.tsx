@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
+import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { GoLabel } from "@/components/go/GoLabel"
 import { MetaCard } from "@/components/go/MetaCard"
 import { ItemWhen } from "@/components/go/ItemWhen"
@@ -13,7 +14,8 @@ import { useCustomer } from "@/state/customer"
 /* Reschedule one booking. Same date and time picker as the direct booking,
    checked live against the booking's item. The admin re-locks a unit on the
    new date before releasing the old one, so a taken date leaves the booking
-   exactly as it was; its message is shown as sent. */
+   exactly as it was; its message is shown as sent, in red directly above
+   the Move it button (S2). */
 
 const monthIndexFor = (iso: string) => {
   const [y, m] = iso.split("-").map(Number)
@@ -96,10 +98,8 @@ export default function PartyReschedule() {
             onAvailable={setAvailable}
           />
         )}
-        {notice && (
-          <div className="mt-3.5 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">{notice}</div>
-        )}
       </Body>
+      {notice && <ErrorNotice className="mx-5 mb-2">{notice}</ErrorNotice>}
       <Foot>
         <Button variant="ghost" onClick={() => navigate("/party")}>Back</Button>
         <Button disabled={!canSubmit} onClick={submit}>Move it</Button>

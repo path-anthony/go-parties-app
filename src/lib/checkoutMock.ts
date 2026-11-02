@@ -14,6 +14,7 @@ import type { TierInfo, TierInput, TierResult } from "@/lib/tierApi"
      tier2-changed  tier 2 whose first hold is refused contract-changed
      tier2-retier   tier 2 whose first hold is refused tier-changed; the cart is tier 1 after that
      tier3          a review booking: the hold answers 202
+     tier1-taken    tier 1 whose first hold is refused (409 unavailable, the admin's own words); the next one holds
    Nothing here touches the admin. */
 
 const POLICY = {
@@ -73,6 +74,10 @@ export async function mockHold(input: { itemIds: string[]; eventDate: string; ev
   })
   if (scenario === "tier3") {
     return { ok: true, kind: "review", review: { designRequestId: "dr_mock", eventDate: input.eventDate, total: 18400, message: "This one goes to our team first." } }
+  }
+  if (scenario === "tier1-taken" && !refusedOnce) {
+    refusedOnce = true
+    return { ok: false, reason: "unavailable", message: "Test Gladiator Bounce House is booked solid that day. Pick another date." }
   }
   if (scenario === "tier2-expired" && !refusedOnce) {
     refusedOnce = true

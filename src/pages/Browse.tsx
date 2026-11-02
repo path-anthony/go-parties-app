@@ -20,8 +20,8 @@ import { cn } from "@/lib/utils"
    &sort=&q=) so links share and Back works. Desktop: a sticky sidebar and
    the sort at the grid's top right; phone: a Filters button and the sort
    select side by side, the filters in a bottom panel. Add puts the item in
-   Your party and opens the drawer; an item with add-on groups answers them
-   first; tapping Add on something already in Your party only opens the
+   the cart and opens the drawer; an item with add-on groups answers them
+   first; tapping Add on something already in the cart only opens the
    drawer, where the quantity lives. Availability is the admin's answer for the date in the booking
    store; with no date, cards show no line and the filter is off. */
 
@@ -110,7 +110,7 @@ export default function Browse() {
   const add = (item: PublicItem) => {
     const have = inCart(item.id)
     if (have) {
-      // Already in Your party: just show it. Quantity changes live in the drawer.
+      // Already in the cart: just show it. Quantity changes live in the drawer.
     } else if (needsConfig(item)) {
       setConfiguring(item)
       return
@@ -218,7 +218,7 @@ export default function Browse() {
           )}
           <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2.5">
             <span className="text-[13px] text-charcoal-soft">
-              {catalog.status === "ready" ? `${results.length} of ${all.length} items` : catalog.status === "failed" ? "That didn't go through. Try again, or text us." : "Loading the catalog."}
+              {catalog.status === "ready" ? `${results.length} of ${all.length} items` : catalog.status === "failed" ? <span className="font-semibold text-error">That didn't go through. Try again, or text us.</span> : "Loading the catalog."}
             </span>
             <div className="hidden min-[901px]:block">{sortSelect("rounded-[8px] border border-line bg-white px-2.5 py-1.5 text-[13px] text-charcoal")}</div>
           </div>

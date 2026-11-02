@@ -13,6 +13,8 @@
   --color-orange-deep: #D9820A;
   --color-orange-tint: #FDF1E0;
   --color-good: #3E8E4A;
+  --color-error: #B23A2E;
+  --color-error-tint: #FBEAE8;
 
   --font-sans: "Inter", system-ui, sans-serif;
   /* The contract page only: a document face, from the device (no download). */

@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useState } from "react"
 import type { OccasionId } from "@/data/catalog"
-import type { BalancePreference, DirectBooking, ReviewReceipt } from "@/lib/adminApi"
+import type { DirectBooking, ReviewReceipt } from "@/lib/adminApi"
 import type { PaymentOffer } from "@/lib/paymentApi"
 import type { TierInfo } from "@/lib/tierApi"
 import type { SignatureValues } from "@/components/go/contract/signature"
@@ -56,8 +56,8 @@ export interface BookingState {
   contactName: string
   phone: string
   email: string
+  /* Required since S2: the "add it later" switch is gone. */
   address: string
-  addressLater: boolean
   /* Block M: the address as Google verified it (a full street address with
      its point), the setup pin, and the notes for the crew. Null until a
      suggestion is picked; cleared only when the address text changes, so
@@ -72,9 +72,6 @@ export interface BookingState {
      cart was started, in milliseconds. */
   hp: string
   formStartedAt: number
-  /* How the remaining balance should be handled. Auto-charge is what the
-     screen opens on; it is only a preference the admin records. */
-  balancePref: BalancePreference
   /* The admin's tier answer for this cart and date, with the contract quote
      when it is tier 2. Null until asked, and cleared by anything that changes
      what the contract would say (items, picks, package, date, time,
@@ -105,14 +102,12 @@ const INITIAL: BookingState = {
   phone: "",
   email: "",
   address: "",
-  addressLater: false,
   verified: null,
   setup: null,
   setupNotes: "",
   agreed: false,
   hp: "",
   formStartedAt: 0,
-  balancePref: "Auto-charge",
   tier: null,
   signature: { name: "", additional: "", consent: false },
   payment: null,

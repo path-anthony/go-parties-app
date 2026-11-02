@@ -9,14 +9,17 @@ import { retryCatalog, useAllPackages, useCatalog } from "@/lib/storeCatalog"
 import { fmt } from "@/data/catalog"
 import { useBooking, type DirectItem } from "@/state/booking"
 import { useStoreUi } from "@/state/store"
+import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { useAsk } from "@/state/ask"
 import { cn } from "@/lib/utils"
 
 /* Home (Block S1): the hero with no buttons, then the two ways to start
    (Build my party with Ask GO, or Shop by category), then the party
    packages. On a phone the two ways are tabs and one panel shows at a
-   time; on a desktop both panels show in order. Packages come from
-   /api/packages/public (every group, merged). Nothing else lives here. */
+   time (one segmented switch under "How do you want to plan?", S2); on a
+   desktop both panels show in order. Packages come from
+   /api/packages/public (every group, merged). A catalog that will not load
+   says so in red (S2). Nothing else lives here. */
 
 /* Each hero photo ships as WebP with a JPEG fallback, 1200px wide, under
    180 KB each (the originals live in reference/photos-original, out of
@@ -157,12 +160,12 @@ function ShopPanel({ id, labelledBy }: { id?: string; labelledBy?: string }) {
       </div>
       {catalog.status === "loading" && <p className="mb-3 text-body text-muted">Loading the catalog.</p>}
       {catalog.status === "failed" && (
-        <p className="mb-3 text-body text-charcoal">
+        <ErrorNotice className="mb-3" scroll={false}>
           That didn't go through.{" "}
           <button className="min-h-[44px] font-bold underline underline-offset-2" onClick={retryCatalog}>
             Try again
           </button>
-        </p>
+        </ErrorNotice>
       )}
       <div className="grid grid-cols-2 gap-2.5 min-[641px]:grid-cols-4 min-[641px]:gap-3.5">
         {catalog.status === "loading" &&
@@ -232,7 +235,7 @@ function Packages() {
         <h2 className="text-[21px] font-extrabold tracking-[-.01em] text-charcoal">Party packages</h2>
       </div>
       {packages.status === "loading" && <p className="text-body text-muted">Finding packages.</p>}
-      {packages.status === "failed" && <p className="text-body text-charcoal">That didn't go through. Try again, or text us.</p>}
+      {packages.status === "failed" && <ErrorNotice scroll={false}>That didn't go through. Try again, or text us.</ErrorNotice>}
       {packages.status === "ready" && packages.list.length === 0 && <p className="text-body text-charcoal-soft">No packages yet. Ask GO can build one, or shop by category.</p>}
       {packages.status === "ready" && packages.list.length > 0 && (
         <div className="grid gap-3.5 min-[641px]:grid-cols-2 min-[901px]:grid-cols-3">
@@ -279,29 +282,30 @@ export default function Home() {
       <div className="rise grid gap-7 py-4 min-[641px]:gap-9 min-[641px]:py-6">
         <Hero />
         <div className="grid gap-3 min-[641px]:gap-7">
-          <div role="tablist" aria-label="How do you want to plan?" className="grid grid-cols-2 gap-2 min-[641px]:hidden">
-            {(
-              [
-                ["build", "Build my party", "Tell GO what you're planning"],
-                ["shop", "Shop by category", "Pick items yourself"],
-              ] as const
-            ).map(([id, label, sub]) => (
-              <button
-                key={id}
-                id={`door-${id}`}
-                role="tab"
-                aria-selected={door === id}
-                aria-controls={`panel-${id}`}
-                className={cn(
-                  "grid min-h-[64px] gap-0.5 rounded-[12px] border px-3 py-3 text-left",
-                  door === id ? "border-charcoal bg-charcoal text-white" : "border-line bg-white text-charcoal"
-                )}
-                onClick={() => setDoor(id)}
-              >
-                <b className="text-[15px]">{label}</b>
-                <small className={cn("text-[12px]", door === id ? "text-[#CFC8C2]" : "text-muted")}>{sub}</small>
-              </button>
-            ))}
+          <div className="min-[641px]:hidden">
+            <small id="door-label" className="block text-[10.5px] font-bold tracking-[.14em] text-taupe uppercase">How do you want to plan?</small>
+            {/* One segmented switch: a light grey track, the chosen side a charcoal pill. */}
+            <div role="tablist" aria-labelledby="door-label" className="mt-1.5 grid w-full grid-cols-2 gap-1 rounded-[12px] bg-[#EDE8E1] p-1">
+              {(
+                [
+                  ["build", "Build my party", "Tell GO what you're planning"],
+                  ["shop", "Shop by category", "Pick items yourself"],
+                ] as const
+              ).map(([id, label, sub]) => (
+                <button
+                  key={id}
+                  id={`door-${id}`}
+                  role="tab"
+                  aria-selected={door === id}
+                  aria-controls={`panel-${id}`}
+                  className={cn("grid min-h-[56px] gap-0.5 rounded-[9px] px-3 py-2 text-left", door === id ? "bg-charcoal text-white" : "text-charcoal")}
+                  onClick={() => setDoor(id)}
+                >
+                  <b className="text-[15px]">{label}</b>
+                  <small className={cn("text-[12px]", door === id ? "text-[#CFC8C2]" : "text-charcoal-soft")}>{sub}</small>
+                </button>
+              ))}
+            </div>
           </div>
           <div className={cn(door === "build" ? "" : "hidden", "min-[641px]:block")}>
             <BuildPanel id="panel-build" labelledBy="door-build" />

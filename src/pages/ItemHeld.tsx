@@ -30,8 +30,8 @@ export default function ItemHeld() {
   const day = labelForIso(direct.eventDate)
   const clock = clockFor(b.itemTime)
   const when = clock ? `${day}, ${clock}` : day
-  const where = b.addressLater || b.address.trim() === "" ? "We'll text you for it" : b.address.trim()
-  const setupNote = !b.addressLater && b.verified && b.setupNotes.trim() ? `Setup: ${b.setupNotes.trim()}` : null
+  const where = b.address.trim() === "" ? "We'll text you for it" : b.address.trim()
+  const setupNote = b.verified && b.setupNotes.trim() ? `Setup: ${b.setupNotes.trim()}` : null
   const names = bookedNames(direct)
   // Each item's line carries its own add-ons under it. The admin's record
   // of what it sold is the truth (names and prices as booked, tied to the

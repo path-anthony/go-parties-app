@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { AppShell, Body } from "@/components/go/AppShell"
+import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { GoLabel } from "@/components/go/GoLabel"
 import { Reveal } from "@/components/go/DatePicker"
 import { customerApi, whatOf, whenOf, type BookingStep, type CustomerBooking } from "@/lib/customerApi"
@@ -14,8 +15,9 @@ import { cn } from "@/lib/utils"
 
 /* Screen 12, My party. Signed in: the customer's real bookings from
    go-parties-admin, each with Reschedule, Change item and Cancel (Cancel asks
-   first, inline, never a popup). Signed out: the doors to sign in or sign
-   up. */
+   first, inline, never a popup; a refusal is the red notice directly above
+   the Keep it / Cancel it buttons, S2). Signed out: the doors to sign in or
+   sign up. */
 
 /* Moved here from Home. A stub until real personalization exists: no logic,
    just the place where picks will show up. */
@@ -167,6 +169,7 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
       <Reveal open={confirming} className="mt-3">
         <div className="rounded-[12px] border border-line bg-cream px-3.5 py-3 text-sm text-charcoal">
           Cancel this booking? The date opens back up.
+          {notice && <ErrorNotice className="mt-2.5">{notice}</ErrorNotice>}
           <div className="mt-2.5 flex gap-2">
             <Button variant="ghost" size="sm" onClick={() => setConfirming(false)} disabled={busy}>
               Keep it
@@ -177,7 +180,6 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
           </div>
         </div>
       </Reveal>
-      {notice && <p className="mt-2.5 text-small text-charcoal">{notice}</p>}
     </div>
   )
 }
@@ -238,7 +240,7 @@ export default function MyParty() {
         <GoLabel>My party</GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">{first ? `Hey ${first}` : "Your bookings"}</h1>
         {bookings === null && <p className="mt-2 text-body text-muted">Checking the calendar.</p>}
-        {loadError && <p className="mt-2 text-body text-charcoal">{loadError}</p>}
+        {loadError && <ErrorNotice className="mt-3">{loadError}</ErrorNotice>}
         {bookings && bookings.length === 0 && !loadError && (
           <>
             <p className="mt-2 text-body text-charcoal-soft">Nothing here yet. Build a party and it'll live here.</p>

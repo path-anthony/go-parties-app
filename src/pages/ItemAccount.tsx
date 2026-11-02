@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link, Navigate, useNavigate, useParams } from "react-router-dom"
+import { Navigate, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
@@ -9,9 +9,10 @@ import { CartItems } from "@/components/go/CartItems"
 import { CheckoutConcierge } from "@/components/go/CheckoutConcierge"
 import { Honeypot } from "@/components/go/Honeypot"
 import { CheckoutAgreement } from "@/components/go/CheckoutAgreement"
-import { BalancePreference } from "@/components/go/BalancePreference"
+import { BalanceLine, CheckoutNext } from "@/components/go/CheckoutNotes"
+import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { Reveal } from "@/components/go/DatePicker"
-import { SignUpFields } from "@/components/go/SignUpFields"
+import { SignUpFields, SignUpNotice } from "@/components/go/SignUpFields"
 import { labelForIso } from "@/lib/availability"
 import { bookDirect, type DirectReason } from "@/lib/adminApi"
 import { directInput, tierInput } from "@/lib/directInput"
@@ -32,7 +33,10 @@ import { useCustomer } from "@/state/customer"
    customers never see this screen. A refusal that isn't about the date
    shows the bank's calm line and a Try again with everything typed still
    in place; if the sign-up went through and only the booking failed, the
-   who screen takes over (the account is real now) and gets the notice. */
+   who screen takes over (the account is real now) and gets the notice.
+   Every refusal is the red notice directly above the button (S2); a phone
+   or email that already has an account shows under its field with a Sign
+   in door that comes back to the who screen, cart and date kept. */
 
 type Choice = "account" | "guest" | null
 type Notice = { reason: DirectReason; message: string }
@@ -42,7 +46,7 @@ export default function ItemAccount() {
   const { id } = useParams()
   const b = useBooking()
   const { customer, ready } = useCustomer()
-  const { signUp, busy: signingUp, notice: signUpNotice, setNotice: setSignUpNotice } = useSignUp()
+  const { signUp, busy: signingUp, problem, setProblem } = useSignUp()
   const [choice, setChoice] = useState<Choice>(null)
   const [values, setValues] = useState<SignUpValues>({ name: b.contactName, phone: b.phone, email: b.email, password: "" })
   const [booking, setBooking] = useState(false)
@@ -102,10 +106,14 @@ export default function ItemAccount() {
     setBooking(false)
   }
 
+  // Sign in with what was typed, and come back here with the cart and date.
+  const signIn = () =>
+    navigate("/party/signin", { state: { returnTo: `/item/${firstId}/who`, identifier: problem?.taken === "phone" ? values.phone.trim() : values.email.trim() } })
+
   const hold = async () => {
     if (!canHold) return
     setNotice(null)
-    setSignUpNotice(null)
+    setProblem(null)
     let who = customer
     if (choice === "account") {
       who = await signUp(values)
@@ -180,53 +188,44 @@ export default function ItemAccount() {
           </Chip>
         </div>
         <Reveal open={choice === "account"} max="max-h-[44rem]" className="mt-3.5 pb-1">
-          <SignUpFields values={values} onChange={setValues} onSubmit={hold} />
-          {signUpNotice && (
-            <div className="mt-3.5 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
-              {signUpNotice}{" "}
-              {/sign in/i.test(signUpNotice) && (
-                <Link to="/party/signin" state={{ returnTo: `/item/${firstId}/who` }} className="font-bold text-charcoal">
-                  Sign in
-                </Link>
-              )}
-            </div>
-          )}
+          <SignUpFields values={values} problem={problem} onChange={setValues} onSubmit={hold} onSignIn={signIn} />
         </Reveal>
-        {notice && (
-          <div className="mt-3.5 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
-            {notice.message}
-            {notice.reason === "unavailable" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-2.5 block"
-                onClick={() => {
-                  b.set("itemDate", null)
-                  navigate(`/item/${firstId}`)
-                }}
-              >
-                Pick another date
-              </Button>
-            )}
-            {notice.reason === "addons" && (
-              <Button variant="ghost" size="sm" className="mt-2.5 block" onClick={() => navigate(`/item/${firstId}/options`, { state: { from: here } })}>
-                Pick options
-              </Button>
-            )}
-            {notice.reason === "error" && (
-              <Button variant="ghost" size="sm" className="mt-2.5 block" disabled={!canHold} onClick={hold}>
-                Try again
-              </Button>
-            )}
-          </div>
-        )}
-        <p className="mt-2.5 text-small text-muted">Nothing to pay right now. We'll reach out to confirm and finish your booking.</p>
         <Honeypot value={b.hp} onChange={(v) => b.set("hp", v)} />
-        <BalancePreference className="mt-4" />
+        <CheckoutNext tier={tier} className="mt-3.5" />
+        <BalanceLine className="mt-1.5" />
         {tier !== 2 && <CheckoutAgreement className="mt-4" />}
-        {tier === 2 && <p className="mt-4 text-small text-charcoal-soft">This booking comes with a contract. You'll read and sign it on the next screen.</p>}
         <CheckoutConcierge className="mt-1.5" />
       </Body>
+      {/* Refusals sit directly above the button that was tapped. */}
+      <SignUpNotice problem={problem} onSignIn={signIn} className="mx-5 mb-2" />
+      {notice && (
+        <ErrorNotice className="mx-5 mb-2">
+          {notice.message}
+          {notice.reason === "unavailable" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2.5 block"
+              onClick={() => {
+                b.set("itemDate", null)
+                navigate(`/item/${firstId}`)
+              }}
+            >
+              Pick another date
+            </Button>
+          )}
+          {notice.reason === "addons" && (
+            <Button variant="ghost" size="sm" className="mt-2.5 block" onClick={() => navigate(`/item/${firstId}/options`, { state: { from: here } })}>
+              Pick options
+            </Button>
+          )}
+          {notice.reason === "error" && (
+            <Button variant="ghost" size="sm" className="mt-2.5 block" disabled={!canHold} onClick={hold}>
+              Try again
+            </Button>
+          )}
+        </ErrorNotice>
+      )}
       <Foot>
         <Button variant="ghost" onClick={() => navigate(`/item/${firstId}/who`)}>Back</Button>
         <Button disabled={!canHold} onClick={hold}>{tier === 2 ? "Next" : "Hold my date"}</Button>

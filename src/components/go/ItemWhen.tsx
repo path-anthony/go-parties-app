@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { MonthCalendar, Reveal } from "@/components/go/DatePicker"
 import { TimeField } from "@/components/go/TimeField"
+import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { usePublicSettings } from "@/lib/settings"
 import { isShortNotice } from "@/lib/rush"
 import { checkAvailability, type Availability } from "@/lib/adminApi"
@@ -78,9 +79,11 @@ export function ItemWhen({ items, month, onMonth, iso, onIso, time, onTime, onAv
       <MonthCalendar month={month} onMonth={onMonth} selected={iso} onPick={onIso} />
       <p className="mt-1 text-[11.5px] text-muted">Tap a day. We check the calendar live.</p>
       <Reveal open={!!current} className="mt-3.5">
+        {current?.state === "error" ? (
+          <ErrorNotice scroll={false}>That didn't go through. Try again, or text us.</ErrorNotice>
+        ) : (
         <div className="rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
           {current?.state === "loading" && <span className="text-muted">Checking the calendar.</span>}
-          {current?.state === "error" && "That didn't go through. Try again, or text us."}
           {current?.state === "done" && single && results[0] && !results[0].directBooking && results[0].message}
           {current?.state === "done" && single && results[0] && isOpen(results[0], needOf(items[0])) && (
             <span className="flex items-center gap-2.5">
@@ -117,6 +120,7 @@ export function ItemWhen({ items, month, onMonth, iso, onIso, time, onTime, onAv
             </div>
           )}
         </div>
+        )}
       </Reveal>
       <Reveal open={available && rush} className="mt-3.5">
         {rush && settings && (

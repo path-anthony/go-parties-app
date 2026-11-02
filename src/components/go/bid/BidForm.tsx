@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { GoLabel } from "@/components/go/GoLabel"
 import { GigFacts } from "@/components/go/bid/GigFacts"
 import { easternWhen, money, payLine } from "@/components/go/bid/format"
@@ -10,8 +11,8 @@ import { declineBid, loadBid, submitBid, type BidGig } from "@/lib/bidApi"
    amount for the whole gig (whole dollars, digits only), an optional short
    note, Submit bid (Update bid once one is in) and Decline, which asks first,
    inline, never a popup. The admin is the authority on every rule (the
-   deadline, whether the gig is still open); a refusal is shown in our words,
-   and one that means the gig moved on (bids closed, filled, not open) sends
+   deadline, whether the gig is still open); a refusal is shown in our words
+   as the red notice directly above the buttons (S2), and one that means the gig moved on (bids closed, filled, not open) sends
    the page to the gig's real state instead of leaving a dead form. */
 
 const NOTE_MAX = 200
@@ -116,11 +117,7 @@ export function BidForm({ token, gig, onGig }: { token: string; gig: BidGig; onG
           {note.length} of {NOTE_MAX}
         </p>
 
-        {error && (
-          <div role="alert" className="mt-3 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
-            {error}
-          </div>
-        )}
+        {error && <ErrorNotice className="mt-3">{error}</ErrorNotice>}
 
         <div className="mt-4 flex gap-2.5 [&>button]:flex-1">
           <Button type="button" variant="ghost" disabled={busy} onClick={() => setConfirming((v) => !v)}>

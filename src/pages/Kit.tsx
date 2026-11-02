@@ -6,6 +6,7 @@ import { AppShell, Body } from "@/components/go/AppShell"
 import { Progress } from "@/components/go/Progress"
 import { GoLabel } from "@/components/go/GoLabel"
 import { Chip } from "@/components/go/Chip"
+import { ErrorNotice, FieldError } from "@/components/go/ErrorNotice"
 import { MonthCalendar } from "@/components/go/DatePicker"
 import { TimeField } from "@/components/go/TimeField"
 import { ImagePlaceholder } from "@/components/go/ImagePlaceholder"
@@ -89,6 +90,21 @@ export default function Kit() {
           </div>
           <TimeField value={time} onChange={setTime} />
         </div>
+
+        <GoLabel className="mt-6">Errors</GoLabel>
+        <div className="mt-2 grid gap-2">
+          <div>
+            <Input placeholder="you@email.com" defaultValue="sarah@email" aria-invalid aria-describedby="kit-field-error" />
+            <FieldError id="kit-field-error">Please choose your full street address from the list.</FieldError>
+          </div>
+          <ErrorNotice scroll={false}>
+            That didn't go through. Try again, or text us.
+            <Button variant="ghost" size="sm" className="mt-2.5 block">
+              Try again
+            </Button>
+          </ErrorNotice>
+        </div>
+        <p className="mt-1.5 text-small text-muted">The one error style: red on a light red ground with a red left rule, directly above the button that failed; a field in error gets a red border with the line under it.</p>
 
         <GoLabel className="mt-6">Chips</GoLabel>
         <div className="mt-2 grid grid-cols-3 gap-2">

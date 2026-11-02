@@ -11,7 +11,7 @@ import { TIER_LINE, useCartTier, useRetainer } from "@/hooks/use-cart-tier"
 import { useBooking } from "@/state/booking"
 import { useStoreUi } from "@/state/store"
 
-/* Your party, the drawer (Block S1): from the right on a desktop, a bottom
+/* The cart drawer (Block S1, named Cart since S2): from the right on a desktop, a bottom
    sheet up to 80% on a phone. One line per item with a small image, the
    name, qty x price, a "-" / "+" quantity control when the date has more
    than one free unit (capped there), and a "Remove" text button. The footer has the total,
@@ -63,7 +63,7 @@ export function PartyDrawer() {
       <DrawerContent className="max-h-[80vh] data-[vaul-drawer-direction=right]:max-h-none data-[vaul-drawer-direction=right]:w-[420px] data-[vaul-drawer-direction=right]:max-w-[92vw]">
         <div className="flex min-h-0 flex-1 flex-col">
           <DrawerTitle className="flex items-center justify-between border-b border-line px-5 py-3.5 text-base font-extrabold text-charcoal">
-            <span className="min-w-0 truncate">Your party{b.itemDate ? ` · ${labelForIso(b.itemDate)}` : ""}</span>
+            <span className="min-w-0 truncate">Cart{b.itemDate ? ` · ${labelForIso(b.itemDate)}` : ""}</span>
             <DrawerClose asChild>
               <button className="min-h-[44px] px-2 text-sm font-bold text-charcoal">Close</button>
             </DrawerClose>

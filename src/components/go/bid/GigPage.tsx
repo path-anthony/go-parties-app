@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { GoLabel } from "@/components/go/GoLabel"
 import { GigFacts } from "@/components/go/bid/GigFacts"
 import { easternWhen, usPhone } from "@/components/go/bid/format"
@@ -8,7 +9,8 @@ import { askQuestion, confirmSet, type BidGig } from "@/lib/bidApi"
 /* After the bid is accepted, the same link is the gig page: the full address,
    arrival notes, a number to call, "I'm set" to confirm, and a short question
    box with what has been asked. Every optional line is left out when the
-   admin has nothing for it. Reminder texts land here. */
+   admin has nothing for it. Reminder texts land here. A refusal is the red
+   notice directly above the button it came from (S2). */
 
 const QUESTION_MAX = 500
 
@@ -93,14 +95,10 @@ export function GigPage({ token, gig, onGig }: { token: string; gig: BidGig; onG
           </div>
         ) : (
           <>
+            {error && <ErrorNotice className="mb-3">{error}</ErrorNotice>}
             <Button className="w-full" disabled={busy} onClick={imSet}>
               {busy ? "Sending" : "I'm set"}
             </Button>
-            {error && (
-              <div role="alert" className={`mt-3 ${card} text-sm text-charcoal`}>
-                {error}
-              </div>
-            )}
           </>
         )}
       </div>
@@ -131,11 +129,7 @@ export function GigPage({ token, gig, onGig }: { token: string; gig: BidGig; onG
         <p className="mt-1 text-right text-small text-muted">
           {text.length} of {QUESTION_MAX}
         </p>
-        {askError && (
-          <div role="alert" className={`mt-2 ${card} text-sm text-charcoal`}>
-            {askError}
-          </div>
-        )}
+        {askError && <ErrorNotice className="mt-2">{askError}</ErrorNotice>}
         {sent && <p className="mt-2 text-small text-charcoal-soft">Sent. GO will call or text you back.</p>}
         <Button type="submit" variant="ghost" className="mt-2.5 w-full" disabled={!text.trim() || asking}>
           {asking ? "Sending" : "Send question"}

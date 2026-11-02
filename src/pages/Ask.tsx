@@ -16,20 +16,22 @@ import { fetchTier, type TierInfo } from "@/lib/tierApi"
 import { tierInput } from "@/lib/directInput"
 import type { ConciergeContext } from "@/lib/concierge"
 import { useToast } from "@/hooks/use-toast"
+import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { useBooking, type DirectItem } from "@/state/booking"
 import { OPENER, useAsk } from "@/state/ask"
 import { cn } from "@/lib/utils"
 
-/* Ask GO, the page (Block S1). Desktop: the chat on the left, Your party
-   on the right. Phone and tablet (900px and under): a Chat / Your party
-   switch pinned under the header, one pane at a time, and a dark bar
+/* Ask GO, the page (Block S1; the party it builds is "Cart" since S2).
+   Desktop: the chat on the left, the cart on the right. Phone and tablet
+   (900px and under): a Chat / Cart switch pinned under the header, one pane at a time, and a dark bar
    pinned at the bottom with the total and the way across. The chat never
    renders the party; it shows a short summary card after each change.
-   The party panel lists each item with Swap (up to 3 others in the same
+   The cart panel lists each item with Swap (up to 3 others in the same
    category, free on the date, not already in the party) and Remove, then
    the count, total, the retainer due today, a one-line tier note and
-   "Book this party", which loads the items into Your party and opens
-   checkout. The backend call and its caps are unchanged. */
+   "Book this party", which loads the items into the cart and opens
+   checkout. A failed send or switch shows the red notice directly above
+   the button it belongs to (S2). The backend call and its caps are unchanged. */
 
 const QUICK = ["Add something for the parents", "Keep it under $800", "It might rain"]
 
@@ -148,7 +150,7 @@ export default function Ask() {
     <div className="flex items-center justify-between gap-3 rounded-[12px] border border-line bg-white px-3.5 py-3">
       <div>
         <b className="block text-sm text-charcoal">
-          Your party: {party.length} {party.length === 1 ? "item" : "items"}, {fmt(total)}
+          Your cart: {party.length} {party.length === 1 ? "item" : "items"}, {fmt(total)}
         </b>
         <small className="text-small text-muted">Updated just now</small>
       </div>
@@ -166,7 +168,7 @@ export default function Ask() {
             Chat
           </button>
           <button aria-pressed={pane === "party"} className={cn("min-h-[44px] rounded-[9px] text-[14px] font-bold", pane === "party" ? "bg-charcoal text-white" : "text-charcoal")} onClick={showParty}>
-            Your party ({party.length})
+            Cart ({party.length})
           </button>
         </div>
 
@@ -179,7 +181,6 @@ export default function Ask() {
             </div>
           ))}
           {ask.loading && <div className={cn(bubble, "border border-line bg-white text-muted")}>Thinking.</div>}
-          {ask.error && <div className={cn(bubble, "border border-line bg-white text-charcoal")}>{ask.error}</div>}
           {ask.suggestConcierge && !changeFor && (
             <div className="rounded-[12px] border border-line bg-white px-3.5 py-3 text-[14px] text-charcoal">
               <b className="block font-bold">Want to talk it through instead?</b>
@@ -195,6 +196,7 @@ export default function Ask() {
               </button>
             ))}
           </div>
+          {ask.error && <ErrorNotice>{ask.error}</ErrorNotice>}
           <form
             className="flex gap-2"
             onSubmit={(e) => {
@@ -218,11 +220,11 @@ export default function Ask() {
           </form>
         </section>
 
-        <section aria-label="Your party" className={cn("overflow-hidden rounded-[14px] border border-line bg-white", pane === "party" ? "pb-0" : "hidden min-[901px]:block")}>
+        <section aria-label="Cart" className={cn("overflow-hidden rounded-[14px] border border-line bg-white", pane === "party" ? "pb-0" : "hidden min-[901px]:block")}>
           <div className="bg-charcoal px-4 py-3.5 text-white">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-[19px] font-extrabold">Your party</h2>
+                <h2 className="text-[19px] font-extrabold">Cart</h2>
                 <small className="block text-[12.5px] text-[#CFC8C2]">
                   {dayLabel ?? "No date yet"}
                   {b.subOcc ? ` · ${b.subOcc}` : ""}
@@ -232,7 +234,8 @@ export default function Ask() {
             </div>
           </div>
           <div className="px-4">
-            {party.length === 0 && <p className="py-5 text-body text-charcoal-soft">Your party is empty. Ask GO or add items from the shop.</p>}
+            {party.length === 0 && <p className="py-5 text-body text-charcoal-soft">Your cart is empty. Ask GO or add items from the shop.</p>}
+            {switchNotice && <ErrorNotice className="mt-3">{switchNotice}</ErrorNotice>}
             {party.map((item, k) => (
               <div key={`${item.id}-${k}`} className="border-b border-line py-3 last:border-b-0">
                 <div className="flex items-center gap-3">
@@ -286,7 +289,6 @@ export default function Ask() {
                 )}
               </div>
             ))}
-            {switchNotice && <p className="py-2 text-small text-charcoal">{switchNotice}</p>}
           </div>
           {!changeFor && (
             <>
@@ -331,12 +333,12 @@ export default function Ask() {
             <>
               <div className="min-w-0">
                 <b className="block truncate text-sm">
-                  Your party: {party.length} {party.length === 1 ? "item" : "items"} · {fmt(total)}
+                  Cart: {party.length} {party.length === 1 ? "item" : "items"} · {fmt(total)}
                 </b>
                 <small className="block text-[12px] text-[#CFC8C2]">{ask.updated ? "GO just updated it" : dayLabel ? `Built for ${dayLabel}` : "Built from the catalog"}</small>
               </div>
               <Button size="sm" className="min-h-[44px] flex-none" onClick={showParty}>
-                See your party
+                See your cart
               </Button>
             </>
           ) : (

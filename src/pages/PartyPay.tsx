@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
+import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { GoLabel } from "@/components/go/GoLabel"
 import { MetaCard } from "@/components/go/MetaCard"
 import { PAYMENT_SOON, PAYMENT_SOON_BALANCE, PaymentForm } from "@/components/go/PaymentForm"
@@ -13,7 +14,8 @@ import { useCustomer } from "@/state/customer"
 /* Paying from the portal: the retainer (?kind=retainer) or the balance
    (?kind=balance). The admin mints the session for this booking, the form is
    Stripe's embedded one, and paid means the admin said so. "Nothing due" and
-   "not payable yet" are said as they are. */
+   "not payable yet" are said as they are; a session that would not mint is
+   the red notice with Try again (S2). */
 
 const usd = (n: number) => "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
@@ -97,12 +99,12 @@ function PartyPayFor({ id, kind }: { id: string; kind: "retainer" | "balance" })
         {state.kind === "nothing-due" && <p className="mt-4 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">Nothing is due right now.</p>}
         {state.kind === "not-payable" && <p className="mt-4 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">{kind === "balance" ? PAYMENT_SOON_BALANCE : PAYMENT_SOON}</p>}
         {state.kind === "error" && (
-          <div className="mt-4 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
+          <ErrorNotice className="mt-4">
             {state.message}
             <Button variant="ghost" size="sm" className="mt-2.5 block" onClick={load}>
               Try again
             </Button>
-          </div>
+          </ErrorNotice>
         )}
         {offer && (
           <>

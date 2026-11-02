@@ -2,7 +2,7 @@ import type { BookingState } from "@/state/booking"
 import type { Customer } from "@/lib/customerApi"
 import { OCC, clockLabel } from "@/data/catalog"
 import { addonsPayload } from "@/lib/addons"
-import type { HoldSignature } from "@/lib/adminApi"
+import type { BalancePreference, HoldSignature } from "@/lib/adminApi"
 import type { TierInput } from "@/lib/tierApi"
 import type { Delivery } from "@/lib/places"
 
@@ -53,10 +53,10 @@ export function holdSignature(b: BookingState): HoldSignature | null {
 }
 
 /* The delivery object as locked: the verified address, its point, the setup
-   pin and the notes. Null when the address is skipped, typed without a
-   pick (no key), or never verified. */
+   pin and the notes. Null when the address was typed without a pick (no
+   key) or never verified. */
 export function deliveryOf(b: BookingState): Delivery | null {
-  if (b.addressLater || !b.verified) return null
+  if (!b.verified) return null
   const setup = b.setup ?? { lat: b.verified.addressLat, lng: b.verified.addressLng }
   return { ...b.verified, setupLat: setup.lat, setupLng: setup.lng, setupNotes: b.setupNotes.trim() }
 }
@@ -73,7 +73,7 @@ export function directInput(b: BookingState, customer: Customer | null) {
     customerName: customer ? customer.name?.trim() || typedName : typedName,
     phone: customer ? customer.phone : b.phone.trim(),
     email: customer ? customer.email : b.email.trim(),
-    address: delivery ? delivery.formattedAddress : b.addressLater ? null : b.address.trim() || null,
+    address: delivery ? delivery.formattedAddress : b.address.trim() || null,
     delivery,
     eventTime: clockLabel(b.itemTime),
     occasion: occasionOf(b),
@@ -81,7 +81,10 @@ export function directInput(b: BookingState, customer: Customer | null) {
     agreedToPolicy: signature ? true : b.agreed,
     tier: b.tier?.tier ?? null,
     signature,
-    balancePaymentPreference: b.balancePref,
+    // The preference chips are gone (S2); the line on the screen says a
+    // payment link is emailed, so the admin's "Reminder link" is sent for
+    // every booking (the field is optional there, "Manual" when absent).
+    balancePaymentPreference: "Reminder link" as BalancePreference,
     hpField: b.hp,
     formStartedAt: b.formStartedAt > 0 ? b.formStartedAt : null,
   }
