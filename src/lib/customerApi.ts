@@ -15,7 +15,17 @@ export interface Customer {
   name: string | null
   phone: string
   email: string
+  /* Block A5: one line of text, or null until the customer gives one. */
+  homeAddress?: string | null
   createdAt: string
+}
+
+/* PATCH /api/customer/me (Block A5): name, phone and home address. Email
+   is not offered (the admin refuses it with 400). */
+export interface CustomerPatch {
+  name?: string | null
+  phone?: string
+  homeAddress?: string | null
 }
 
 export interface BookingUnit {
@@ -133,15 +143,37 @@ function withDocument(data: CustomerContract): CustomerContract {
   return document ? { ...data, format: "go-v2", document } : { ...data, format: undefined, document: undefined }
 }
 
+/* Account calls under a mock (checkout scenarios and the portal, S3):
+   a session kept in memory, so the sign-in step and "Your details" work
+   with no admin. */
+const authMocked = () => import.meta.env.DEV && (mockMode("checkout") !== null || mockMode("portal") !== null)
+
 export const customerApi = {
   me: async () => {
+    if (import.meta.env.DEV && authMocked()) {
+      const m = await import("./authMock")
+      const s = m.mockSession()
+      if (s) return { ok: true, data: { customer: s } } as ApiResult<{ customer: Customer }>
+    }
     if (import.meta.env.DEV && mockMode("portal")) return (await import("./portalMock")).mockMe()
     return call<{ customer: Customer }>("/api/customer/me")
   },
-  signup: (input: { name: string | null; phone: string; email: string; password: string }) =>
-    post<{ customer: Customer }>("/api/customer/signup", input),
-  login: (input: { identifier: string; password: string }) => post<{ customer: Customer }>("/api/customer/login", input),
-  logout: () => post<{ ok: boolean }>("/api/customer/logout"),
+  signup: async (input: { name: string | null; phone: string; email: string; password: string; homeAddress?: string | null }) => {
+    if (import.meta.env.DEV && authMocked()) return (await import("./authMock")).mockSignup(input)
+    return post<{ customer: Customer }>("/api/customer/signup", input)
+  },
+  login: async (input: { identifier: string; password: string }) => {
+    if (import.meta.env.DEV && authMocked()) return (await import("./authMock")).mockLogin(input)
+    return post<{ customer: Customer }>("/api/customer/login", input)
+  },
+  logout: async () => {
+    if (import.meta.env.DEV && authMocked()) return (await import("./authMock")).mockLogout()
+    return post<{ ok: boolean }>("/api/customer/logout")
+  },
+  updateMe: async (patch: CustomerPatch, current: Customer | null = null) => {
+    if (import.meta.env.DEV && authMocked()) return (await import("./authMock")).mockUpdateMe(current, patch)
+    return call<{ customer: Customer }>("/api/customer/me", { method: "PATCH", body: JSON.stringify(patch) })
+  },
   bookings: async () => {
     if (import.meta.env.DEV && mockMode("portal")) return (await import("./portalMock")).mockBookings()
     return call<CustomerBooking[]>("/api/customer/bookings")

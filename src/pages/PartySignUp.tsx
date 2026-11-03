@@ -7,7 +7,9 @@ import { SignUpFields, SignUpNotice } from "@/components/go/SignUpFields"
 import { EMPTY_SIGNUP, canSignUp, useSignUp } from "@/hooks/use-signup"
 
 /* Customer sign up from the portal. The fields and the call live in
-   SignUpFields and useSignUp, shared with the direct booking's account step.
+   SignUpFields and useSignUp, shared with the direct booking's sign-in
+   step (where the name and the home address are required; here the home
+   address is optional, S3).
    A taken phone or email shows under its field with a Sign in door that
    opens sign in with it filled in (Block S2). */
 

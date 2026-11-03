@@ -10,7 +10,6 @@ import { waitForPayment } from "@/lib/paymentApi"
 import { checkoutSteps } from "@/lib/steps"
 import { paymentAvailable } from "@/lib/stripe"
 import { useBooking } from "@/state/booking"
-import { useCustomer } from "@/state/customer"
 
 /* Direct booking, the retainer, right after the hold (tiers 1 and 2). The
    amount and what it is, then Stripe's embedded form. When the form says the
@@ -26,7 +25,6 @@ type Phase = "form" | "checking" | "paid" | "unconfirmed"
 export default function ItemPay() {
   const navigate = useNavigate()
   const b = useBooking()
-  const { customer } = useCustomer()
   const [phase, setPhase] = useState<Phase>("form")
 
   const offer = b.payment
@@ -39,7 +37,7 @@ export default function ItemPay() {
   if (!b.direct || b.items.length === 0) return <Navigate to="/home" replace />
   const { direct } = b
   const tier = direct.tier ?? b.tier?.tier ?? 1
-  const steps = checkoutSteps(b.optionsStep, customer !== null, tier === 3 ? 1 : tier)
+  const steps = checkoutSteps(b.optionsStep, !b.accountStep, tier === 3 ? 1 : tier)
   const available = paymentAvailable(offer)
   const day = labelForIso(direct.eventDate)
 

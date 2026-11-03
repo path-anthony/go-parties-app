@@ -15,6 +15,7 @@ import type { TierInfo, TierInput, TierResult } from "@/lib/tierApi"
      tier2-retier   tier 2 whose first hold is refused tier-changed; the cart is tier 1 after that
      tier3          a review booking: the hold answers 202
      tier1-taken    tier 1 whose first hold is refused (409 unavailable, the admin's own words); the next one holds
+     tier1-account  tier 1 whose first hold is refused 401 account-required (S3); the next one holds
    Nothing here touches the admin. */
 
 const POLICY = {
@@ -74,6 +75,10 @@ export async function mockHold(input: { itemIds: string[]; eventDate: string; ev
   })
   if (scenario === "tier3") {
     return { ok: true, kind: "review", review: { designRequestId: "dr_mock", eventDate: input.eventDate, total: 18400, message: "This one goes to our team first." } }
+  }
+  if (scenario === "tier1-account" && !refusedOnce) {
+    refusedOnce = true
+    return { ok: false, reason: "account-required", message: "Please sign in or create an account to book." }
   }
   if (scenario === "tier1-taken" && !refusedOnce) {
     refusedOnce = true

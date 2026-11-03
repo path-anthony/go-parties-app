@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom"
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
@@ -26,36 +26,32 @@ import { useBooking } from "@/state/booking"
 import { useAgreementBlocked } from "@/hooks/use-agreement"
 import { useCustomer } from "@/state/customer"
 
-/* Direct item booking, step 2. Name, phone and email are the hard line,
-   always required, never skippable. Signed in, they come from the account
-   and aren't asked again (only a name, if the account has none yet), and
-   this is the last step: "Hold my date" posts here. A guest goes on to the
-   account step (make one, or continue as a guest) before the date is held.
-   Address (Block M): with a Google key the customer picks a full street
-   address from Places suggestions, then drags a pin to the setup spot and
-   adds a short note; a town, a business with no number or free typing
-   keeps Next off. Without a key it is the plain text field it was, with a
-   note that the exact address is confirmed by text. The address is
-   required (the "add it later" switch is gone, S2). A 409 from the race
-   (someone took the last unit between the check and this tap) is shown as
-   the server says it, with a way back to the calendar. Any other refusal
-   shows the bank's calm line and a Try again. Every refusal is the red
-   notice directly above the button (S2); nothing typed is lost, every
-   field here lives in the booking store. The account step can hand a notice over in location
-   state when a fresh sign-up succeeded but the booking after it didn't. */
+/* Direct booking, "Event details" (Block S3): the step after sign in, for
+   a signed-in customer only (anyone else is sent to the account step).
+   Name, phone and email come from the account and are shown read-only at
+   the top with a "Change" link to My party (a name is asked here only when
+   the account has none). Then the event address, required, with "Same as
+   my home address" above it: ticked, the event address is the home address
+   and the field is locked; unticked, it is cleared. A customer whose
+   account has no home address yet gets a "Your home address" field first,
+   required, sent with the hold (the admin saves it to the account). With a
+   Google key the event address is picked from Places suggestions, then a
+   pin and setup notes (Block M); without one it is the plain field. Tier 1
+   holds here ("Hold my date"); tier 2 goes on to the contract ("Next").
+   Every refusal is the red notice directly above the button; a 401
+   account-required sends the customer back to the account step, cart
+   kept. The contract step can hand a notice over in location state. */
 
 type Notice = { reason: DirectReason; message: string }
 
 export default function ItemWho() {
   const navigate = useNavigate()
-  const location = useLocation()
   const { id } = useParams()
   const b = useBooking()
-  const { customer } = useCustomer()
+  const { customer, ready, setCustomer } = useCustomer()
   const [submitting, setSubmitting] = useState(false)
   const agreementBlocked = useAgreementBlocked()
-  const handed = (location.state as { notice?: Notice } | null)?.notice ?? null
-  const [notice, setNotice] = useState<Notice | null>(handed)
+  const [notice, setNotice] = useState<Notice | null>(null)
 
   // The tier is asked for as soon as this screen opens, so the button and
   // the step count can say what comes next; it is cleared by the store
@@ -77,45 +73,52 @@ export default function ItemWho() {
   if (b.items[0].id !== id) return <Navigate to={`/item/${b.items[0].id}/who`} replace />
   if (!b.itemDate) return <Navigate to={`/item/${b.items[0].id}`} replace />
   if (b.items.some((i) => missingRequired(i).length > 0)) return <Navigate to={`/item/${b.items[0].id}/options`} replace />
+  if (ready && !customer) return <Navigate to={`/item/${b.items[0].id}/account`} replace />
   const items = b.items
   const firstId = items[0].id
   const iso = b.itemDate
 
-  const onFile = customer !== null
-  const needsName = !customer?.name
+  const needsName = !!customer && !customer.name
   const mapsOn = mapsAvailable()
-  const addressSettled = mapsOn ? b.verified !== null : b.address.trim() !== ""
+  const homeOnFile = customer?.homeAddress?.trim() || ""
+  // The home address the checkbox copies from: the account's, else the one
+  // typed here.
+  const home = homeOnFile || b.homeAddress.trim()
+  const homeSettled = homeOnFile !== "" || b.homeAddress.trim() !== ""
+  const addressSettled = b.sameAsHome ? b.address.trim() !== "" : mapsOn ? b.verified !== null : b.address.trim() !== ""
   const setVerified = (v: VerifiedAddress | null) => {
     b.set("verified", v)
     b.set("setup", v ? { lat: v.addressLat, lng: v.addressLng } : null)
     if (!v) b.set("setupNotes", "")
   }
+  const setSame = (on: boolean) => {
+    b.set("sameAsHome", on)
+    setVerified(null)
+    b.set("address", on ? home : "")
+  }
+  const setHome = (text: string) => {
+    b.set("homeAddress", text)
+    if (b.sameAsHome) b.set("address", text)
+  }
   const SETUP_MAX = 200
-  const contactSettled = onFile ? true : b.phone.trim() !== "" && b.email.trim() !== ""
   const nameSettled = needsName ? b.contactName.trim() !== "" : true
   // Only the last screen holds the date, so only there does the policy wait.
-  const canSubmit = nameSettled && contactSettled && addressSettled && !submitting && !(onFile && agreementBlocked)
+  const canSubmit = !!customer && nameSettled && homeSettled && addressSettled && !submitting && !agreementBlocked
 
   const tier = b.tier?.tier ?? null
-  const steps = checkoutSteps(b.optionsStep, onFile, tier)
+  const steps = checkoutSteps(b.optionsStep, !b.accountStep, tier)
   const here = `/item/${firstId}/who`
 
   const removeItem = (rid: string) => b.setItems(items.filter((i) => i.id !== rid))
 
   const submit = async () => {
     if (!canSubmit) return
-    if (!onFile) {
-      navigate(`/item/${firstId}/account`)
-      return
-    }
     setSubmitting(true)
     setNotice(null)
     try {
       // The tier held in the store is used when there is one (the store drops
       // it on any cart or date change); the admin recomputes the tier at the
-      // hold anyway and refuses a mismatch. Asking again here cost one of
-      // the five booking calls an hour the admin allows per connection
-      // (S1.2), and that budget is what broke the live hold.
+      // hold anyway and refuses a mismatch (S1.2).
       const t = b.tier ? ({ ok: true, tier: b.tier } as const) : await fetchTier(tierInput(b))
       if (!t.ok) {
         setNotice({ reason: "error", message: t.message })
@@ -138,6 +141,14 @@ export default function ItemWho() {
         navigate("/item/pay")
         return
       }
+      if (result.reason === "account-required") {
+        // The admin saw no session, so there is none here either: dropping
+        // the customer sends the guard above to the account step, cart kept,
+        // with the line to show.
+        b.set("accountNotice", result.message)
+        setCustomer(null)
+        return
+      }
       setNotice({ reason: result.reason, message: result.message })
     } catch {
       setNotice({ reason: "error", message: "That didn't go through. Try again, or text us." })
@@ -153,10 +164,8 @@ export default function ItemWho() {
     <AppShell>
       <Body>
         <GoLabel>{items.length === 1 ? "Just this" : "Just these"} · Step {steps.who} of {steps.total}</GoLabel>
-        <h1 className="mt-1.5 text-hero text-charcoal">Who's booking?</h1>
-        <p className="mt-2 text-body text-charcoal-soft">
-          {onFile ? "We've got your details. Just the address." : "Name, phone, and email. That's it."}
-        </p>
+        <h1 className="mt-1.5 text-hero text-charcoal">Event details</h1>
+        <p className="mt-2 text-body text-charcoal-soft">Where the party is. The rest is on your account.</p>
         <div className="mt-3.5">
           <MetaCard label="When" value={when} />
         </div>
@@ -169,88 +178,70 @@ export default function ItemWho() {
             showTotal
           />
         </div>
-        {onFile && customer && (
-          <div className="mt-3.5 rounded-[14px] border border-line bg-white px-4 py-3.5">
-            <small className="block text-[10.5px] font-bold tracking-[.1em] text-taupe uppercase">Booking as</small>
-            {customer.name && <b className="mt-[3px] block text-sm text-charcoal">{customer.name}</b>}
-            <span className="block text-small text-charcoal-soft">{customer.phone}</span>
-            <span className="block text-small text-charcoal-soft">{customer.email}</span>
+        {customer && (
+          <div className="mt-3.5 flex items-start justify-between gap-3 rounded-[14px] border border-line bg-white px-4 py-3.5">
+            <div className="min-w-0">
+              <small className="block text-[10.5px] font-bold tracking-[.1em] text-taupe uppercase">Booking as</small>
+              {customer.name && <b className="mt-[3px] block text-sm text-charcoal">{customer.name}</b>}
+              <span className="block text-small text-charcoal-soft">{customer.phone}</span>
+              <span className="block truncate text-small text-charcoal-soft">{customer.email}</span>
+            </div>
+            <Link to="/party" state={{ returnTo: here }} className="inline-flex min-h-[44px] flex-none items-center text-[13px] font-bold text-charcoal underline underline-offset-2">
+              Change
+            </Link>
           </div>
         )}
         {needsName && (
           <div className="mt-3.5">
             <GoLabel className="mb-1.5 tracking-[.1em]">Name</GoLabel>
-            <Input
-              placeholder="Sarah Lin"
-              autoComplete="name"
-              value={b.contactName}
-              onChange={(e) => b.set("contactName", e.target.value)}
-            />
+            <Input placeholder="Sarah Lin" autoComplete="name" value={b.contactName} onChange={(e) => b.set("contactName", e.target.value)} />
           </div>
         )}
-        {!onFile && (
-          <>
-            <div className="mt-2.5">
-              <GoLabel className="mb-1.5 tracking-[.1em]">Phone</GoLabel>
-              <Input
-                placeholder="860 555 0134"
-                autoComplete="tel"
-                inputMode="tel"
-                value={b.phone}
-                onChange={(e) => b.set("phone", e.target.value)}
-              />
-            </div>
-            <div className="mt-2.5">
-              <GoLabel className="mb-1.5 tracking-[.1em]">Email</GoLabel>
-              <Input
-                placeholder="you@email.com"
-                autoComplete="email"
-                inputMode="email"
-                value={b.email}
-                onChange={(e) => b.set("email", e.target.value)}
-              />
-            </div>
-          </>
+        {customer && !homeOnFile && (
+          <div className="mt-3.5">
+            <GoLabel className="mb-1.5 tracking-[.1em]">Your home address</GoLabel>
+            <Input placeholder="14 Maple Ln, Farmington, CT 06032" autoComplete="street-address" value={b.homeAddress} onChange={(e) => setHome(e.target.value)} />
+            <p className="mt-1.5 text-small text-muted">Saved to your account for next time.</p>
+          </div>
         )}
-        <div className="mt-2.5">
-          <GoLabel className="mb-1.5 tracking-[.1em]">Address</GoLabel>
-          {mapsOn ? (
+        <label className="mt-3.5 flex min-h-[44px] cursor-pointer items-center gap-3 text-sm font-semibold text-charcoal">
+          <input type="checkbox" className="size-5 flex-none accent-charcoal" checked={b.sameAsHome} disabled={!homeSettled} onChange={(e) => setSame(e.target.checked)} />
+          Same as my home address
+        </label>
+        <div className="mt-1.5">
+          <GoLabel className="mb-1.5 tracking-[.1em]">Event address</GoLabel>
+          {b.sameAsHome ? (
+            <Input value={b.address} readOnly aria-readonly="true" autoComplete="off" className="bg-cream" />
+          ) : mapsOn ? (
             <AddressField value={b.address} verified={b.verified} onText={(t) => b.set("address", t)} onVerified={setVerified} />
           ) : (
             <>
-              <Input
-                placeholder="14 Maple Ln, Farmington"
-                autoComplete="street-address"
-                value={b.address}
-                onChange={(e) => b.set("address", e.target.value)}
-              />
+              <Input placeholder="14 Maple Ln, Farmington" autoComplete="street-address" value={b.address} onChange={(e) => b.set("address", e.target.value)} />
               <p className="mt-1.5 text-small text-muted">We'll confirm your exact address by text.</p>
             </>
           )}
         </div>
-        {mapsOn && b.verified && (
+        {mapsOn && !b.sameAsHome && b.verified && (
           <div className="mt-3">
             <SetupMap
               address={{ lat: b.verified.addressLat, lng: b.verified.addressLng }}
               setup={b.setup ?? { lat: b.verified.addressLat, lng: b.verified.addressLng }}
               onSetup={(p) => b.set("setup", p)}
             />
-            <div className="mt-2.5">
-              <GoLabel className="mb-1.5 tracking-[.1em]">Setup notes</GoLabel>
-              <Input placeholder="Backyard, gate on the left" maxLength={SETUP_MAX} value={b.setupNotes} onChange={(e) => b.set("setupNotes", e.target.value.slice(0, SETUP_MAX))} />
-              <small className="mt-1 block text-[11.5px] text-muted">Optional. Where the crew should set up, in a line.</small>
-            </div>
+          </div>
+        )}
+        {mapsOn && !b.sameAsHome && b.verified && (
+          <div className="mt-2.5">
+            <GoLabel className="mb-1.5 tracking-[.1em]">Setup notes</GoLabel>
+            <Input placeholder="Backyard, gate on the left" maxLength={SETUP_MAX} value={b.setupNotes} onChange={(e) => b.set("setupNotes", e.target.value.slice(0, SETUP_MAX))} />
+            <small className="mt-1 block text-[11.5px] text-muted">Optional. Where the crew should set up, in a line.</small>
           </div>
         )}
         <Honeypot value={b.hp} onChange={(v) => b.set("hp", v)} />
-        {onFile && (
-          <>
-            <CheckoutNext tier={tier} className="mt-3.5" />
-            <BalanceLine className="mt-1.5" />
-            {tier !== 2 && <CheckoutAgreement className="mt-4" />}
-            <CheckoutConcierge className="mt-1.5" />
-          </>
-        )}
+        <CheckoutNext tier={tier} className="mt-3.5" />
+        <BalanceLine className="mt-1.5" />
+        {tier !== 2 && <CheckoutAgreement className="mt-4" />}
+        <CheckoutConcierge className="mt-1.5" />
       </Body>
       {/* The refusal sits directly above the button that was tapped. */}
       {notice && (
@@ -274,16 +265,16 @@ export default function ItemWho() {
               Pick options
             </Button>
           )}
-          {notice.reason === "error" && onFile && (
+          {notice.reason === "error" && (
             <Button variant="ghost" size="sm" className="mt-2.5 block" disabled={!canSubmit} onClick={submit}>
               Try again
             </Button>
           )}
         </ErrorNotice>
-        )}
+      )}
       <Foot>
         <Button variant="ghost" onClick={() => navigate(`/item/${firstId}`)}>Back</Button>
-        <Button disabled={!canSubmit} onClick={submit}>{onFile && tier !== 2 ? "Hold my date" : "Next"}</Button>
+        <Button disabled={!canSubmit} onClick={submit}>{tier === 2 ? "Next" : "Hold my date"}</Button>
       </Foot>
     </AppShell>
   )

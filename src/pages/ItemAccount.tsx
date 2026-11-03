@@ -1,234 +1,159 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Navigate, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { Chip } from "@/components/go/Chip"
 import { MetaCard } from "@/components/go/MetaCard"
 import { CartItems } from "@/components/go/CartItems"
-import { CheckoutConcierge } from "@/components/go/CheckoutConcierge"
-import { Honeypot } from "@/components/go/Honeypot"
-import { CheckoutAgreement } from "@/components/go/CheckoutAgreement"
-import { BalanceLine, CheckoutNext } from "@/components/go/CheckoutNotes"
 import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { Reveal } from "@/components/go/DatePicker"
 import { SignUpFields, SignUpNotice } from "@/components/go/SignUpFields"
 import { labelForIso } from "@/lib/availability"
-import { bookDirect, type DirectReason } from "@/lib/adminApi"
-import { directInput, tierInput } from "@/lib/directInput"
-import { fetchTier } from "@/lib/tierApi"
+import { customerApi } from "@/lib/customerApi"
 import { clockLabel } from "@/data/catalog"
 import { missingRequired } from "@/lib/addons"
 import { checkoutSteps } from "@/lib/steps"
-import { canSignUp, useSignUp, type SignUpValues } from "@/hooks/use-signup"
+import { EMPTY_SIGNUP, canSignUp, useSignUp, type SignUpValues } from "@/hooks/use-signup"
 import { useBooking } from "@/state/booking"
-import { useAgreementBlocked } from "@/hooks/use-agreement"
 import { useCustomer } from "@/state/customer"
 
-/* Direct booking, step 3 of 3, guests only. Before the date is held: make an
-   account (the same sign-up as the portal, prefilled from the who screen) or
-   continue as a guest. An account books exactly like a signed-in customer
-   does today: the request carries no contact and the account fills it, so
-   the booking is tied to it. A guest books exactly as before. Signed-in
-   customers never see this screen. A refusal that isn't about the date
-   shows the bank's calm line and a Try again with everything typed still
-   in place; if the sign-up went through and only the booking failed, the
-   who screen takes over (the account is real now) and gets the notice.
-   Every refusal is the red notice directly above the button (S2); a phone
-   or email that already has an account shows under its field with a Sign
-   in door that comes back to the who screen, cart and date kept. */
+/* Direct booking, "Sign in or create an account" (Block S3): the step after
+   the date, for anyone not signed in. An account is always required to
+   book (the admin can refuse a guest hold with 401 account-required, and
+   the storefront is ready before that switch is on), so there is no guest
+   path. Two choices: Sign in (email and password) or Create account (name,
+   email, phone, password, home address). Either one signs the customer in
+   and goes on to the event details with the cart, date and picks kept in
+   the booking store. A customer already signed in never sees this screen.
+   A sign-up that hits an existing account shows the red line under the
+   field with "Sign in", which switches to the sign-in choice with the
+   email filled in. A hold that answered account-required leaves its line
+   in the booking store (accountNotice) and it shows here in red. */
 
-type Choice = "account" | "guest" | null
-type Notice = { reason: DirectReason; message: string }
+type Choice = "signin" | "signup" | null
 
 export default function ItemAccount() {
   const navigate = useNavigate()
   const { id } = useParams()
   const b = useBooking()
-  const { customer, ready } = useCustomer()
+  const { customer, ready, setCustomer } = useCustomer()
   const { signUp, busy: signingUp, problem, setProblem } = useSignUp()
   const [choice, setChoice] = useState<Choice>(null)
-  const [values, setValues] = useState<SignUpValues>({ name: b.contactName, phone: b.phone, email: b.email, password: "" })
-  const [booking, setBooking] = useState(false)
-  const [notice, setNotice] = useState<Notice | null>(null)
-  const agreementBlocked = useAgreementBlocked()
-
-  const tierKey = `${b.items.map((i) => `${i.id}:${JSON.stringify(i.picks ?? {})}`).join(",")}|${b.bundle?.id ?? ""}|${b.itemDate}|${b.itemTime}`
-  useEffect(() => {
-    if (b.tier || !b.itemDate || b.items.length === 0) return
-    let live = true
-    fetchTier(tierInput(b)).then((r) => {
-      if (live && r.ok) b.set("tier", r.tier)
-    })
-    return () => {
-      live = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [b.tier, tierKey])
+  const [values, setValues] = useState<SignUpValues>(EMPTY_SIGNUP)
+  const [identifier, setIdentifier] = useState("")
+  const [password, setPassword] = useState("")
+  const [signingIn, setSigningIn] = useState(false)
+  const [signInError, setSignInError] = useState<string | null>(null)
+  // Set the moment a sign in or sign up lands, so the signed-in guard below
+  // does not race the navigation to the event step.
+  const [leaving, setLeaving] = useState(false)
 
   if (b.items.length === 0) return <Navigate to="/browse" replace />
   if (b.items[0].id !== id) return <Navigate to={`/item/${b.items[0].id}/account`} replace />
   const firstId = b.items[0].id
   if (!b.itemDate) return <Navigate to={`/item/${firstId}`} replace />
   if (b.items.some((i) => missingRequired(i).length > 0)) return <Navigate to={`/item/${firstId}/options`} replace />
-  const tier = b.tier?.tier ?? null
-  const steps = checkoutSteps(b.optionsStep, false, tier)
-  const here = `/item/${firstId}/account`
-  // Not while a hold is in flight, and not after one that left this screen.
-  // A fresh sign-up sets the customer before the booking after it has
-  // answered, and navigate() is deferred: if `booking` dropped back to
-  // false on success, this guard would re-fire on the very next render and
-  // its Navigate to the who screen would beat the pending one to held,
-  // handing the customer a fresh "Hold my date" for a booking that already
-  // exists. So `booking` stays true on every path that leaves the screen
-  // and is reset only when the screen stays to show a notice.
-  if (ready && customer && !booking) return <Navigate to={`/item/${firstId}/who`} replace />
-  if (b.contactName.trim() === "" || b.phone.trim() === "" || b.email.trim() === "") return <Navigate to={`/item/${firstId}/who`} replace />
+  if (ready && customer && !leaving) return <Navigate to={`/item/${firstId}/who`} replace />
 
+  const steps = checkoutSteps(b.optionsStep, false, b.tier?.tier ?? null)
   const iso = b.itemDate
   const clock = clockLabel(b.itemTime)
   const when = clock ? `${labelForIso(iso)}, ${clock}` : labelForIso(iso)
-  const busy = signingUp || booking
+  const busy = signingUp || signingIn
+  const next = `/item/${firstId}/who`
+
+  const canContinue = !busy && (choice === "signin" ? identifier.trim() !== "" && password !== "" : choice === "signup" ? canSignUp(values, true) : false)
 
   const removeItem = (rid: string) => b.setItems(b.items.filter((i) => i.id !== rid))
-  const canHold = !busy && !agreementBlocked && (choice === "guest" || (choice === "account" && canSignUp(values)))
 
-  // Signed up but not booked: the who screen owns the retry now, with the
-  // notice in hand (booking stays true so the guard above can't race this
-  // navigation and drop the notice). Still a guest: the notice shows here
-  // and the button comes back.
-  const fail = (n: Notice, who: typeof customer) => {
-    if (who) {
-      navigate(`/item/${firstId}/who`, { replace: true, state: { notice: n } })
-      return
-    }
-    setNotice(n)
-    setBooking(false)
+  // The sign-up hit an account: switch to sign in with what was typed.
+  const toSignIn = () => {
+    setIdentifier(problem?.taken === "phone" ? values.phone.trim() : values.email.trim())
+    setProblem(null)
+    setSignInError(null)
+    setChoice("signin")
   }
 
-  // Sign in with what was typed, and come back here with the cart and date.
-  const signIn = () =>
-    navigate("/party/signin", { state: { returnTo: `/item/${firstId}/who`, identifier: problem?.taken === "phone" ? values.phone.trim() : values.email.trim() } })
+  const notice = b.accountNotice
 
-  const hold = async () => {
-    if (!canHold) return
-    setNotice(null)
-    setProblem(null)
-    let who = customer
-    if (choice === "account") {
-      who = await signUp(values)
+  const go = async () => {
+    if (!canContinue) return
+    b.set("accountNotice", null)
+    if (choice === "signup") {
+      const who = await signUp(values)
       if (!who) return
       b.set("contactName", values.name.trim())
-      b.set("phone", values.phone.trim())
-      b.set("email", values.email.trim())
+      setLeaving(true)
+      navigate(next)
+      return
     }
-    setBooking(true)
-    try {
-      // The tier held in the store is used when there is one (the store drops
-      // it on any cart or date change); the admin recomputes the tier at the
-      // hold anyway and refuses a mismatch. Asking again here cost one of
-      // the five booking calls an hour the admin allows per connection
-      // (S1.2), and that budget is what broke the live hold. Tier 2 goes on
-      // to the contract instead of holding here; `booking` stays true so
-      // the guard above cannot bounce a freshly signed-up customer back.
-      const t = b.tier ? ({ ok: true, tier: b.tier } as const) : await fetchTier(tierInput(b))
-      if (!t.ok) {
-        fail({ reason: "error", message: t.message }, who)
-        return
-      }
-      b.set("tier", t.tier)
-      if (t.tier.tier === 2) {
-        navigate(`/item/${firstId}/contract`)
-        return
-      }
-      const result = await bookDirect(directInput({ ...b, tier: t.tier, contactName: values.name || b.contactName }, who))
-      if (result.ok) {
-        // Leaving: `booking` stays true on purpose, see the guard above. The
-        // admin's 202 (sent to the team, nothing held) leaves the same way.
-        if (result.kind === "review") {
-          b.set("review", result.review)
-          navigate("/item/review")
-          return
-        }
-        b.set("direct", result.booking)
-        b.set("payment", result.booking.payment ?? null)
-        navigate("/item/pay")
-        return
-      }
-      fail({ reason: result.reason, message: result.message }, who)
-    } catch {
-      fail({ reason: "error", message: "That didn't go through. Try again, or text us." }, who)
+    setSigningIn(true)
+    setSignInError(null)
+    const result = await customerApi.login({ identifier: identifier.trim(), password })
+    setSigningIn(false)
+    if (!result.ok) {
+      setSignInError(result.message)
+      return
     }
+    setCustomer(result.data.customer)
+    setLeaving(true)
+    navigate(next)
   }
 
   return (
     <AppShell>
       <Body>
         <GoLabel>{b.items.length === 1 ? "Just this" : "Just these"} · Step {steps.account} of {steps.total}</GoLabel>
-        <h1 className="mt-1.5 text-hero text-charcoal">Make an account?</h1>
-        <p className="mt-2 text-body text-charcoal-soft">Sign in later to move it or cancel it. No account needed either way.</p>
+        <h1 className="mt-1.5 text-hero text-charcoal">Sign in or create an account</h1>
+        <p className="mt-2 text-body text-charcoal-soft">Your booking lives in My party. Your cart and date stay right here.</p>
         <div className="mt-3.5">
           <MetaCard label="When" value={when} />
         </div>
         <div className="mt-2">
-          <CartItems
-            items={b.items}
-            bundle={b.bundle}
-            onRemove={removeItem}
-            onConfigure={() => navigate(`/item/${firstId}/options`, { state: { from: here } })}
-            showTotal
-          />
+          <CartItems items={b.items} bundle={b.bundle} onRemove={removeItem} onConfigure={() => navigate(`/item/${firstId}/options`, { state: { from: `/item/${firstId}/account` } })} showTotal />
         </div>
         <div className="mt-3.5 grid grid-cols-2 gap-2">
-          <Chip selected={choice === "account"} sub="Phone, email, a password" onClick={() => setChoice("account")}>
+          <Chip selected={choice === "signin"} sub="Email and password" onClick={() => setChoice("signin")}>
+            Sign in
+          </Chip>
+          <Chip selected={choice === "signup"} sub="Name, email, phone, address" onClick={() => setChoice("signup")}>
             Create account
           </Chip>
-          <Chip selected={choice === "guest"} sub="No account needed" onClick={() => setChoice("guest")}>
-            Continue as guest
-          </Chip>
         </div>
-        <Reveal open={choice === "account"} max="max-h-[44rem]" className="mt-3.5 pb-1">
-          <SignUpFields values={values} problem={problem} onChange={setValues} onSubmit={hold} onSignIn={signIn} />
+        {/* "Continue with Google" goes here (S3 follow-up): a third door
+            under the two chips, signing in through the admin and landing
+            on the event step like the others. Not built yet. */}
+        <Reveal open={choice === "signin"} max="max-h-[20rem]" className="mt-3.5 pb-1">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              void go()
+            }}
+          >
+            <GoLabel className="mb-1.5 tracking-[.1em]">Email</GoLabel>
+            <Input placeholder="you@email.com" autoComplete="username" inputMode="email" value={identifier} onChange={(e) => setIdentifier(e.target.value)} />
+            <GoLabel className="mt-2.5 mb-1.5 tracking-[.1em]">Password</GoLabel>
+            <Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <button type="submit" className="hidden" aria-hidden />
+          </form>
         </Reveal>
-        <Honeypot value={b.hp} onChange={(v) => b.set("hp", v)} />
-        <CheckoutNext tier={tier} className="mt-3.5" />
-        <BalanceLine className="mt-1.5" />
-        {tier !== 2 && <CheckoutAgreement className="mt-4" />}
-        <CheckoutConcierge className="mt-1.5" />
+        <Reveal open={choice === "signup"} max="max-h-[60rem]" className="mt-3.5 pb-1">
+          <SignUpFields values={values} problem={problem} full onChange={setValues} onSubmit={go} onSignIn={toSignIn} />
+        </Reveal>
       </Body>
-      {/* Refusals sit directly above the button that was tapped. */}
-      <SignUpNotice problem={problem} onSignIn={signIn} className="mx-5 mb-2" />
-      {notice && (
-        <ErrorNotice className="mx-5 mb-2">
-          {notice.message}
-          {notice.reason === "unavailable" && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-2.5 block"
-              onClick={() => {
-                b.set("itemDate", null)
-                navigate(`/item/${firstId}`)
-              }}
-            >
-              Pick another date
-            </Button>
-          )}
-          {notice.reason === "addons" && (
-            <Button variant="ghost" size="sm" className="mt-2.5 block" onClick={() => navigate(`/item/${firstId}/options`, { state: { from: here } })}>
-              Pick options
-            </Button>
-          )}
-          {notice.reason === "error" && (
-            <Button variant="ghost" size="sm" className="mt-2.5 block" disabled={!canHold} onClick={hold}>
-              Try again
-            </Button>
-          )}
-        </ErrorNotice>
-      )}
+      {/* Refusals sit directly above the button. */}
+      {notice && <ErrorNotice className="mx-5 mb-2">{notice}</ErrorNotice>}
+      {choice === "signin" && signInError && <ErrorNotice className="mx-5 mb-2">{signInError}</ErrorNotice>}
+      {choice === "signup" && <SignUpNotice problem={problem} onSignIn={toSignIn} className="mx-5 mb-2" />}
       <Foot>
-        <Button variant="ghost" onClick={() => navigate(`/item/${firstId}/who`)}>Back</Button>
-        <Button disabled={!canHold} onClick={hold}>{tier === 2 ? "Next" : "Hold my date"}</Button>
+        <Button variant="ghost" disabled={busy} onClick={() => navigate(`/item/${firstId}`)}>
+          Back
+        </Button>
+        <Button disabled={!canContinue} onClick={() => void go()}>
+          {busy ? (choice === "signin" ? "Signing in" : "Creating") : choice === "signin" ? "Sign in" : choice === "signup" ? "Create account" : "Continue"}
+        </Button>
       </Foot>
     </AppShell>
   )

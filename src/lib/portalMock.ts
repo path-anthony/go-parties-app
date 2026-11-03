@@ -9,7 +9,7 @@ import { sessionIdOf, type PaymentOffer } from "@/lib/paymentApi"
    contract and a tier 3 request in review. Signing and paying change the
    fixtures in memory. Nothing here touches the admin. */
 
-const CUSTOMER = { id: "cus_mock", name: "Jordan Sample", phone: "8605550142", email: "jordan.sample@example.com", createdAt: "2026-09-01T12:00:00.000Z" }
+const CUSTOMER = { id: "cus_mock", name: "Jordan Sample", phone: "8605550142", email: "jordan.sample@example.com", homeAddress: "14 Maple Ln, Avon, CT 06001, USA", createdAt: "2026-09-01T12:00:00.000Z" }
 
 const day = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10) + "T00:00:00.000Z"
 const unit = (itemName: string, i = 1) => ({ unitId: `u${i}`, unitLabel: `Unit #${i}`, itemId: `it-${itemName.toLowerCase().replace(/\W+/g, "-")}`, itemName })

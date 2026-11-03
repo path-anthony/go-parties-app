@@ -97,7 +97,10 @@ export interface DirectBooking {
 export const bookedNames = (b: DirectBooking): string[] =>
   b.items ? [...new Set(b.items.map((i) => i.name))] : b.item ? [b.item.name] : []
 
-export type DirectReason = "unavailable" | "not-tracked" | "addons" | "agreement" | "quote-expired" | "contract-changed" | "tier-changed" | "error"
+/* account-required (Block A5): the admin's 401 when accounts are required
+   and no customer session arrived; checkout sends the customer to its
+   sign-in step with the cart kept. */
+export type DirectReason = "unavailable" | "not-tracked" | "addons" | "agreement" | "quote-expired" | "contract-changed" | "tier-changed" | "account-required" | "error"
 
 /* The three refusals that mean the quote the customer read is no longer the
    one the admin would hold: the page fetches the tier again and sends them
@@ -167,6 +170,12 @@ export async function bookDirect(input: {
   eventTime: string | null
   /* A group or sub-occasion in the admin's spelling, when the cart has one. */
   occasion: string | null
+  /* Block A5 (S3): the home address typed at checkout when the account has
+     none yet (the admin saves it to the account only then), and whether
+     the event address is the home address (kept on the booking). Both
+     left out when null. */
+  homeAddress: string | null
+  eventAddressSameAsHome: boolean | null
   /* The real state of the checkbox, always sent (false when there is none). */
   agreedToPolicy: boolean
   balancePaymentPreference: BalancePreference
@@ -183,8 +192,10 @@ export async function bookDirect(input: {
   if (import.meta.env.DEV && mockMode("checkout")) {
     return (await import("./checkoutMock")).mockHold(input)
   }
-  const { customerName, phone, email, itemIds, packageId, addons, occasion, formStartedAt, tier, signature, ...rest } = input
+  const { customerName, phone, email, itemIds, packageId, addons, occasion, formStartedAt, tier, signature, homeAddress, eventAddressSameAsHome, ...rest } = input
   const body: Record<string, unknown> = { ...rest }
+  if (homeAddress) body.homeAddress = homeAddress
+  if (eventAddressSameAsHome !== null) body.eventAddressSameAsHome = eventAddressSameAsHome
   if (tier !== null) body.tier = tier
   if (signature) body.signature = signature
   if (formStartedAt !== null) body.formStartedAt = formStartedAt
@@ -224,7 +235,9 @@ export async function bookDirect(input: {
     }
   }
   const reason: DirectReason =
-    data.reason === "agreement-required"
+    res.status === 401 && data.reason === "account-required"
+      ? "account-required"
+      : data.reason === "agreement-required"
       ? "agreement"
       : QUOTE_REASONS.includes(data.reason)
         ? (data.reason as DirectReason)
@@ -239,6 +252,7 @@ export async function bookDirect(input: {
     return { ok: false, reason, message: FALLBACK, detail }
   }
   if (QUOTE_REASONS.includes(reason)) return { ok: false, reason, message: "Your cart or the contract changed. Please read it again.", detail }
+  if (reason === "account-required") return { ok: false, reason, message: "Please sign in or create an account to book.", detail }
   return { ok: false, reason, message: detail ?? FALLBACK }
 }
 

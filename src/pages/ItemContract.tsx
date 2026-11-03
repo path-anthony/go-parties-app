@@ -21,8 +21,8 @@ import { useCustomer } from "@/state/customer"
    (409 quote-expired, contract-changed, tier-changed), and then this screen
    fetches the tier again, drops the signature, says so, and shows the fresh
    contract; a cart that is no longer tier 2 goes back to who. Same guards as
-   every checkout screen, plus the contact must be settled (the who screen
-   for a signed-in customer, the account screen for a guest). */
+   every checkout screen, plus the customer must be signed in (S3: the
+   account is the contact) and the event address settled. */
 
 type Notice = { reason: DirectReason | "error"; message: string }
 
@@ -30,7 +30,7 @@ export default function ItemContract() {
   const navigate = useNavigate()
   const { id } = useParams()
   const b = useBooking()
-  const { customer } = useCustomer()
+  const { customer, ready: sessionReady, setCustomer } = useCustomer()
   const [ready, setReady] = useState(false)
   const [busy, setBusy] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -54,11 +54,11 @@ export default function ItemContract() {
   const firstId = b.items[0].id
   if (!b.itemDate) return <Navigate to={`/item/${firstId}`} replace />
   if (b.items.some((i) => missingRequired(i).length > 0)) return <Navigate to={`/item/${firstId}/options`} replace />
-  const onFile = customer !== null
-  if (!onFile && (b.contactName.trim() === "" || b.phone.trim() === "" || b.email.trim() === "")) return <Navigate to={`/item/${firstId}/who`} replace />
+  if (sessionReady && !customer) return <Navigate to={`/item/${firstId}/account`} replace />
+  if (b.address.trim() === "") return <Navigate to={`/item/${firstId}/who`} replace />
   if (b.tier && b.tier.tier !== 2) return <Navigate to={`/item/${firstId}/who`} replace />
 
-  const steps = checkoutSteps(b.optionsStep, onFile, 2)
+  const steps = checkoutSteps(b.optionsStep, !b.accountStep, 2)
   const quote = b.tier?.contract ?? null
 
   const changed = async (message: string) => {
@@ -93,6 +93,14 @@ export default function ItemContract() {
       }
       if (QUOTE_REASONS.includes(result.reason)) {
         await changed(result.message)
+        return
+      }
+      if (result.reason === "account-required") {
+        // The admin saw no session, so there is none here either: dropping
+        // the customer sends the guard above to the account step, cart kept,
+        // with the line to show.
+        b.set("accountNotice", result.message)
+        setCustomer(null)
         return
       }
       setNotice({ reason: result.reason, message: result.message })
@@ -144,7 +152,7 @@ export default function ItemContract() {
         </ErrorNotice>
       )}
       <Foot>
-        <Button variant="ghost" disabled={busy} onClick={() => navigate(onFile ? `/item/${firstId}/who` : `/item/${firstId}/account`)}>
+        <Button variant="ghost" disabled={busy} onClick={() => navigate(`/item/${firstId}/who`)}>
           Back
         </Button>
         <Button disabled={!ready || !quote || busy} onClick={signAndHold}>

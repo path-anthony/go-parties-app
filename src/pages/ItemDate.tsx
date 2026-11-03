@@ -11,9 +11,11 @@ import { checkoutSteps } from "@/lib/steps"
 import { useBooking } from "@/state/booking"
 import { useCustomer } from "@/state/customer"
 
-/* Direct item booking, step 1 of 2. One or more items, one date, a time, all
-   held in the booking store; ItemWhen does the live check per item. The
-   route carries the first item's id. Entered from an Ask GO recommendation. */
+/* Direct item booking, the date step. One or more items, one date, a time,
+   all held in the booking store; ItemWhen does the live check per item.
+   The route carries the first item's id. Next goes to "Sign in or create
+   an account" (S3), or straight to the event details when already signed
+   in. */
 
 export default function ItemDate() {
   const navigate = useNavigate()
@@ -32,6 +34,7 @@ export default function ItemDate() {
   // door the cart came through.
   if (b.items.some((i) => missingRequired(i).length > 0)) return <Navigate to={`/item/${b.items[0].id}/options`} replace />
   const items = b.items
+  // Here the sign-in step is still ahead: it counts exactly when signed out.
   const steps = checkoutSteps(b.optionsStep, customer !== null)
   const here = `/item/${items[0].id}`
   const timeOk = b.itemTime === null || timeInRange(b.itemTime)
@@ -65,7 +68,17 @@ export default function ItemDate() {
       </Body>
       <Foot>
         <Button variant="ghost" onClick={() => navigate(b.optionsStep ? `${here}/options` : "/home")}>Back</Button>
-        <Button disabled={!available || !timeOk} onClick={() => navigate(`/item/${items[0].id}/who`)}>Next</Button>
+        <Button
+          disabled={!available || !timeOk}
+          onClick={() => {
+            // Signed out: the sign-in step comes next and stays in the count
+            // after signing in; signed in, it is skipped and not counted.
+            b.set("accountStep", !customer)
+            navigate(`/item/${items[0].id}/${customer ? "who" : "account"}`)
+          }}
+        >
+          Next
+        </Button>
       </Foot>
     </AppShell>
   )

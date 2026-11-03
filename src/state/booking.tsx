@@ -58,6 +58,16 @@ export interface BookingState {
   email: string
   /* Required since S2: the "add it later" switch is gone. */
   address: string
+  /* Block S3: the home address typed on the event step when the account
+     has none, and whether the event address is the home address. */
+  homeAddress: string
+  sameAsHome: boolean
+  /* True once this checkout showed the sign-in step (S3), so the step
+     count keeps that step after the customer signs in mid-flow. */
+  accountStep: boolean
+  /* The red line the sign-in step shows when a hold answered 401
+     account-required (S3); cleared once the customer signs in. */
+  accountNotice: string | null
   /* Block M: the address as Google verified it (a full street address with
      its point), the setup pin, and the notes for the crew. Null until a
      suggestion is picked; cleared only when the address text changes, so
@@ -102,6 +112,10 @@ const INITIAL: BookingState = {
   phone: "",
   email: "",
   address: "",
+  homeAddress: "",
+  sameAsHome: false,
+  accountStep: false,
+  accountNotice: null,
   verified: null,
   setup: null,
   setupNotes: "",
@@ -147,6 +161,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           items,
           bundle: bundle ?? null,
           optionsStep: items.some(needsConfig),
+          accountStep: false,
           itemMonth: 0,
           itemDate: null,
           itemTime: null,
@@ -163,6 +178,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           ...prev,
           items,
           bundle: null,
+          ...(items.length === 0 ? { accountStep: false } : {}),
           ...CLEAR_TIER,
           formStartedAt: items.length === 0 ? 0 : prev.items.length === 0 || prev.formStartedAt === 0 ? Date.now() : prev.formStartedAt,
         })),

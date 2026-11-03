@@ -17,6 +17,9 @@ export interface SignUpValues {
   phone: string
   email: string
   password: string
+  /* Block A5: one line, saved on the account. Required at checkout (S3),
+     optional on the portal's sign-up. */
+  homeAddress: string
 }
 
 export type Taken = "email" | "phone" | "both"
@@ -35,9 +38,12 @@ export const TAKEN_LINE: Record<Taken, string> = {
   both: "You already have an account with this email or phone number. Sign in to continue.",
 }
 
-export const EMPTY_SIGNUP: SignUpValues = { name: "", phone: "", email: "", password: "" }
+export const EMPTY_SIGNUP: SignUpValues = { name: "", phone: "", email: "", password: "", homeAddress: "" }
 
-export const canSignUp = (v: SignUpValues) => v.phone.trim() !== "" && v.email.trim() !== "" && v.password.length >= PASSWORD_MIN
+/* Phone, email and a password always; at checkout (S3) the name and the
+   home address too. */
+export const canSignUp = (v: SignUpValues, full = false) =>
+  v.phone.trim() !== "" && v.email.trim() !== "" && v.password.length >= PASSWORD_MIN && (!full || (v.name.trim() !== "" && v.homeAddress.trim() !== ""))
 
 /* The admin tells a taken phone or email apart with status 409 and
    `field` ("phone" or "email"); two sign-ups racing answer 409 with no
@@ -57,7 +63,7 @@ export function useSignUp() {
     if (!canSignUp(v) || busy) return null
     setBusy(true)
     setProblem(null)
-    const result = await customerApi.signup({ name: v.name.trim() || null, phone: v.phone.trim(), email: v.email.trim(), password: v.password })
+    const result = await customerApi.signup({ name: v.name.trim() || null, phone: v.phone.trim(), email: v.email.trim(), password: v.password, homeAddress: v.homeAddress.trim() || null })
     setBusy(false)
     if (result.ok) {
       setCustomer(result.data.customer)

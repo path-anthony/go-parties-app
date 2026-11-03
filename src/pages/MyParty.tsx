@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { AppShell, Body } from "@/components/go/AppShell"
-import { ErrorNotice } from "@/components/go/ErrorNotice"
+import { ErrorNotice, FieldError } from "@/components/go/ErrorNotice"
 import { GoLabel } from "@/components/go/GoLabel"
 import { Reveal } from "@/components/go/DatePicker"
-import { customerApi, whatOf, whenOf, type BookingStep, type CustomerBooking } from "@/lib/customerApi"
+import { customerApi, whatOf, whenOf, type BookingStep, type Customer, type CustomerBooking } from "@/lib/customerApi"
 import { usePublicSettings } from "@/lib/settings"
 import { MiniMap } from "@/components/go/MiniMap"
 import { stageView, type StageView } from "@/lib/stage"
@@ -16,8 +17,12 @@ import { cn } from "@/lib/utils"
 /* Screen 12, My party. Signed in: the customer's real bookings from
    go-parties-admin, each with Reschedule, Change item and Cancel (Cancel asks
    first, inline, never a popup; a refusal is the red notice directly above
-   the Keep it / Cancel it buttons, S2). Signed out: the doors to sign in or
-   sign up. */
+   the Keep it / Cancel it buttons, S2). "Your details" (S3): name, phone
+   and home address, edited in place through PATCH /api/customer/me; the
+   email is shown and not editable (the admin refuses it). A phone another
+   account holds (409, field "phone") shows in red under the field; any
+   other refusal is the red notice above Save. Signed out: the doors to
+   sign in or sign up. */
 
 /* Moved here from Home. A stub until real personalization exists: no logic,
    just the place where picks will show up. */
@@ -184,9 +189,94 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
   )
 }
 
+/* Your details (S3). Opens read-only; "Edit" turns the three fields on. */
+function Details({ customer, onSaved }: { customer: Customer; onSaved: (c: Customer) => void }) {
+  const { toast } = useToast()
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(customer.name ?? "")
+  const [phone, setPhone] = useState(customer.phone)
+  const [home, setHome] = useState(customer.homeAddress ?? "")
+  const [busy, setBusy] = useState(false)
+  const [problem, setProblem] = useState<{ message: string; field: string | null } | null>(null)
+
+  const open = () => {
+    setName(customer.name ?? "")
+    setPhone(customer.phone)
+    setHome(customer.homeAddress ?? "")
+    setProblem(null)
+    setEditing(true)
+  }
+  const save = async () => {
+    if (busy || phone.trim() === "") return
+    setBusy(true)
+    setProblem(null)
+    const result = await customerApi.updateMe({ name: name.trim() || null, phone: phone.trim(), homeAddress: home.trim() || null }, customer)
+    setBusy(false)
+    if (result.ok) {
+      onSaved(result.data.customer)
+      setEditing(false)
+      toast({ title: "Saved." })
+      return
+    }
+    setProblem({ message: result.message, field: result.field === "phone" ? "phone" : null })
+  }
+
+  return (
+    <section aria-label="Your details" className="mt-6">
+      <div className="flex items-center justify-between">
+        <GoLabel>Your details</GoLabel>
+        {!editing && (
+          <button className="min-h-[44px] text-[13px] font-bold text-charcoal underline underline-offset-2" onClick={open}>
+            Edit
+          </button>
+        )}
+      </div>
+      {!editing ? (
+        <div className="mt-1.5 rounded-[14px] border border-line bg-white px-4 py-3.5">
+          {customer.name && <b className="block text-sm text-charcoal">{customer.name}</b>}
+          <span className="block text-small text-charcoal-soft">{customer.phone}</span>
+          <span className="block text-small text-charcoal-soft">{customer.email}</span>
+          <span className="block text-small text-charcoal-soft">{customer.homeAddress?.trim() || "No home address yet."}</span>
+        </div>
+      ) : (
+        <form
+          className="mt-1.5"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void save()
+          }}
+        >
+          <GoLabel className="mb-1.5 tracking-[.1em]">Name</GoLabel>
+          <Input placeholder="Sarah Lin" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+          <GoLabel className="mt-2.5 mb-1.5 tracking-[.1em]">Phone</GoLabel>
+          <Input autoComplete="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} aria-invalid={problem?.field === "phone" || undefined} aria-describedby={problem?.field === "phone" ? "details-phone-error" : undefined} />
+          {problem?.field === "phone" && <FieldError id="details-phone-error">{problem.message}</FieldError>}
+          <GoLabel className="mt-2.5 mb-1.5 tracking-[.1em]">Email</GoLabel>
+          <Input value={customer.email} readOnly aria-readonly="true" className="bg-cream" />
+          <p className="mt-1.5 text-small text-muted">To change your email, call or text GO.</p>
+          <GoLabel className="mt-2.5 mb-1.5 tracking-[.1em]">Home address</GoLabel>
+          <Input placeholder="14 Maple Ln, Farmington, CT 06032" autoComplete="street-address" value={home} onChange={(e) => setHome(e.target.value)} />
+          {problem && !problem.field && <ErrorNotice className="mt-3">{problem.message}</ErrorNotice>}
+          <div className="mt-3 flex gap-2">
+            <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="dark" size="sm" disabled={busy || phone.trim() === ""}>
+              {busy ? "Saving" : "Save"}
+            </Button>
+          </div>
+        </form>
+      )}
+    </section>
+  )
+}
+
 export default function MyParty() {
   const navigate = useNavigate()
-  const { customer, ready, logout } = useCustomer()
+  const location = useLocation()
+  // The event step's "Change" link sends the customer here and back.
+  const returnTo = typeof (location.state as { returnTo?: unknown } | null)?.returnTo === "string" ? (location.state as { returnTo: string }).returnTo : null
+  const { customer, ready, logout, setCustomer } = useCustomer()
   const [bookings, setBookings] = useState<CustomerBooking[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -239,6 +329,12 @@ export default function MyParty() {
       <Body>
         <GoLabel>My party</GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">{first ? `Hey ${first}` : "Your bookings"}</h1>
+        {returnTo && (
+          <Button className="mt-3 w-full" onClick={() => navigate(returnTo)}>
+            Back to checkout
+          </Button>
+        )}
+        <Details customer={customer} onSaved={setCustomer} />
         {bookings === null && <p className="mt-2 text-body text-muted">Checking the calendar.</p>}
         {loadError && <ErrorNotice className="mt-3">{loadError}</ErrorNotice>}
         {bookings && bookings.length === 0 && !loadError && (

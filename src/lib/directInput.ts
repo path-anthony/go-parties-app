@@ -79,6 +79,10 @@ export function directInput(b: BookingState, customer: Customer | null) {
     occasion: occasionOf(b),
     // A signed contract covers the policy: tier 2 sends agreed as true.
     agreedToPolicy: signature ? true : b.agreed,
+    // S3: the home address goes only when the account has none yet; the
+    // admin never overwrites one on file. The checkbox state always goes.
+    homeAddress: customer && !customer.homeAddress ? b.homeAddress.trim() || null : null,
+    eventAddressSameAsHome: customer ? b.sameAsHome : null,
     tier: b.tier?.tier ?? null,
     signature,
     // The preference chips are gone (S2); the line on the screen says a
