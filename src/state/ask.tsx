@@ -29,6 +29,7 @@ export interface RecommendItem {
   category: string
   price: number | string | null
   priceUnit: string | null
+  description?: string | null
   photoUrl?: string | null
   addonGroups?: AddonGroup[]
 }
@@ -41,6 +42,7 @@ export const toDirectItem = (item: RecommendItem): DirectItem => ({
   category: item.category,
   price: priceOf(item),
   priceUnit: item.priceUnit ?? null,
+  description: item.description ?? null,
   photoUrl: item.photoUrl ?? null,
   addonGroups: item.addonGroups,
 })

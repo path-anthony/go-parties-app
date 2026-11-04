@@ -10,7 +10,7 @@ import { labelForIso } from "@/lib/availability"
 import { fmt } from "@/data/catalog"
 import { customerApi } from "@/lib/customerApi"
 import { needsConfig } from "@/lib/addons"
-import { priceText, useCatalog, useOpenOn } from "@/lib/storeCatalog"
+import { PRICE_ON_REQUEST, keyUnit, onRequest, priceText, useCatalog, useOpenOn } from "@/lib/storeCatalog"
 import { TIER_LINE, useRetainer } from "@/hooks/use-cart-tier"
 import { fetchTier, type TierInfo } from "@/lib/tierApi"
 import { tierInput } from "@/lib/directInput"
@@ -31,7 +31,11 @@ import { cn } from "@/lib/utils"
    the count, total, the retainer due today, a one-line tier note and
    "Book this party", which loads the items into the cart and opens
    checkout. A failed send or switch shows the red notice directly above
-   the button it belongs to (S2). The backend call and its caps are unchanged. */
+   the button it belongs to (S2). The backend call and its caps are unchanged.
+   Block S5: a row prints the item's description under the name (two
+   lines, clipped) and its unit when it is per guest or per hour; an item
+   with no price reads "Price on request", is never offered as a swap and
+   stays out of checkout (one line under the total says so). */
 
 const QUICK = ["Add something for the parents", "Keep it under $800", "It might rain"]
 
@@ -52,6 +56,8 @@ export default function Ask() {
 
   const party = ask.party
   const total = cartTotal(party, null)
+  const bookable = party.filter((i) => !onRequest(i))
+  const unpriced = party.length - bookable.length
   const retainer = useRetainer(total, tier)
   const dayLabel = b.itemDate ? labelForIso(b.itemDate) : null
   const changeFor = b.changeFor
@@ -99,17 +105,18 @@ export default function Ask() {
   }
 
   const book = () => {
-    if (party.length === 0) return
+    if (bookable.length === 0) return
     // pickItems starts a fresh cart (and drops the date); the party date
-    // picked in the header is put back so checkout opens on it.
+    // picked in the header is put back so checkout opens on it. An item
+    // with no price cannot be booked, so it stays here.
     const iso = b.itemDate
-    b.pickItems(party)
+    b.pickItems(bookable)
     if (iso) b.set("itemDate", iso)
-    if (party.some(needsConfig)) {
-      navigate(`/item/${party[0].id}/options`)
+    if (bookable.some(needsConfig)) {
+      navigate(`/item/${bookable[0].id}/options`)
       return
     }
-    navigate(`/item/${party[0].id}`)
+    navigate(`/item/${bookable[0].id}`)
   }
 
   /* Armed by the portal's Change item screen: swap an existing booking onto
@@ -140,9 +147,9 @@ export default function Ask() {
     if (catalog.status !== "ready") return []
     const free = (id: string) => (open.status === "ready" ? (open.open.get(id) ?? 0) > 0 : true)
     return catalog.items
-      .filter((x) => x.category === item.category && x.id !== item.id && !party.some((p) => p.id === x.id) && free(x.id))
+      .filter((x) => x.category === item.category && x.id !== item.id && !onRequest(x) && !party.some((p) => p.id === x.id) && free(x.id))
       .slice(0, 3)
-      .map((x) => ({ id: x.id, name: x.name, category: x.category, price: x.price, priceUnit: x.priceUnit, photoUrl: x.photoUrl, addonGroups: x.addonGroups }))
+      .map((x) => ({ id: x.id, name: x.name, category: x.category, price: x.price, priceUnit: x.priceUnit, description: x.description ?? null, photoUrl: x.photoUrl, addonGroups: x.addonGroups }))
   }
 
   const bubble = "max-w-[88%] rounded-[12px] px-3.5 py-3 text-[14.5px] leading-normal"
@@ -242,6 +249,7 @@ export default function Ask() {
                   <Thumb src={item.photoUrl} className="size-12 rounded-[8px]" />
                   <div className="min-w-0 flex-1">
                     <b className="block text-sm text-charcoal">{item.name}</b>
+                    {item.description && <small className="line-clamp-2 block text-[12px] leading-[1.35] text-charcoal-soft">{item.description}</small>}
                     <small className="block text-small text-muted">{item.category}</small>
                     <div className="mt-1 flex gap-3">
                       {changeFor ? (
@@ -266,7 +274,10 @@ export default function Ask() {
                       )}
                     </div>
                   </div>
-                  <span className="flex-none text-sm font-extrabold text-charcoal">{item.price !== null ? fmt(item.price) : ""}</span>
+                  <span className="max-w-[40%] flex-none text-right text-sm font-extrabold text-charcoal">
+                    {item.price !== null ? fmt(item.price) : PRICE_ON_REQUEST}
+                    {item.price !== null && keyUnit(item.priceUnit) && <small className="block text-[11px] font-medium text-muted">{keyUnit(item.priceUnit)}</small>}
+                  </span>
                 </div>
                 {swapOpen === k && (
                   <div className="mt-2 grid gap-1 rounded-[10px] bg-cream p-2">
@@ -314,11 +325,12 @@ export default function Ask() {
                   <span>Total</span>
                   <span>{fmt(total)}</span>
                 </div>
+                {unpriced > 0 && <p className="text-small text-charcoal-soft">{unpriced === 1 ? "1 item is priced on request. It stays out of checkout; ask GO about it." : `${unpriced} items are priced on request. They stay out of checkout; ask GO about them.`}</p>}
               </div>
               <div className="px-4 pb-4">
                 <p className="mb-3 text-small text-charcoal-soft">{tier ? TIER_LINE[tier.tier] : b.itemDate ? "Checking what checkout will ask for." : "Pick a party date to see what checkout asks for."}</p>
                 {/* Under 901px the pinned bar carries the one orange action. */}
-                <Button className="hidden w-full min-[901px]:inline-flex" disabled={party.length === 0} onClick={book}>
+                <Button className="hidden w-full min-[901px]:inline-flex" disabled={bookable.length === 0} onClick={book}>
                   Book this party
                 </Button>
               </div>
@@ -347,7 +359,7 @@ export default function Ask() {
                 <b className="block text-sm">{fmt(total)} total</b>
                 {retainer.amount !== null && tier?.tier !== 3 && <small className="block text-[12px] text-[#CFC8C2]">{fmt(retainer.amount)} today holds the date</small>}
               </div>
-              <Button size="sm" className="min-h-[44px] flex-none" onClick={book}>
+              <Button size="sm" className="min-h-[44px] flex-none" disabled={bookable.length === 0} onClick={book}>
                 Book this party
               </Button>
             </>

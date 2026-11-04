@@ -8,11 +8,12 @@ import { ImagePlaceholder } from "@/components/go/ImagePlaceholder"
 import { groupsOf, needsConfig, type Picks } from "@/lib/addons"
 import { labelForIso } from "@/lib/availability"
 import type { PublicItem } from "@/lib/adminApi"
-import { priceText, useCatalog, useOpenOn } from "@/lib/storeCatalog"
+import { PRICE_ON_REQUEST, askAboutText, onRequest, useCatalog, useOpenOn } from "@/lib/storeCatalog"
 import { useBooking, type DirectItem } from "@/state/booking"
 import { useStoreUi } from "@/state/store"
 import { useAsk } from "@/state/ask"
 import { cn } from "@/lib/utils"
+import { fmt } from "@/data/catalog"
 
 /* The store (Block S1). The whole catalog, with multi-select filters
    (category, free on the party date, price), a separate sort, removable
@@ -23,7 +24,12 @@ import { cn } from "@/lib/utils"
    the cart and opens the drawer; an item with add-on groups answers them
    first; tapping Add on something already in the cart only opens the
    drawer, where the quantity lives. Availability is the admin's answer for the date in the booking
-   store; with no date, cards show no line and the filter is off. */
+   store; with no date, cards show no line and the filter is off.
+   Block S5: the description (two lines, clipped) sits under the name; an
+   item with no price reads "Price on request", its button is "Ask about
+   this" (into Ask GO with "Tell me about {name}") and it never goes in the
+   cart; the price boxes skip it, and "Priced items only" (?priced=1, off
+   by default) hides it. */
 
 const PRICES: [string, string, (p: number) => boolean][] = [
   ["u200", "Under $200", (p) => p < 200],
@@ -44,6 +50,7 @@ const toDirect = (i: PublicItem, picks?: Picks): DirectItem => ({
   category: i.category,
   price: i.price,
   priceUnit: i.priceUnit,
+  description: i.description ?? null,
   photoUrl: i.photoUrl,
   addonGroups: i.addonGroups,
   picks,
@@ -65,6 +72,7 @@ export default function Browse() {
   const cats = list(params.get("cat"))
   const prices = list(params.get("price"))
   const free = params.get("free") === "1" && !!iso
+  const priced = params.get("priced") === "1"
   // "pop" is the old spelling of featured and still works from a shared link.
   const rawSort = params.get("sort") ?? "featured"
   const sort = rawSort === "pop" ? "featured" : rawSort
@@ -95,6 +103,7 @@ export default function Browse() {
       (i) =>
         (cats.length === 0 || cats.includes(i.category)) &&
         (prices.length === 0 || (i.price !== null && PRICES.some(([k, , f]) => prices.includes(k) && f(i.price as number)))) &&
+        (!priced || i.price !== null) &&
         (!free || (freeUnits(i.id) ?? 1) > 0) &&
         (!needle || `${i.name} ${i.category}`.toLowerCase().includes(needle))
     )
@@ -104,10 +113,14 @@ export default function Browse() {
     else if (sort === "az") out.sort((x, y) => x.name.localeCompare(y.name))
     return out
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [all, cats.join(","), prices.join(","), free, q, sort, open])
+  }, [all, cats.join(","), prices.join(","), free, priced, q, sort, open])
 
   const inCart = (id: string) => b.items.find((i) => i.id === id)
   const add = (item: PublicItem) => {
+    if (onRequest(item)) {
+      start(askAboutText(item.name))
+      return
+    }
     const have = inCart(item.id)
     if (have) {
       // Already in the cart: just show it. Quantity changes live in the drawer.
@@ -127,12 +140,13 @@ export default function Browse() {
   }
 
   const dayLabel = iso ? labelForIso(iso) : null
-  const nFilters = cats.length + prices.length + (free ? 1 : 0)
+  const nFilters = cats.length + prices.length + (free ? 1 : 0) + (priced ? 1 : 0)
   const pills: [string, () => void][] = [
     ...(q ? [[`"${q}"`, () => update({ q: null })] as [string, () => void]] : []),
     ...cats.map((c) => [c, () => toggle("cat", c)] as [string, () => void]),
     ...(free ? [[`Free ${dayLabel}`, () => update({ free: null })] as [string, () => void]] : []),
     ...prices.map((k) => [PRICES.find((p) => p[0] === k)?.[1] ?? k, () => toggle("price", k)] as [string, () => void]),
+    ...(priced ? [["Priced items only", () => update({ priced: null })] as [string, () => void]] : []),
   ]
 
   const groups = (
@@ -177,6 +191,10 @@ export default function Browse() {
               {label}
             </label>
           ))}
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-2.5 px-0.5 text-sm text-charcoal">
+            <input type="checkbox" className="size-[18px] flex-none accent-charcoal" checked={priced} onChange={(e) => update({ priced: e.target.checked ? "1" : null })} />
+            Priced items only
+          </label>
         </div>
       </div>
     </>
@@ -248,12 +266,12 @@ export default function Browse() {
                     </span>
                   )}
                   <h3 className="text-[14px] leading-[1.25] font-bold text-charcoal">{item.name}</h3>
+                  {item.description && <p className="line-clamp-2 text-[12px] leading-[1.35] text-charcoal-soft">{item.description}</p>}
                   {needsConfig(item) && <small className="text-[11px] text-muted">Options: {groupsOf(item).map((g) => g.name).join(", ")}</small>}
                   <div className="flex items-center justify-between gap-1.5">
                     <span className="min-w-0 text-[14px] font-extrabold text-charcoal">
-                      {item.price !== null ? `$${item.price.toLocaleString("en-US")}` : ""}
-                      {item.price !== null && item.priceUnit && <small className="ml-1 text-[11px] font-medium text-muted">{item.priceUnit}</small>}
-                      {item.price === null && <small className="text-[11px] font-medium text-muted">{priceText(null, item.priceUnit)}</small>}
+                      {item.price !== null ? fmt(item.price) : PRICE_ON_REQUEST}
+                      {item.price !== null && item.priceUnit && <small className="ml-1 inline-block text-[11px] font-medium whitespace-nowrap text-muted">{item.priceUnit}</small>}
                     </span>
                     <button
                       className={cn(
@@ -261,10 +279,10 @@ export default function Browse() {
                         have ? "bg-orange text-charcoal" : "bg-charcoal text-white",
                         "disabled:bg-line disabled:text-muted"
                       )}
-                      disabled={booked}
+                      disabled={booked && !onRequest(item)}
                       onClick={() => add(item)}
                     >
-                      {have ? `Added ${have.quantity ?? 1}` : "Add"}
+                      {onRequest(item) ? "Ask about this" : have ? `Added ${have.quantity ?? 1}` : "Add"}
                     </button>
                   </div>
                 </article>

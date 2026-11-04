@@ -154,7 +154,9 @@ export const NEXT_OPEN: Record<OccasionId, string> = {
   corporate: "Sep 26",
 }
 
-export const fmt = (n: number) => "$" + n.toLocaleString("en-US")
+/* "$1,899" for a whole number, "$97.60" when the admin's price has cents
+   (Block S5: the imported catalog carries prices like 97.6). */
+export const fmt = (n: number) => "$" + n.toLocaleString("en-US", { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 })
 
 export function occOf(p: Pkg): OccasionId {
   for (const k of Object.keys(PKGS) as OccasionId[]) {

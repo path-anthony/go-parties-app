@@ -29,6 +29,9 @@ export interface PublicItem {
   category: string
   price: number | null
   priceUnit: string | null
+  /* Block A7: the customer-facing line or two under the name, null when
+     the admin has not written one. Never the admin's internal notes. */
+  description?: string | null
   photoUrl: string | null
   hasUnits: boolean
   freeUnits?: number
@@ -265,6 +268,7 @@ export interface PublicPackageItem {
   category: string
   price: number | null
   priceUnit: string | null
+  description?: string | null
   quantity: number
   addonGroups?: AddonGroup[]
 }

@@ -125,8 +125,12 @@ export async function mockHold(input: { itemIds: string[]; eventDate: string; ev
 /* A small catalog so Browse works with no admin: one physical item (tier 1
    territory) and two crewed ones. Every item is open on every date. */
 const ITEMS: PublicItem[] = [
-  { id: "it-bounce", name: "Test Gladiator Bounce House", category: "Bounce House", price: 700, priceUnit: "per day", photoUrl: null, hasUnits: true, freeUnits: 1, addonGroups: [] },
-  { id: "it-dj", name: "Go DJ", category: "DJ and MC", price: 1800, priceUnit: "per event", photoUrl: null, hasUnits: true, freeUnits: 2, addonGroups: [] },
+  // S5: the admin's category names, a description on one item, a per
+  // hour unit, and one item priced on request (null price).
+  { id: "it-bounce", name: "Test Gladiator Bounce House", category: "Bounce Houses", price: 700, priceUnit: "per day", description: "Two lanes, a climb and a slide. Fits a 20 by 20 yard with room to spare.", photoUrl: null, hasUnits: true, freeUnits: 1, addonGroups: [] },
+  { id: "it-dj", name: "Go DJ", category: "DJ and AV", price: 1800, priceUnit: "per event", description: null, photoUrl: null, hasUnits: true, freeUnits: 2, addonGroups: [] },
+  { id: "it-bartender", name: "Test Bartender", category: "Bar and Cigar", price: 45, priceUnit: "per hour", description: null, photoUrl: null, hasUnits: true, freeUnits: 3, addonGroups: [] },
+  { id: "it-trailer", name: "Test Cigar Lounge Trailer", category: "Bar and Cigar", price: null, priceUnit: "per event", description: "The mobile lounge, cigars and a cigarist. Priced per party.", photoUrl: null, hasUnits: true, freeUnits: 1, addonGroups: [] },
   {
     id: "it-uplight",
     name: "Uplighting",

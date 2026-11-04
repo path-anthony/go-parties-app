@@ -21,6 +21,9 @@ export interface DirectItem {
   category: string
   price: number | null
   priceUnit: string | null
+  /* The admin's customer-facing description (Block A7), shown under the
+     name on the Ask GO cart rows and in the drawer; nothing when null. */
+  description?: string | null
   /* The admin's photo (a URL or an inline data URL). Missing or null shows
      the photo plate instead. */
   photoUrl?: string | null

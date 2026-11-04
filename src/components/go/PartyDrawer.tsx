@@ -5,7 +5,7 @@ import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from "@/components/ui
 import { Thumb } from "@/components/go/Thumb"
 import { cartTotal, lineTotal, qtyOf } from "@/components/go/CartItems"
 import { labelForIso } from "@/lib/availability"
-import { useOpenOn } from "@/lib/storeCatalog"
+import { PRICE_ON_REQUEST, keyUnit, useOpenOn } from "@/lib/storeCatalog"
 import { fmt } from "@/data/catalog"
 import { TIER_LINE, useCartTier, useRetainer } from "@/hooks/use-cart-tier"
 import { useBooking } from "@/state/booking"
@@ -18,7 +18,9 @@ import { useStoreUi } from "@/state/store"
    one plain line on what checkout will ask for (from the tier call) and
    the retainer due today (from the tier, else settings), then "Keep
    shopping" and "Checkout". Checkout hands the cart to the existing
-   /item/:id flow unchanged. */
+   /item/:id flow unchanged. Block S5: the description under the name
+   (two lines, clipped) and the unit after the price when it is per guest
+   or per hour. */
 
 function useDesktop() {
   const [wide, setWide] = useState(() => window.matchMedia("(min-width: 641px)").matches)
@@ -77,8 +79,10 @@ export function PartyDrawer() {
                   <Thumb src={i.photoUrl} className="size-12 rounded-[8px]" />
                   <div className="min-w-0 flex-1">
                     <b className="block text-sm text-charcoal">{i.name}</b>
+                    {i.description && <small className="line-clamp-2 block text-[12px] leading-[1.35] text-charcoal-soft">{i.description}</small>}
                     <small className="block text-small text-muted">
-                      {qtyOf(i)} × {i.price !== null ? fmt(i.price) : "price by text"}
+                      {qtyOf(i)} × {i.price !== null ? fmt(i.price) : PRICE_ON_REQUEST}
+                      {i.price !== null && keyUnit(i.priceUnit) ? ` ${keyUnit(i.priceUnit)}` : ""}
                       {i.price !== null && qtyOf(i) > 1 ? ` = ${fmt(lineTotal(i))}` : ""}
                     </small>
                   </div>

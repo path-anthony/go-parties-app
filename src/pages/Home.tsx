@@ -136,6 +136,7 @@ function Packages() {
       category: i.category,
       price: i.price,
       priceUnit: i.priceUnit,
+      description: i.description ?? null,
       quantity: i.quantity,
       addonGroups: i.addonGroups,
     }))

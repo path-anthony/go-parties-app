@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from "react"
 import { publicItems, publicPackages, type PublicItem, type PublicPackage } from "@/lib/adminApi"
-import { OCC, SUB_OCC, type OccasionId } from "@/data/catalog"
+import { OCC, SUB_OCC, fmt, type OccasionId } from "@/data/catalog"
 
 /* The store's view of the admin's public catalog (Block S1). Three reads,
    each cached for the page's life and shared by the header, Home, the
@@ -15,6 +15,39 @@ import { OCC, SUB_OCC, type OccasionId } from "@/data/catalog"
 export interface Catalog {
   items: PublicItem[]
   categories: string[]
+}
+
+/* The category order (Block S5): the admin's fifteen, in the order the
+   business reads them, everywhere a category list is shown (the Home
+   tiles, the store sidebar and filters panel, the menu panel, the search
+   suggestions). The admin answers them alphabetically. A category the
+   list does not know goes after these, in the admin's order; a category
+   with no visible item is left out. */
+export const CATEGORY_ORDER = [
+  "Bounce Houses",
+  "Inflatables",
+  "Rides and Attractions",
+  "Games",
+  "Fun Foods",
+  "Catering",
+  "Bar and Cigar",
+  "DJ and AV",
+  "Entertainment",
+  "Photo and Video",
+  "Lighting and Decor",
+  "Dance Floors",
+  "Special Effects",
+  "Venue Essentials",
+  "Planning and Staff",
+]
+
+export function orderCategories(categories: string[], items: PublicItem[]): string[] {
+  const seen = new Set(items.map((i) => i.category))
+  const rank = (c: string) => {
+    const i = CATEGORY_ORDER.indexOf(c)
+    return i === -1 ? CATEGORY_ORDER.length + categories.indexOf(c) : i
+  }
+  return [...new Set([...categories, ...seen])].filter((c) => seen.has(c)).sort((a, b) => rank(a) - rank(b))
 }
 
 /* One shared catalog state for every subscriber (the header, the menu,
@@ -39,7 +72,7 @@ async function fetchCatalog(attempt = 0): Promise<void> {
   inFlight = true
   try {
     const d = await publicItems("", "", null)
-    state = { status: "ready", items: d.items, categories: d.categories }
+    state = { status: "ready", items: d.items, categories: orderCategories(d.categories, d.items) }
     inFlight = false
     emit()
   } catch {
@@ -174,9 +207,25 @@ export function useAllPackages(): PackagesState {
   return s
 }
 
-/* The price line as the store prints it: "$450" or "$250 per panel", or
-   the admin's wording when there is no number. */
+/* A price with no number (Block S5): about 55 items are waiting on a
+   price on purpose. The line reads "Price on request" wherever the price
+   goes, in the price's own weight, never "$0" and never the unit alone;
+   the item cannot go in the cart, and its button opens Ask GO instead. */
+export const PRICE_ON_REQUEST = "Price on request"
+export const onRequest = (item: { price: number | null }) => item.price === null
+/* The first message Ask GO gets from an "Ask about this" button. */
+export const askAboutText = (name: string) => `Tell me about ${name}`
+
+/* The price unit strings are the admin's standard list since Block I1 (per
+   day, per event, per hour, per guest, each, per section, per 10 guests).
+   Two of them change what the number means, so a compact row with no room
+   for every unit still prints these two. */
+const KEY_UNITS = new Set(["per guest", "per hour"])
+export const keyUnit = (unit: string | null): string | null => (unit && KEY_UNITS.has(unit.trim().toLowerCase()) ? unit : null)
+
+/* The price line as one string: "$450", "$250 per day", or "Price on
+   request" when there is no number. */
 export const priceText = (price: number | null, unit: string | null): string => {
-  if (price !== null) return `$${price.toLocaleString("en-US")}${unit ? ` ${unit}` : ""}`
-  return unit || "Text us for a price"
+  if (price !== null) return `${fmt(price)}${unit ? ` ${unit}` : ""}`
+  return PRICE_ON_REQUEST
 }
