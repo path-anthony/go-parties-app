@@ -20,6 +20,14 @@
 
 **What's next:** Merge and deploy from Terminal; then the Google door on the sign-in step.
 
+## 2026-11-03 (Block A7, merged and deployed)
+
+**Where we are:** Items have a customer-facing description. `Item.description` is one or two lines, up to 240 characters, edited in the item popup under the name ("Description (shown to customers, one or two lines)") with a live count; it is cleaned like a name and saved on blur. The internal `notes` field is unchanged and still never leaves the server. Every public shape that carries items now carries `description` (null when empty): the catalog (`GET /api/items/public`), the items inside the packages feed (`GET /api/packages/public`) and the items Ask GO returns; Ask GO's prompt line also shows it to the model, since it is public by definition. Migration `20261103150000_item_description` (one nullable column) applied through the Railway pre-deploy step. No item has a description yet; Andy fills them in from the popup.
+
+**What we decided:** One customer-facing field, separate from notes, so supplier names and costs can never reach a customer by accident. 240 characters keeps it to a card line or two.
+
+**What's next:** The storefront prints `description` on the catalog card and the item page when it is present, and nothing when it is null.
+
 ## 2026-11-03 (Block A6, merged and deployed)
 
 **Where we are:** The Home page photos are managed in the admin. Settings > Home photos lists the slides as thumbnails in order, each with Move up, Move down, Show or Hide, the alt text (required) and Delete with an in-page confirm; Add photos takes several files at once. Storage is the database, no new service: `HeroSlide` holds the image as WebP at most 2000px wide (quality 78), a 400px thumbnail, the size, alt text, order and shown or hidden; uploads over 15 MB, files that are not JPEG, PNG, WebP or HEIC, and photos the server cannot read are refused with a plain sentence. Public: `GET /api/hero` returns the active slides in order as `[{ id, url, altText, width, height }]`; `GET /api/media/hero/:id` serves the WebP with `Cache-Control: public, max-age=31536000, immutable` (a slide is never replaced under its id; a new photo is a new slide). Both sit behind the read-only public limiter. The three welcome photos from this repo (wedding, adult-party, corporate) were imported as the first slides, so the live list has photos on day one. Migration `20261103120000_hero_slides` (one new table) applied through the Railway pre-deploy step.
