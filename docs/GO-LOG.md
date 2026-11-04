@@ -1,5 +1,15 @@
 # GO! Event Group · project log
 
+## 2026-11-03 (Block S4, branch s4-hero, not merged)
+
+**Where we are:** The new Home hero, storefront only, on `s4-hero` from main, after `docs/hero-prototype.html`. Photos come from `GET /api/hero` (Block A6, live, three slides) in order, crossfading every 6 seconds with a slow zoom, dots to jump, the shipped photos as the fallback when the call fails or answers none; the first photo is eager with high priority and the rest join the page once it has painted. One photo across the top: desktop full width, radius 20, `clamp(460px, 46vw, 600px)`; phone edge to edge, 600px. Over it the soft-light orange tint, the charcoal gradient, the two orange slashes, the copy bottom left and the frosted "How do you want to plan?" switch, which now picks the one panel under the hero on every width; the Ask box under it is white with "Tell GO about your party". Packages and the header are unchanged.
+
+**What we decided:** Nothing is drawn in the hero while the feed is being asked, so a phone downloads one photo on first paint (the admin's first slide, 33 KB) rather than a shipped photo and then the admin's on top of it; the fallback photos appear only when the feed fails or is empty. The CSP already allows the admin's image domain (`img-src https:`) and its API origin (`connect-src`), so vercel.json is untouched. The hero is the one screen where orange appears more than once, by design and noted in BRAND.
+
+**What A6 did not provide:** Nothing missing. The image answer has no `Timing-Allow-Origin`, so the browser reports the cross-origin sizes as zero; the weights here come from the `Content-Length` headers (33,204, 101,848 and 112,496 bytes).
+
+**What's next:** Merge and deploy from Terminal; then the live site's hero reads the admin's photos.
+
 ## 2026-11-03 (Block S3, branch s3-accounts, not merged)
 
 **Where we are:** Sign in first, home and event addresses, storefront only, on `s3-accounts` from main. The checkout order is date, "Sign in or create an account", "Event details", then the contract (tier 2) and the retainer; the sign-in step is skipped and not counted for a customer already signed in, and there is no guest path anywhere. Sign in is email and password; create account is name, email, phone, password and home address, all required (optional on the portal's own sign-up). The event step shows the account's name, phone and email read-only with a "Change" link to My party (which answers with "Back to checkout"), asks "Your home address" first when the account has none, and has "Same as my home address" over the required event address; the hold sends `homeAddress` (only when the account had none) and `eventAddressSameAsHome`. My party has "Your details" on `PATCH /api/customer/me` (email read-only). The balance line reads the admin's `balanceDueDays`. A hold answered 401 `account-required` drops the session, lands on the sign-in step with the cart kept and the red line "Please sign in or create an account to book." Mocks: `tier1-account`, and in-memory account calls under any mock (`authMock.ts`).

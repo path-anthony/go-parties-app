@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { AppShell } from "@/components/go/AppShell"
+import { Hero, type Door } from "@/components/go/Hero"
 import { ImagePlaceholder } from "@/components/go/ImagePlaceholder"
 import { Button } from "@/components/ui/button"
 import type { PublicPackage } from "@/lib/adminApi"
@@ -11,93 +12,13 @@ import { useBooking, type DirectItem } from "@/state/booking"
 import { useStoreUi } from "@/state/store"
 import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { useAsk } from "@/state/ask"
-import { cn } from "@/lib/utils"
 
-/* Home (Block S1): the hero with no buttons, then the two ways to start
-   (Build my party with Ask GO, or Shop by category), then the party
-   packages. On a phone the two ways are tabs and one panel shows at a
-   time (one segmented switch under "How do you want to plan?", S2); on a
-   desktop both panels show in order. Packages come from
+/* Home (Block S4): the hero (its photos from GET /api/hero) with the
+   "How do you want to plan?" switch on it, then the one panel it picks
+   (Build my party: the white Ask GO box; Shop by category: the category
+   tiles), on every width, then the party packages. Packages come from
    /api/packages/public (every group, merged). A catalog that will not load
    says so in red (S2). Nothing else lives here. */
-
-/* Each hero photo ships as WebP with a JPEG fallback, 1200px wide, under
-   180 KB each (the originals live in reference/photos-original, out of
-   the bundle). */
-const HERO = [
-  { src: "/photos/welcome/wedding", alt: "A wedding couple sharing a quiet moment", position: "56% center" },
-  { src: "/photos/welcome/adult-party", alt: "A party crowd on the dance floor", position: "center" },
-  { src: "/photos/welcome/corporate", alt: "A corporate event audience facing the stage", position: "center" },
-]
-const webpOk = () => {
-  try {
-    return document.createElement("canvas").toDataURL("image/webp").startsWith("data:image/webp")
-  } catch {
-    return false
-  }
-}
-const CROSSFADE_MS = 6000
-
-function Hero() {
-  const [on, setOn] = useState(0)
-  const [prev, setPrev] = useState<number | null>(null)
-  // Only the photo on screen (and the one fading out) is in the page, so a
-  // phone downloads one hero photo on load; the next one is fetched
-  // quietly a few seconds before its turn.
-  useEffect(() => {
-    const id = setInterval(() => {
-      setOn((i) => {
-        setPrev(i)
-        return (i + 1) % HERO.length
-      })
-    }, CROSSFADE_MS)
-    return () => clearInterval(id)
-  }, [])
-  useEffect(() => {
-    const t = setTimeout(() => {
-      const img = new Image()
-      img.src = `${HERO[(on + 1) % HERO.length].src}.${webpOk() ? "webp" : "jpg"}`
-    }, CROSSFADE_MS / 2)
-    return () => clearTimeout(t)
-  }, [on])
-  const eyebrow = "Farmington, CT · 5.0 on Google"
-  const title = "Parties and events, done door to door."
-  return (
-    <section className="grid overflow-hidden rounded-[14px] min-[641px]:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] min-[641px]:items-center min-[641px]:gap-8 min-[641px]:overflow-visible">
-      <div className="relative aspect-[4/3] overflow-hidden bg-[#ECE7E0] min-[641px]:aspect-auto min-[641px]:h-[260px] min-[641px]:rounded-[14px]">
-        {HERO.map((h, i) =>
-          i === on || i === prev ? (
-            <picture key={h.src}>
-              <source srcSet={`${h.src}.webp`} type="image/webp" />
-              <img
-                src={`${h.src}.jpg`}
-                alt={i === on ? h.alt : ""}
-                width={1200}
-                height={798}
-                loading="eager"
-                fetchPriority={i === 0 ? "high" : "auto"}
-                className={cn("absolute inset-0 h-full w-full object-cover transition-opacity duration-1000", i === on ? "opacity-100" : "opacity-0")}
-                style={{ objectPosition: h.position }}
-              />
-            </picture>
-          ) : null
-        )}
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(33,29,28,.05)_30%,rgba(33,29,28,.82)_100%)] min-[641px]:hidden" />
-        <div className="absolute right-4 bottom-4 left-4 text-white min-[641px]:hidden">
-          <small className="block text-[11px] font-bold tracking-[.14em] text-[#F3D9B1] uppercase">{eyebrow}</small>
-          <h1 className="mt-1.5 text-[24px] leading-[1.1] font-black tracking-[-.02em]">{title}</h1>
-        </div>
-      </div>
-      <div className="hidden min-[641px]:grid min-[641px]:gap-3">
-        <small className="block text-[11px] font-bold tracking-[.14em] text-[#8A4E00] uppercase">{eyebrow}</small>
-        <h1 className="max-w-[20ch] text-[clamp(26px,3.2vw,38px)] leading-[1.1] font-black tracking-[-.02em] text-charcoal">{title}</h1>
-        <p className="max-w-[46ch] text-[15px] leading-[1.55] text-charcoal-soft">
-          Bounce houses, games, DJs, photo booths and lighting. The GO crew delivers it, sets it up and takes it down.
-        </p>
-      </div>
-    </section>
-  )
-}
 
 const HINTS = [
   ["Graduation party", "Graduation party for 60 in the backyard"],
@@ -109,9 +30,9 @@ function BuildPanel({ id, labelledBy }: { id?: string; labelledBy?: string }) {
   const { start } = useAsk()
   const [text, setText] = useState("")
   return (
-    <section id={id} role={labelledBy ? "tabpanel" : undefined} aria-labelledby={labelledBy} className="grid gap-2.5 rounded-[14px] bg-charcoal p-4 text-white min-[641px]:p-5">
-      <label htmlFor="ask-home" className="text-[15px] font-bold">
-        Not sure what you need? <span className="text-orange">Ask GO.</span>
+    <section id={id} role={labelledBy ? "tabpanel" : undefined} aria-labelledby={labelledBy} className="grid gap-3 rounded-[16px] border border-line bg-white p-4 min-[641px]:p-5">
+      <label htmlFor="ask-home" className="text-[16px] font-bold text-charcoal">
+        Tell GO about your party
       </label>
       <form
         className="flex flex-col gap-2.5 min-[641px]:flex-row"
@@ -126,7 +47,7 @@ function BuildPanel({ id, labelledBy }: { id?: string; labelledBy?: string }) {
           onChange={(e) => setText(e.target.value)}
           placeholder="Kid's birthday, 25 guests, backyard, about $800"
           autoComplete="off"
-          className="min-h-[48px] min-w-0 flex-1 rounded-[10px] bg-white px-3.5 py-3 text-[16px] text-charcoal placeholder:text-muted focus:outline-none"
+          className="min-h-[48px] min-w-0 flex-1 rounded-[10px] border-[1.5px] border-line bg-white px-3.5 py-3 text-[16px] text-charcoal placeholder:text-muted focus:border-charcoal focus:outline-none"
         />
         <Button type="submit" className="min-h-[48px]">
           Build my party
@@ -134,7 +55,7 @@ function BuildPanel({ id, labelledBy }: { id?: string; labelledBy?: string }) {
       </form>
       <div className="flex flex-wrap gap-2">
         {HINTS.map(([label, prompt]) => (
-          <button key={label} type="button" className="min-h-[44px] rounded-full border border-[#4A4441] min-[641px]:min-h-[36px] px-3 py-1.5 text-[12.5px] font-semibold text-[#D9D2CC]" onClick={() => start(prompt)}>
+          <button key={label} type="button" className="min-h-[44px] rounded-full border border-line bg-white px-3 py-1.5 text-[12.5px] font-semibold text-charcoal min-[641px]:min-h-[36px]" onClick={() => start(prompt)}>
             {label}
           </button>
         ))}
@@ -276,43 +197,17 @@ function Packages() {
 }
 
 export default function Home() {
-  const [door, setDoor] = useState<"build" | "shop">("build")
+  const [door, setDoor] = useState<Door>("build")
   return (
     <AppShell layout="store">
-      <div className="rise grid gap-7 py-4 min-[641px]:gap-9 min-[641px]:py-6">
-        <Hero />
-        <div className="grid gap-3 min-[641px]:gap-7">
-          <div className="min-[641px]:hidden">
-            <small id="door-label" className="block text-[10.5px] font-bold tracking-[.14em] text-taupe uppercase">How do you want to plan?</small>
-            {/* One segmented switch: a light grey track, the chosen side a charcoal pill. */}
-            <div role="tablist" aria-labelledby="door-label" className="mt-1.5 grid w-full grid-cols-2 gap-1 rounded-[12px] bg-[#EDE8E1] p-1">
-              {(
-                [
-                  ["build", "Build my party", "Tell GO what you're planning"],
-                  ["shop", "Shop by category", "Pick items yourself"],
-                ] as const
-              ).map(([id, label, sub]) => (
-                <button
-                  key={id}
-                  id={`door-${id}`}
-                  role="tab"
-                  aria-selected={door === id}
-                  aria-controls={`panel-${id}`}
-                  className={cn("grid min-h-[56px] gap-0.5 rounded-[9px] px-3 py-2 text-left", door === id ? "bg-charcoal text-white" : "text-charcoal")}
-                  onClick={() => setDoor(id)}
-                >
-                  <b className="text-[15px]">{label}</b>
-                  <small className={cn("text-[12px]", door === id ? "text-[#CFC8C2]" : "text-charcoal-soft")}>{sub}</small>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className={cn(door === "build" ? "" : "hidden", "min-[641px]:block")}>
-            <BuildPanel id="panel-build" labelledBy="door-build" />
-          </div>
-          <div className={cn(door === "shop" ? "" : "hidden", "min-[641px]:block")}>
-            <ShopPanel id="panel-shop" labelledBy="door-shop" />
-          </div>
+      <div className="rise grid gap-6 pt-0 pb-4 min-[641px]:gap-8 min-[641px]:py-6">
+        <Hero door={door} onDoor={setDoor} />
+        {/* The switch on the hero picks one panel, on every width. */}
+        <div className={door === "build" ? "" : "hidden"}>
+          <BuildPanel id="panel-build" labelledBy="door-build" />
+        </div>
+        <div className={door === "shop" ? "" : "hidden"}>
+          <ShopPanel id="panel-shop" labelledBy="door-shop" />
         </div>
         <Packages />
       </div>
