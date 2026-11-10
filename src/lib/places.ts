@@ -1,5 +1,4 @@
-import { mockMode } from "@/lib/mock"
-import { loadMaps, HOME, BIAS_RADIUS_M, latLngOf, type LatLng } from "@/lib/maps"
+import { loadMaps, mapsMocked, devMaps, HOME, BIAS_RADIUS_M, latLngOf, type LatLng } from "@/lib/maps"
 
 /* Address lookup with Places API (New) through the Maps JavaScript API's
    places library: AutocompleteSuggestion.fetchAutocompleteSuggestions for
@@ -40,7 +39,7 @@ export interface Suggestion {
   secondaryText: string
 }
 
-export const PICK_MESSAGE = "Please choose your full street address from the list."
+export const PICK_MESSAGE = "Pick your address from the list."
 
 let token: google.maps.places.AutocompleteSessionToken | null = null
 
@@ -52,7 +51,10 @@ async function placesLib() {
 export async function suggestAddresses(input: string, signal?: AbortSignal): Promise<Suggestion[]> {
   const q = input.trim()
   if (q.length < 3) return []
-  if (import.meta.env.DEV && mockMode("checkout")) return (await import("./placesMock")).mockSuggest(q)
+  if (import.meta.env.DEV && mapsMocked()) {
+    if (devMaps() === "broken") throw new Error("Dev switch: Google is unreachable")
+    return (await import("./placesMock")).mockSuggest(q)
+  }
   const { AutocompleteSuggestion, AutocompleteSessionToken } = await placesLib()
   if (!token) token = new AutocompleteSessionToken()
   const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
@@ -75,12 +77,35 @@ export async function suggestAddresses(input: string, signal?: AbortSignal): Pro
 /* Resolves a pick to a verified address, or null when it is not a full
    street address. Ends the autocomplete session either way. */
 export async function resolveAddress(placeId: string): Promise<VerifiedAddress | null> {
-  if (import.meta.env.DEV && mockMode("checkout")) return (await import("./placesMock")).mockResolve(placeId)
+  if (import.meta.env.DEV && mapsMocked()) return (await import("./placesMock")).mockResolve(placeId)
   const { Place } = await placesLib()
   token = null
   const place = new Place({ id: placeId })
   await place.fetchFields({ fields: ["id", "formattedAddress", "location", "addressComponents"] })
   return verifiedFrom(place.id, place.formattedAddress, latLngOf(place.location), place.addressComponents ?? [])
+}
+
+/* An address typed or stored as text, looked up once as a verified address.
+   Used when the customer ticks "Same as my home address" and the account's
+   home address is only text (the admin's customer record does not carry the
+   place). Null when Places finds nothing that is a full street address; the
+   caller then keeps the text and the admin uses the home place it stored. */
+export async function resolveAddressText(text: string): Promise<VerifiedAddress | null> {
+  const q = text.trim()
+  if (!q) return null
+  if (import.meta.env.DEV && mapsMocked()) return (await import("./placesMock")).mockResolveText(q)
+  const { Place } = await placesLib()
+  const { places } = await Place.searchByText({
+    textQuery: q,
+    fields: ["id", "formattedAddress", "location", "addressComponents"],
+    maxResultCount: 1,
+    region: "us",
+    language: "en-US",
+    locationBias: { center: HOME, radius: BIAS_RADIUS_M },
+  })
+  const p = places[0]
+  if (!p) return null
+  return verifiedFrom(p.id, p.formattedAddress, latLngOf(p.location), p.addressComponents ?? [])
 }
 
 type Component = { types: string[]; longText: string | null; shortText: string | null }

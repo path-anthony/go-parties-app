@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,9 +12,10 @@ import { CheckoutAgreement } from "@/components/go/CheckoutAgreement"
 import { BalanceLine, CheckoutNext } from "@/components/go/CheckoutNotes"
 import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { AddressField } from "@/components/go/AddressField"
+import { AddressPreview } from "@/components/go/AddressPreview"
 import { SetupMap } from "@/components/go/SetupMap"
-import { mapsAvailable } from "@/lib/maps"
-import type { VerifiedAddress } from "@/lib/places"
+import { useAddressMode } from "@/hooks/use-address-mode"
+import { resolveAddressText, type VerifiedAddress } from "@/lib/places"
 import { labelForIso } from "@/lib/availability"
 import { bookDirect, type DirectReason } from "@/lib/adminApi"
 import { directInput, tierInput } from "@/lib/directInput"
@@ -34,9 +35,15 @@ import { useCustomer } from "@/state/customer"
    my home address" above it: ticked, the event address is the home address
    and the field is locked; unticked, it is cleared. A customer whose
    account has no home address yet gets a "Your home address" field first,
-   required, sent with the hold (the admin saves it to the account). With a
-   Google key the event address is picked from Places suggestions, then a
-   pin and setup notes (Block M); without one it is the plain field. Tier 1
+   required, sent with the hold (the admin saves it to the account). Both
+   addresses are picked from Places suggestions (Block S6); the map and
+   Google's formatted address show under each pick, and the event address
+   gets a draggable setup pin and notes (Block M). "Same as my home
+   address" copies the verified home address, place id included, and shows
+   the same map; an account home that is only text is looked up once. If
+   Google cannot be reached the fields are plain and the admin checks the
+   text. The admin's address-not-exact refusal (the hold or the tier call)
+   shows in red under the field it names and drops that pick. Tier 1
    holds here ("Hold my date"); tier 2 goes on to the contract ("Next").
    S7.1: "What are you celebrating?" is a required select of the
    storefront's groups and sub-occasions (the admin's list is a copy of
@@ -57,6 +64,11 @@ export default function ItemWho() {
   const [submitting, setSubmitting] = useState(false)
   const agreementBlocked = useAgreementBlocked()
   const [notice, setNotice] = useState<Notice | null>(null)
+  const pick = useAddressMode() === "pick"
+  const [addressError, setAddressError] = useState<string | null>(null)
+  const [homeError, setHomeError] = useState<string | null>(null)
+  const [resolving, setResolving] = useState(false)
+  const sameSeq = useRef(0)
 
   // The tier is asked for as soon as this screen opens, so the button and
   // the step count can say what comes next; it is cleared by the store
@@ -74,6 +86,30 @@ export default function ItemWho() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [b.tier, tierKey])
 
+  // Block S6: a picked event address goes to the tier call with its place
+  // id, so a vague one is refused now (400 address-not-exact) and not at the
+  // hold. The refusal shows under the field and drops the pick.
+  const pickedId = b.verified?.placeId ?? null
+  useEffect(() => {
+    if (!pickedId || b.sameAsHome || !b.itemDate || b.items.length === 0) return
+    let live = true
+    fetchTier(tierInput(b)).then((r) => {
+      if (!live) return
+      if (r.ok) {
+        if (!b.tier) b.set("tier", r.tier)
+      } else if (r.reason === "address-not-exact") {
+        setAddressError(r.message)
+        b.set("verified", null)
+        b.set("setup", null)
+        b.set("setupNotes", "")
+      }
+    })
+    return () => {
+      live = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickedId])
+
   if (b.items.length === 0) return <Navigate to="/browse" replace />
   if (b.items[0].id !== id) return <Navigate to={`/item/${b.items[0].id}/who`} replace />
   if (!b.itemDate) return <Navigate to={`/item/${b.items[0].id}`} replace />
@@ -84,26 +120,67 @@ export default function ItemWho() {
   const iso = b.itemDate
 
   const needsName = !!customer && !customer.name
-  const mapsOn = mapsAvailable()
   const homeOnFile = customer?.homeAddress?.trim() || ""
   // The home address the checkbox copies from: the account's, else the one
-  // typed here.
+  // picked here.
   const home = homeOnFile || b.homeAddress.trim()
-  const homeSettled = homeOnFile !== "" || b.homeAddress.trim() !== ""
-  const addressSettled = b.sameAsHome ? b.address.trim() !== "" : mapsOn ? b.verified !== null : b.address.trim() !== ""
+  // An account's own home address was checked by the admin when it was
+  // saved; one typed here must be picked (when Google is working).
+  const homeSettled = homeOnFile !== "" || (pick ? b.homeVerified !== null : b.homeAddress.trim() !== "")
+  const addressSettled = b.sameAsHome ? b.address.trim() !== "" : pick ? b.verified !== null : b.address.trim() !== ""
   const setVerified = (v: VerifiedAddress | null) => {
     b.set("verified", v)
     b.set("setup", v ? { lat: v.addressLat, lng: v.addressLng } : null)
     if (!v) b.set("setupNotes", "")
   }
-  const setSame = (on: boolean) => {
-    b.set("sameAsHome", on)
-    setVerified(null)
-    b.set("address", on ? home : "")
+  const onEvent = (text: string, v: VerifiedAddress | null) => {
+    b.set("address", text)
+    setAddressError(null)
+    if (b.verified || v) setVerified(v)
   }
-  const setHome = (text: string) => {
+  // Editing the home address while it is the event address moves both.
+  const onHome = (text: string, v: VerifiedAddress | null) => {
     b.set("homeAddress", text)
-    if (b.sameAsHome) b.set("address", text)
+    b.set("homeVerified", v)
+    setHomeError(null)
+    if (b.sameAsHome) {
+      b.set("address", text)
+      setVerified(v)
+    }
+  }
+  // "Same as my home address": the event address becomes the verified home
+  // address with its place id and point, so the same map shows. An account
+  // home that is only text is looked up once; if that finds nothing the
+  // text goes as it is and the admin uses the home place it stored.
+  const setSame = async (on: boolean) => {
+    const mine = ++sameSeq.current
+    b.set("sameAsHome", on)
+    setAddressError(null)
+    if (!on) {
+      setResolving(false)
+      setVerified(null)
+      b.set("address", "")
+      return
+    }
+    b.set("address", home)
+    if (!pick) {
+      setVerified(null)
+      return
+    }
+    let v = b.homeVerified
+    if (!v && homeOnFile) {
+      setResolving(true)
+      try {
+        v = await resolveAddressText(homeOnFile)
+      } catch {
+        v = null
+      }
+      if (mine !== sameSeq.current) return
+      setResolving(false)
+      if (v) b.set("homeVerified", v)
+    }
+    setVerified(v)
+    if (v) b.set("address", v.formattedAddress)
   }
   const SETUP_MAX = 200
   const nameSettled = needsName ? b.contactName.trim() !== "" : true
@@ -121,13 +198,30 @@ export default function ItemWho() {
     b.set("subOcc", sub)
   }
   // Only the last screen holds the date, so only there does the policy wait.
-  const canSubmit = !!customer && nameSettled && occasionSettled && homeSettled && addressSettled && !submitting && !agreementBlocked
+  const canSubmit = !!customer && nameSettled && occasionSettled && homeSettled && addressSettled && !resolving && !submitting && !agreementBlocked
 
   const tier = b.tier?.tier ?? null
   const steps = checkoutSteps(b.optionsStep, !b.accountStep, tier)
   const here = `/item/${firstId}/who`
 
   const removeItem = (rid: string) => b.setItems(items.filter((i) => i.id !== rid))
+
+  // The admin's address-not-exact: its sentence in red under the field it
+  // names, and that pick dropped. A field that is not on screen (the home
+  // address already on file, or the event address copied from home) falls
+  // back to the notice above the button.
+  const refuseAddress = (field: "address" | "homeAddress", message: string) => {
+    if (field === "homeAddress" && !homeOnFile) {
+      setHomeError(message)
+      b.set("homeVerified", null)
+      if (b.sameAsHome) setVerified(null)
+    } else if (field === "address" && !b.sameAsHome) {
+      setAddressError(message)
+      setVerified(null)
+    } else {
+      setNotice({ reason: "address-not-exact", message })
+    }
+  }
 
   const submit = async () => {
     if (!canSubmit) return
@@ -139,6 +233,10 @@ export default function ItemWho() {
       // hold anyway and refuses a mismatch (S1.2).
       const t = b.tier ? ({ ok: true, tier: b.tier } as const) : await fetchTier(tierInput(b))
       if (!t.ok) {
+        if (t.reason === "address-not-exact") {
+          refuseAddress("address", t.message)
+          return
+        }
         setNotice({ reason: "error", message: t.message })
         return
       }
@@ -157,6 +255,10 @@ export default function ItemWho() {
         b.set("direct", result.booking)
         b.set("payment", result.booking.payment ?? null)
         navigate("/item/pay")
+        return
+      }
+      if (result.reason === "address-not-exact") {
+        refuseAddress(result.field ?? "address", result.message)
         return
       }
       if (result.reason === "account-required") {
@@ -239,28 +341,39 @@ export default function ItemWho() {
         {customer && !homeOnFile && (
           <div className="mt-3.5">
             <GoLabel className="mb-1.5 tracking-[.1em]">Your home address</GoLabel>
-            <Input placeholder="14 Maple Ln, Farmington, CT 06032" autoComplete="street-address" value={b.homeAddress} onChange={(e) => setHome(e.target.value)} />
+            <AddressField
+              placeholder="14 Maple Ln, Farmington, CT 06032"
+              autoComplete="street-address"
+              value={b.homeAddress}
+              verified={b.homeVerified}
+              error={homeError}
+              onChange={onHome}
+            />
+            {b.homeVerified && <AddressPreview address={b.homeVerified} className="mt-2.5" />}
             <p className="mt-1.5 text-small text-muted">Saved to your account for next time.</p>
           </div>
         )}
         <label className="mt-3.5 flex min-h-[44px] cursor-pointer items-center gap-3 text-sm font-semibold text-charcoal">
-          <input type="checkbox" className="size-5 flex-none accent-charcoal" checked={b.sameAsHome} disabled={!homeSettled} onChange={(e) => setSame(e.target.checked)} />
+          <input type="checkbox" className="size-5 flex-none accent-charcoal" checked={b.sameAsHome} disabled={!homeSettled} onChange={(e) => void setSame(e.target.checked)} />
           Same as my home address
         </label>
         <div className="mt-1.5">
           <GoLabel className="mb-1.5 tracking-[.1em]">Event address</GoLabel>
           {b.sameAsHome ? (
             <Input value={b.address} readOnly aria-readonly="true" autoComplete="off" className="bg-cream" />
-          ) : mapsOn ? (
-            <AddressField value={b.address} verified={b.verified} onText={(t) => b.set("address", t)} onVerified={setVerified} />
           ) : (
-            <>
-              <Input placeholder="14 Maple Ln, Farmington" autoComplete="street-address" value={b.address} onChange={(e) => b.set("address", e.target.value)} />
-              <p className="mt-1.5 text-small text-muted">We'll confirm your exact address by text.</p>
-            </>
+            <AddressField
+              autoComplete="street-address"
+              value={b.address}
+              verified={b.verified}
+              error={addressError}
+              plainNote="We'll confirm your exact address by text."
+              onChange={onEvent}
+            />
           )}
         </div>
-        {mapsOn && !b.sameAsHome && b.verified && (
+        {pick && b.verified && <AddressPreview address={b.verified} map={false} className="mt-2.5" />}
+        {pick && b.verified && (
           <div className="mt-3">
             <SetupMap
               address={{ lat: b.verified.addressLat, lng: b.verified.addressLng }}
@@ -269,7 +382,7 @@ export default function ItemWho() {
             />
           </div>
         )}
-        {mapsOn && !b.sameAsHome && b.verified && (
+        {pick && b.verified && (
           <div className="mt-2.5">
             <GoLabel className="mb-1.5 tracking-[.1em]">Setup notes</GoLabel>
             <Input placeholder="Backyard, gate on the left" maxLength={SETUP_MAX} value={b.setupNotes} onChange={(e) => b.set("setupNotes", e.target.value.slice(0, SETUP_MAX))} />

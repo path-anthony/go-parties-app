@@ -22,6 +22,8 @@ const base = (id: string, stage: string, tier: 1 | 2 | 3, units: ReturnType<type
   eventTime: "2 PM",
   address: "14 Maple Ln, Avon, CT 06001, USA",
   delivery: { formattedAddress: "14 Maple Ln, Avon, CT 06001, USA", setupLat: 41.8102, setupLng: -72.8309, setupNotes: "Backyard, gate on the left", verified: true },
+  // The admin's link to the exact address (Block A9), as bookingMapsUrl builds it.
+  mapsUrl: "https://www.google.com/maps/search/?api=1&query=41.810200,-72.830900&query_place_id=mock-place-maple",
   customerName: CUSTOMER.name,
   phone: CUSTOMER.phone,
   email: CUSTOMER.email,
@@ -42,6 +44,7 @@ const rows: Row[] = [
     // Booked before the address was verified: plain address, no map.
     address: "9 Elm St, Farmington",
     delivery: null,
+    mapsUrl: null,
     steps: [{ key: "retainer", state: "next" }],
     contract: null,
     retainer: { amount: 210, paid: false, payable: true },
@@ -49,6 +52,9 @@ const rows: Row[] = [
   }),
   base("bk-requested", "Requested", 2, [unit("Go DJ"), unit("Uplighting", 2)], {
     eventDate: day(45),
+    // A verified address with no setup pin: the link shows, no map.
+    delivery: { formattedAddress: "228 Ridge Rd, Avon, CT 06001, USA", setupLat: null, setupLng: null, setupNotes: null, verified: true },
+    mapsUrl: "https://www.google.com/maps/search/?api=1&query=41.809800,-72.830700&query_place_id=mock-place-ridge",
     steps: [
       { key: "sign", state: "next" },
       { key: "retainer", state: "blocked" },

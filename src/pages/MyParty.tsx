@@ -9,7 +9,12 @@ import { GoLabel } from "@/components/go/GoLabel"
 import { Reveal } from "@/components/go/DatePicker"
 import { customerApi, whatOf, whenOf, type BookingStep, type Customer, type CustomerBooking } from "@/lib/customerApi"
 import { usePublicSettings } from "@/lib/settings"
-import { MiniMap } from "@/components/go/MiniMap"
+import { MiniMap, OpenInMapsLink } from "@/components/go/MiniMap"
+import { AddressField } from "@/components/go/AddressField"
+import { AddressPreview } from "@/components/go/AddressPreview"
+import { useAddressMode } from "@/hooks/use-address-mode"
+import type { VerifiedAddress } from "@/lib/places"
+import { mapsUrlFor, safeMapsUrl } from "@/lib/maps"
 import { stageView, type StageView } from "@/lib/stage"
 import { WeddingRow } from "@/components/go/WeddingRow"
 import { useCustomer } from "@/state/customer"
@@ -22,8 +27,11 @@ import { cn } from "@/lib/utils"
    and home address, edited in place through PATCH /api/customer/me; the
    email is shown and not editable (the admin refuses it). A phone another
    account holds (409, field "phone") shows in red under the field; any
-   other refusal is the red notice above Save. Signed out: the doors to
-   sign in or sign up. */
+   other refusal is the red notice above Save. The home address is picked
+   from Google's suggestions (Block S6) unless it is left as it is; the
+   admin's address-not-exact shows in red under it and drops the pick. Each
+   booking shows its verified address and "Open in Google Maps" (the
+   admin's mapsUrl). Signed out: the doors to sign in or sign up. */
 
 /* Moved here from Home. A stub until real personalization exists: no logic,
    just the place where picks will show up. */
@@ -110,6 +118,10 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
   const [notice, setNotice] = useState<string | null>(null)
   const view = stageView(booking)
   const live = view.live
+  // The admin's link to the exact address; the pin's own link when it has
+  // sent none (an older admin).
+  const setup = setupOf(booking)
+  const mapsHref = safeMapsUrl(booking.mapsUrl) ?? (setup ? mapsUrlFor(setup) : null)
   // Tier 1 keeps self-serve changes. A booking with a contract (tier 2) or a
   // proposal (tier 3) changes only through GO: the contract's reschedule fee
   // and written-agreement terms apply, and that is a request, not a button.
@@ -149,7 +161,11 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
         <Status view={view} />
       </div>
       <p className={`mt-2 text-small ${view.tone === "cancelled" ? "text-charcoal" : "text-charcoal-soft"}`}>{view.message}</p>
-      {setupOf(booking) && <MiniMap setup={setupOf(booking)!} className="mt-3" />}
+      {setupOf(booking) ? (
+        <MiniMap setup={setupOf(booking)!} href={mapsHref} className="mt-3" />
+      ) : (
+        mapsHref && <OpenInMapsLink href={mapsHref} />
+      )}
       {live && <Steps booking={booking} />}
       {live && <WeddingRow booking={booking} />}
       {live && booking.contract?.status === "signed" && booking.contract.pdfUrl?.startsWith("https://") && (
@@ -198,6 +214,8 @@ function Details({ customer, onSaved }: { customer: Customer; onSaved: (c: Custo
   const [name, setName] = useState(customer.name ?? "")
   const [phone, setPhone] = useState(customer.phone)
   const [home, setHome] = useState(customer.homeAddress ?? "")
+  const [homeVerified, setHomeVerified] = useState<VerifiedAddress | null>(null)
+  const pick = useAddressMode() === "pick"
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<{ message: string; field: string | null } | null>(null)
 
@@ -205,11 +223,16 @@ function Details({ customer, onSaved }: { customer: Customer; onSaved: (c: Custo
     setName(customer.name ?? "")
     setPhone(customer.phone)
     setHome(customer.homeAddress ?? "")
+    setHomeVerified(null)
     setProblem(null)
     setEditing(true)
   }
+  // A changed home address must be picked (when Google is working); one
+  // left as it is, or cleared, is fine: the admin already holds it.
+  const homeText = home.trim()
+  const homeSettled = !pick || homeText === "" || homeText === (customer.homeAddress ?? "").trim() || homeVerified !== null
   const save = async () => {
-    if (busy || phone.trim() === "") return
+    if (busy || phone.trim() === "" || !homeSettled) return
     setBusy(true)
     setProblem(null)
     const result = await customerApi.updateMe({ name: name.trim() || null, phone: phone.trim(), homeAddress: home.trim() || null }, customer)
@@ -218,6 +241,11 @@ function Details({ customer, onSaved }: { customer: Customer; onSaved: (c: Custo
       onSaved(result.data.customer)
       setEditing(false)
       toast({ title: "Saved." })
+      return
+    }
+    if (result.reason === "address-not-exact") {
+      setHomeVerified(null)
+      setProblem({ message: result.message, field: "homeAddress" })
       return
     }
     setProblem({ message: result.message, field: result.field === "phone" ? "phone" : null })
@@ -257,13 +285,26 @@ function Details({ customer, onSaved }: { customer: Customer; onSaved: (c: Custo
           <Input value={customer.email} readOnly aria-readonly="true" className="bg-cream" />
           <p className="mt-1.5 text-small text-muted">To change your email, call or text GO.</p>
           <GoLabel className="mt-2.5 mb-1.5 tracking-[.1em]">Home address</GoLabel>
-          <Input placeholder="14 Maple Ln, Farmington, CT 06032" autoComplete="street-address" value={home} onChange={(e) => setHome(e.target.value)} />
-          {problem && !problem.field && <ErrorNotice className="mt-3">{problem.message}</ErrorNotice>}
+          <AddressField
+            placeholder="14 Maple Ln, Farmington, CT 06032"
+            autoComplete="street-address"
+            value={home}
+            verified={homeVerified}
+            accepted={customer.homeAddress}
+            error={problem?.field === "homeAddress" ? problem.message : null}
+            onChange={(text, v) => {
+              if (problem?.field === "homeAddress") setProblem(null)
+              setHome(text)
+              setHomeVerified(v)
+            }}
+          />
+          {homeVerified && <AddressPreview address={homeVerified} className="mt-2.5" />}
+          {problem && problem.field !== "phone" && problem.field !== "homeAddress" && <ErrorNotice className="mt-3">{problem.message}</ErrorNotice>}
           <div className="mt-3 flex gap-2">
             <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => setEditing(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant="dark" size="sm" disabled={busy || phone.trim() === ""}>
+            <Button type="submit" variant="dark" size="sm" disabled={busy || phone.trim() === "" || !homeSettled}>
               {busy ? "Saving" : "Save"}
             </Button>
           </div>

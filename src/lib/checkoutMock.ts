@@ -61,13 +61,27 @@ function tierFor(scenario: string, input: TierInput): TierInfo {
 
 export async function mockTier(input: TierInput): Promise<TierResult> {
   await new Promise((r) => setTimeout(r, 250))
+  if (input.address || input.placeId) console.debug("mock tier address", JSON.stringify({ placeId: input.placeId ?? null, address: input.address ?? null }))
+  if (input.placeId === "mock-place-refused") return { ok: false, message: NOT_EXACT, reason: "address-not-exact", field: "address" }
   return { ok: true, tier: tierFor(mockMode("checkout") ?? "tier1", input) }
 }
 
-export async function mockHold(input: { occasion?: string | null; itemIds: string[]; eventDate: string; eventTime: string | null; address: string | null; delivery: unknown; customerName: string | null; tier: number | null; signature: { contentHash: string } | null }): Promise<DirectResult> {
+/* The admin's refusal of a vague address (Block A9), word for word. */
+const NOT_EXACT = "We couldn't find that exact address. Pick it from the suggestions, or check the street number."
+
+/* The mock admin's address rule: an exact address has a street number, and
+   the fixture "3 Refused Rd" is one it refuses anyway (to walk the red line
+   after a pick). */
+const vague = (text: string | null | undefined) => !!text && (!/\d/.test(text) || /refused/i.test(text))
+
+export async function mockHold(input: { occasion?: string | null; itemIds: string[]; eventDate: string; eventTime: string | null; address: string | null; homeAddress?: string | null; delivery: unknown; customerName: string | null; tier: number | null; signature: { contentHash: string } | null }): Promise<DirectResult> {
   await new Promise((r) => setTimeout(r, 400))
   console.debug("mock hold delivery", JSON.stringify(input.delivery))
   console.debug("mock hold occasion", JSON.stringify(input.occasion ?? null))
+  const placeId = (input.delivery as { placeId?: string } | null)?.placeId ?? null
+  console.debug("mock hold address", JSON.stringify({ placeId, address: input.address, homeAddress: input.homeAddress ?? null }))
+  if (input.homeAddress && vague(input.homeAddress)) return { ok: false, reason: "address-not-exact", message: NOT_EXACT, field: "homeAddress" }
+  if (placeId === "mock-place-refused" || (!input.delivery && vague(input.address))) return { ok: false, reason: "address-not-exact", message: NOT_EXACT, field: "address" }
   const scenario = mockMode("checkout") ?? "tier1"
   const refuse = (reason: "quote-expired" | "contract-changed" | "tier-changed"): DirectResult => ({
     ok: false,
