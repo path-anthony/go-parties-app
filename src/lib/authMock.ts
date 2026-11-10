@@ -17,8 +17,16 @@ export const mockSetSession = (c: Customer | null) => {
   session = c
 }
 
+/* The admin's rule for a home address (Block A9): a street number, and the
+   fixture "3 Refused Rd" is refused anyway. */
+const NOT_EXACT = "We couldn't find that exact address. Pick it from the suggestions, or check the street number."
+const vagueHome = (t: string | null | undefined) => !!t && t.trim() !== "" && (!/\d/.test(t) || /refused/i.test(t))
+const refusedHome = (): ApiResult<{ customer: Customer }> => ({ ok: false, status: 400, message: NOT_EXACT, reason: "address-not-exact", field: "homeAddress" })
+
 export async function mockSignup(input: { name: string | null; phone: string; email: string; password: string; homeAddress?: string | null }): Promise<ApiResult<{ customer: Customer }>> {
   await wait(300)
+  console.debug("mock sign-up home address", JSON.stringify(input.homeAddress ?? null))
+  if (vagueHome(input.homeAddress)) return refusedHome()
   if (/taken/i.test(input.email)) return { ok: false, status: 409, message: "That email already has an account. Sign in instead.", field: "email" }
   session = { id: "cus_mock_new", name: input.name, phone: input.phone.replace(/\D/g, ""), email: input.email, homeAddress: input.homeAddress?.trim() || null, createdAt: new Date().toISOString() }
   return { ok: true, data: { customer: session } }
@@ -41,8 +49,10 @@ export async function mockLogin(input: { identifier: string; password: string })
 
 export async function mockUpdateMe(current: Customer | null, patch: { name?: string | null; phone?: string; homeAddress?: string | null }): Promise<ApiResult<{ customer: Customer }>> {
   await wait(300)
+  console.debug("mock patch me", JSON.stringify(patch))
   const base = session ?? current
   if (!base) return { ok: false, status: 401, message: "Please sign in." }
+  if (patch.homeAddress !== undefined && vagueHome(patch.homeAddress)) return refusedHome()
   if (patch.phone && patch.phone.replace(/\D/g, "") === "8605550000") return { ok: false, status: 409, message: "That phone number already has an account.", field: "phone" }
   session = { ...base, ...(patch.name !== undefined ? { name: patch.name } : {}), ...(patch.phone !== undefined ? { phone: patch.phone.replace(/\D/g, "") } : {}), ...(patch.homeAddress !== undefined ? { homeAddress: patch.homeAddress } : {}) }
   return { ok: true, data: { customer: session } }

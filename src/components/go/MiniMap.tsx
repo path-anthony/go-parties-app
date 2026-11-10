@@ -2,13 +2,23 @@ import { lazy, Suspense } from "react"
 import { mapsAvailable, mapsMocked, mapsUrlFor, type LatLng } from "@/lib/maps"
 import { GoogleMap } from "@/components/go/SetupMap"
 
-/* A small read-only map with the setup pin and an "Open in Maps" link, for
-   the portal's booking card. Without a key (and outside the dev mock) only
-   the link shows: the pin is still real, the map is Google's own then. */
+/* A small read-only map with the setup pin and an "Open in Google Maps"
+   link, for the portal's booking card. Without a key (and outside the dev
+   mock) only the link shows: the pin is still real, the map is Google's own
+   then. The link is the admin's mapsUrl when it sent one (Block A9), else
+   one built from the pin. */
+
+export function OpenInMapsLink({ href }: { href: string }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex min-h-[44px] items-center text-small font-bold text-charcoal underline">
+      Open in Google Maps
+    </a>
+  )
+}
 
 const MockMap = import.meta.env.DEV ? lazy(() => import("./SetupMapMock").then((m) => ({ default: m.SetupMapMock }))) : null
 
-export function MiniMap({ setup, className = "" }: { setup: LatLng; className?: string }) {
+export function MiniMap({ setup, href, className = "" }: { setup: LatLng; href?: string | null; className?: string }) {
   return (
     <div className={className}>
       {mapsAvailable() && (
@@ -22,9 +32,7 @@ export function MiniMap({ setup, className = "" }: { setup: LatLng; className?: 
           )}
         </div>
       )}
-      <a href={mapsUrlFor(setup)} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex min-h-[44px] items-center text-small font-bold text-charcoal underline">
-        Open in Maps
-      </a>
+      <OpenInMapsLink href={href ?? mapsUrlFor(setup)} />
     </div>
   )
 }

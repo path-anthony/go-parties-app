@@ -1,6 +1,8 @@
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { GoLabel } from "@/components/go/GoLabel"
+import { AddressField } from "@/components/go/AddressField"
+import { AddressPreview } from "@/components/go/AddressPreview"
 import { ErrorNotice, FieldError } from "@/components/go/ErrorNotice"
 import type { SignUpProblem, SignUpValues } from "@/hooks/use-signup"
 
@@ -11,7 +13,9 @@ import type { SignUpProblem, SignUpValues } from "@/hooks/use-signup"
    red directly under that field, with a Sign in door when the account
    already exists; a problem with no field (the race, a weak password)
    shows as the red notice directly above the screen's button, which the
-   screen renders itself. */
+   screen renders itself. The home address is picked from Google's
+   suggestions (Block S6): the map and the formatted address show under it
+   once picked, and the admin's refusal shows in red under it. */
 export function SignUpFields({
   values,
   problem,
@@ -19,6 +23,7 @@ export function SignUpFields({
   onChange,
   onSubmit,
   onSignIn,
+  onClearProblem,
 }: {
   values: SignUpValues
   problem?: SignUpProblem | null
@@ -28,8 +33,11 @@ export function SignUpFields({
   onSubmit?: () => void
   /* Opens sign in with the typed email (or phone) filled in. */
   onSignIn?: () => void
+  /* Called when the customer edits the home address, so a red line about
+     the old one goes away. */
+  onClearProblem?: () => void
 }) {
-  const set = (key: keyof SignUpValues) => (e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...values, [key]: e.target.value })
+  const set = (key: "name" | "email" | "phone" | "password") => (e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...values, [key]: e.target.value })
   const under = (field: "phone" | "email") =>
     problem?.field === field ? (
       <FieldError id={`signup-${field}-error`}>
@@ -60,7 +68,18 @@ export function SignUpFields({
       <Input type="password" autoComplete="new-password" value={values.password} onChange={set("password")} />
       <p className="mt-1.5 text-small text-muted">8 characters or more.</p>
       <GoLabel className="mt-2.5 mb-1.5 tracking-[.1em]">Home address</GoLabel>
-      <Input placeholder="14 Maple Ln, Farmington, CT 06032" autoComplete="street-address" value={values.homeAddress} onChange={set("homeAddress")} />
+      <AddressField
+        placeholder="14 Maple Ln, Farmington, CT 06032"
+        autoComplete="street-address"
+        value={values.homeAddress}
+        verified={values.homeVerified}
+        error={problem?.field === "homeAddress" ? problem.message : null}
+        onChange={(text, v) => {
+          onClearProblem?.()
+          onChange({ ...values, homeAddress: text, homeVerified: v })
+        }}
+      />
+      {values.homeVerified && <AddressPreview address={values.homeVerified} className="mt-2.5" />}
       <p className="mt-1.5 text-small text-muted">{full ? "Where you live. Checkout can use it as the event address." : "Optional. Checkout can use it as the event address."}</p>
       <button type="submit" className="hidden" aria-hidden />
     </form>

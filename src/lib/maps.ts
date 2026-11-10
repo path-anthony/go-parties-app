@@ -24,8 +24,52 @@ export const BIAS_RADIUS_M = 25_000
    inline where it is checked so a production build folds it away. */
 export const mapsMocked = (): boolean => import.meta.env.DEV && (mockMode("checkout") !== null || mockMode("portal") !== null)
 
+/* Dev only: `?maps=off` behaves as if there were no key, `?maps=broken` as
+   if the script or Places failed to load, `?maps=on` clears either. Kept in
+   sessionStorage like the other dev switches and folded away in production. */
+const DEV_MAPS_KEY = "go-mock-maps"
+if (import.meta.env.DEV) {
+  try {
+    const q = new URLSearchParams(window.location.search).get("maps")
+    if (q === "on") sessionStorage.removeItem(DEV_MAPS_KEY)
+    else if (q === "off" || q === "broken") sessionStorage.setItem(DEV_MAPS_KEY, q)
+  } catch {
+    /* no storage, no switch */
+  }
+}
+export const devMaps = (): "off" | "broken" | null => {
+  if (!import.meta.env.DEV) return null
+  try {
+    const v = sessionStorage.getItem(DEV_MAPS_KEY)
+    return v === "off" || v === "broken" ? v : null
+  } catch {
+    return null
+  }
+}
+
 /* Whether the verified-address flow is on at all: a key, or the dev mock. */
-export const mapsAvailable = (): boolean => MAPS_KEY !== "" || mapsMocked()
+export const mapsAvailable = (): boolean => (MAPS_KEY !== "" || mapsMocked()) && devMaps() !== "off"
+
+/* Block S6: when Google cannot be reached (the script is blocked or offline,
+   the key is refused, Places answers with an error) every address field
+   becomes a plain field, so nobody is stuck behind a list that never comes.
+   The admin checks the typed text and flags it for staff. "pick" is the
+   normal mode: the customer must choose a suggestion. */
+export type AddressMode = "pick" | "plain"
+let broken = false
+const listeners = new Set<() => void>()
+export function markMapsBroken(): void {
+  if (broken) return
+  broken = true
+  listeners.forEach((l) => l())
+}
+export const subscribeAddressMode = (l: () => void): (() => void) => {
+  listeners.add(l)
+  return () => {
+    listeners.delete(l)
+  }
+}
+export const addressMode = (): AddressMode => (mapsAvailable() && !broken ? "pick" : "plain")
 
 const CALLBACK = "__goMapsReady"
 let loading: Promise<void> | null = null
@@ -43,12 +87,16 @@ export function loadMaps(): Promise<void> {
       delete w[CALLBACK]
       resolve()
     }
+    // Google calls this when it refuses the key (wrong site, API not
+    // enabled, billing): the script loaded but nothing will work.
+    w.gm_authFailure = () => markMapsBroken()
     const params = new URLSearchParams({ key: MAPS_KEY, v: "weekly", loading: "async", callback: CALLBACK, region: "US", language: "en" })
     const script = document.createElement("script")
     script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`
     script.async = true
     script.onerror = () => {
       loading = null
+      markMapsBroken()
       reject(new Error("Google Maps failed to load"))
     }
     document.head.appendChild(script)
@@ -79,3 +127,14 @@ export function metersBetween(a: LatLng, b: LatLng): number {
 
 /* A Google Maps link to a pin, the documented Maps URLs form. */
 export const mapsUrlFor = (p: LatLng): string => `https://www.google.com/maps/search/?api=1&query=${p.lat.toFixed(6)}%2C${p.lng.toFixed(6)}`
+
+/* The admin's link, only when it is a Google Maps address over https. */
+export function safeMapsUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  try {
+    const u = new URL(url)
+    return u.protocol === "https:" && (u.hostname === "www.google.com" || u.hostname === "maps.google.com") && u.pathname.startsWith("/maps") ? u.toString() : null
+  } catch {
+    return null
+  }
+}

@@ -31,6 +31,20 @@ const ROWS: Array<Suggestion & { verified: VerifiedAddress | null }> = [
       addressLng: -72.8307,
     },
   },
+  /* A full street address that the mock admin refuses (answers 400
+     address-not-exact), to walk the red line and the cleared pick. */
+  {
+    placeId: "mock-place-refused",
+    mainText: "3 Refused Road",
+    secondaryText: "Avon, CT, USA",
+    verified: {
+      placeId: "mock-place-refused",
+      formattedAddress: "3 Refused Rd, Avon, CT 06001, USA",
+      components: { streetNumber: "3", route: "Refused Road", city: "Avon", state: "CT", zip: "06001" },
+      addressLat: 41.8051,
+      addressLng: -72.8402,
+    },
+  },
   { placeId: "mock-place-town", mainText: "Farmington", secondaryText: "CT, USA", verified: null },
   { placeId: "mock-place-park", mainText: "Winding Trails", secondaryText: "Farmington, CT, USA", verified: null },
 ]
@@ -45,4 +59,12 @@ export async function mockSuggest(q: string): Promise<Suggestion[]> {
 export async function mockResolve(placeId: string): Promise<VerifiedAddress | null> {
   await new Promise((r) => setTimeout(r, 150))
   return ROWS.find((r) => r.placeId === placeId)?.verified ?? null
+}
+
+/* A stored home address as text, matched to a fixture by its street number
+   and name ("228 Ridge Rd" finds the Ridge Road row). */
+export async function mockResolveText(text: string): Promise<VerifiedAddress | null> {
+  await new Promise((r) => setTimeout(r, 150))
+  const t = text.toLowerCase()
+  return ROWS.find((r) => r.verified && t.startsWith(r.verified.formattedAddress.toLowerCase().split(",")[0]))?.verified ?? null
 }

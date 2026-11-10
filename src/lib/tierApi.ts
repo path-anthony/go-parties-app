@@ -40,9 +40,16 @@ export interface TierInput {
   eventDate: string
   eventTime: string | null
   occasion: string | null
+  /* Block S6: the picked event address, so the admin can refuse a vague one
+     now (400 address-not-exact) and not at the hold. Both left out when no
+     address has been picked. */
+  placeId?: string | null
+  address?: string | null
 }
 
-export type TierResult = { ok: true; tier: TierInfo } | { ok: false; message: string }
+/* reason and field are the admin's, set on the one refusal the screen
+   handles in place: address-not-exact, field "address". */
+export type TierResult = { ok: true; tier: TierInfo } | { ok: false; message: string; reason?: string; field?: string }
 
 const FALLBACK = "That didn't go through. Try again, or text us."
 
@@ -78,6 +85,8 @@ export function tierBody(input: TierInput): Record<string, unknown> {
   if (input.packageId) body.packageId = input.packageId
   if (input.addons) body.addons = input.addons
   if (input.occasion) body.occasion = input.occasion
+  if (input.placeId) body.placeId = input.placeId
+  if (input.address) body.address = input.address
   return body
 }
 
@@ -101,7 +110,14 @@ export async function fetchTier(input: TierInput, signal?: AbortSignal): Promise
     // A tier 2 answer that cannot be rendered is not a tier 2 the customer
     // can sign; treated as a failed read rather than a silent downgrade.
     const said = (data as { error?: unknown } | null)?.error
-    return { ok: false, message: !res.ok && typeof said === "string" && said.trim() ? said : FALLBACK }
+    const reason = (data as { reason?: unknown } | null)?.reason
+    const field = (data as { field?: unknown } | null)?.field
+    return {
+      ok: false,
+      message: !res.ok && typeof said === "string" && said.trim() ? said : FALLBACK,
+      ...(typeof reason === "string" ? { reason } : {}),
+      ...(typeof field === "string" ? { field } : {}),
+    }
   } catch (err) {
     if ((err as { name?: string }).name === "AbortError") throw err
     return { ok: false, message: FALLBACK }

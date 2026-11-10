@@ -16,6 +16,7 @@ import { clockLabel } from "@/data/catalog"
 import { missingRequired } from "@/lib/addons"
 import { checkoutSteps } from "@/lib/steps"
 import { EMPTY_SIGNUP, canSignUp, useSignUp, type SignUpValues } from "@/hooks/use-signup"
+import { useAddressMode } from "@/hooks/use-address-mode"
 import { useBooking } from "@/state/booking"
 import { useCustomer } from "@/state/customer"
 
@@ -40,6 +41,7 @@ export default function ItemAccount() {
   const b = useBooking()
   const { customer, ready, setCustomer } = useCustomer()
   const { signUp, busy: signingUp, problem, setProblem } = useSignUp()
+  const pick = useAddressMode() === "pick"
   const [choice, setChoice] = useState<Choice>(null)
   const [values, setValues] = useState<SignUpValues>(EMPTY_SIGNUP)
   const [identifier, setIdentifier] = useState("")
@@ -64,7 +66,7 @@ export default function ItemAccount() {
   const busy = signingUp || signingIn
   const next = `/item/${firstId}/who`
 
-  const canContinue = !busy && (choice === "signin" ? identifier.trim() !== "" && password !== "" : choice === "signup" ? canSignUp(values, true) : false)
+  const canContinue = !busy && (choice === "signin" ? identifier.trim() !== "" && password !== "" : choice === "signup" ? canSignUp(values, true, pick) : false)
 
   const removeItem = (rid: string) => b.setItems(b.items.filter((i) => i.id !== rid))
 
@@ -82,8 +84,13 @@ export default function ItemAccount() {
     if (!canContinue) return
     b.set("accountNotice", null)
     if (choice === "signup") {
-      const who = await signUp(values)
-      if (!who) return
+      const { customer: who, refusedHome } = await signUp(values)
+      if (!who) {
+        // The admin refused the home address: its line shows under the
+        // field and the pick is dropped, so a new one must be made.
+        if (refusedHome) setValues((v) => ({ ...v, homeVerified: null }))
+        return
+      }
       b.set("contactName", values.name.trim())
       setLeaving(true)
       navigate(next)
@@ -140,7 +147,7 @@ export default function ItemAccount() {
           </form>
         </Reveal>
         <Reveal open={choice === "signup"} max="max-h-[60rem]" className="mt-3.5 pb-1">
-          <SignUpFields values={values} problem={problem} full onChange={setValues} onSubmit={go} onSignIn={toSignIn} />
+          <SignUpFields values={values} problem={problem} full onChange={setValues} onSubmit={go} onSignIn={toSignIn} onClearProblem={() => setProblem(null)} />
         </Reveal>
       </Body>
       {/* Refusals sit directly above the button. */}

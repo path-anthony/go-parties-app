@@ -77,6 +77,10 @@ export interface BookingState {
      the pin survives every other step. The plain `address` is the formatted
      address while this is set. */
   verified: VerifiedAddress | null
+  /* Block S6: the home address picked on the event step (an account with
+     none on file), verified the same way. "Same as my home address" copies
+     it, with its place id, into `verified`. */
+  homeVerified: VerifiedAddress | null
   setup: LatLng | null
   setupNotes: string
   /* The checkbox on the last screen, the real state, never pre-checked. */
@@ -120,6 +124,7 @@ const INITIAL: BookingState = {
   accountStep: false,
   accountNotice: null,
   verified: null,
+  homeVerified: null,
   setup: null,
   setupNotes: "",
   agreed: false,

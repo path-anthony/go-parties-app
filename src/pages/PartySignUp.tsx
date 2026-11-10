@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { SignUpFields, SignUpNotice } from "@/components/go/SignUpFields"
+import { useAddressMode } from "@/hooks/use-address-mode"
 import { EMPTY_SIGNUP, canSignUp, useSignUp } from "@/hooks/use-signup"
 
 /* Customer sign up from the portal. The fields and the call live in
@@ -16,11 +17,13 @@ import { EMPTY_SIGNUP, canSignUp, useSignUp } from "@/hooks/use-signup"
 export default function PartySignUp() {
   const navigate = useNavigate()
   const [values, setValues] = useState(EMPTY_SIGNUP)
-  const { signUp, busy, problem } = useSignUp()
+  const { signUp, busy, problem, setProblem } = useSignUp()
+  const pick = useAddressMode() === "pick"
 
   const submit = async () => {
-    const customer = await signUp(values)
+    const { customer, refusedHome } = await signUp(values)
     if (customer) navigate("/party")
+    else if (refusedHome) setValues((v) => ({ ...v, homeVerified: null }))
   }
   const signIn = () => navigate("/party/signin", { state: { returnTo: "/party", identifier: problem?.taken === "phone" ? values.phone.trim() : values.email.trim() } })
 
@@ -31,7 +34,7 @@ export default function PartySignUp() {
         <h1 className="mt-1.5 text-hero text-charcoal">New here.</h1>
         <p className="mt-2 text-body text-charcoal-soft">Phone, email, a password. That's it.</p>
         <div className="mt-3.5">
-          <SignUpFields values={values} problem={problem} onChange={setValues} onSubmit={submit} onSignIn={signIn} />
+          <SignUpFields values={values} problem={problem} onChange={setValues} onSubmit={submit} onSignIn={signIn} onClearProblem={() => setProblem(null)} />
         </div>
         <p className="mt-3.5 text-small text-muted">
           Have an account?{" "}
@@ -43,7 +46,7 @@ export default function PartySignUp() {
       <SignUpNotice problem={problem} onSignIn={signIn} className="mx-5 mb-2" />
       <Foot>
         <Button variant="ghost" onClick={() => navigate("/party")}>Back</Button>
-        <Button disabled={!canSignUp(values) || busy} onClick={submit}>Create account</Button>
+        <Button disabled={!canSignUp(values, false, pick) || busy} onClick={submit}>Create account</Button>
       </Foot>
     </AppShell>
   )

@@ -103,7 +103,7 @@ export const bookedNames = (b: DirectBooking): string[] =>
 /* account-required (Block A5): the admin's 401 when accounts are required
    and no customer session arrived; checkout sends the customer to its
    sign-in step with the cart kept. */
-export type DirectReason = "unavailable" | "not-tracked" | "addons" | "agreement" | "quote-expired" | "contract-changed" | "tier-changed" | "account-required" | "error"
+export type DirectReason = "unavailable" | "not-tracked" | "addons" | "agreement" | "quote-expired" | "contract-changed" | "tier-changed" | "account-required" | "address-not-exact" | "error"
 
 /* The three refusals that mean the quote the customer read is no longer the
    one the admin would hold: the page fetches the tier again and sends them
@@ -137,7 +137,7 @@ export interface ReviewReceipt {
 export type DirectResult =
   | { ok: true; kind: "held"; booking: DirectBooking }
   | { ok: true; kind: "review"; review: ReviewReceipt }
-  | { ok: false; reason: DirectReason; message: string; detail?: string }
+  | { ok: false; reason: DirectReason; message: string; detail?: string; field?: "address" | "homeAddress" }
 
 const FALLBACK = "That didn't go through. Try again, or text us."
 const REVIEW_FALLBACK = "This one goes to our team first. Nothing is held yet; we'll be in touch to put it together with you."
@@ -240,6 +240,8 @@ export async function bookDirect(input: {
   const reason: DirectReason =
     res.status === 401 && data.reason === "account-required"
       ? "account-required"
+      : res.status === 400 && data.reason === "address-not-exact"
+      ? "address-not-exact"
       : data.reason === "agreement-required"
       ? "agreement"
       : QUOTE_REASONS.includes(data.reason)
@@ -256,6 +258,9 @@ export async function bookDirect(input: {
   }
   if (QUOTE_REASONS.includes(reason)) return { ok: false, reason, message: "Your cart or the contract changed. Please read it again.", detail }
   if (reason === "account-required") return { ok: false, reason, message: "Please sign in or create an account to book.", detail }
+  // Block A9: the admin's own sentence, with the field it belongs to (the
+  // event address, or the home address a first booking is saving).
+  if (reason === "address-not-exact") return { ok: false, reason, message: detail ?? FALLBACK, detail, field: data.field === "homeAddress" ? "homeAddress" : "address" }
   return { ok: false, reason, message: detail ?? FALLBACK }
 }
 

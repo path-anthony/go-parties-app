@@ -34,6 +34,10 @@ export function tierInput(b: BookingState): TierInput {
     eventDate: b.itemDate ?? "",
     eventTime: clockLabel(b.itemTime),
     occasion: occasionOf(b),
+    // Block S6: the picked address goes with the quote so the admin can
+    // refuse a vague one early. Typed text without a pick is left for the
+    // hold, which checks it too.
+    ...(b.verified ? { placeId: b.verified.placeId, address: b.verified.formattedAddress } : {}),
   }
 }
 

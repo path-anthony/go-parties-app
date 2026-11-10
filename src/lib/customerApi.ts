@@ -61,6 +61,9 @@ export interface CustomerBooking {
   /* Block M: the verified address and the setup pin as the admin holds
      them; null or absent when the booking was made without one. */
   delivery?: { formattedAddress: string; setupLat: number | null; setupLng: number | null; setupNotes: string | null; verified: boolean } | null
+  /* Block A9: a Google Maps link to the exact event address, null when the
+     booking has no place yet. */
+  mapsUrl?: string | null
   rescheduleMode?: "self" | "request"
   pendingRequest?: { kind: "reschedule" | "cancel"; eventDate?: string; reason?: string; requestedAt: string } | null
   units: BookingUnit[]
