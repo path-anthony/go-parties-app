@@ -36,6 +36,27 @@ export const SUB_OCC: Record<OccasionId, string[]> = {
 
 const item = (name: string, cat: string, alts: string[]): PackageItem => ({ name, cat, alts })
 
+/* The checkout's "What are you celebrating?" list (Block S7.1): every
+   group with its sub-occasions, in the order above. The admin's known
+   occasion list (go-parties-admin/src/lib/occasions.ts) is declared a copy
+   of SUB_OCC, so the hold accepts any of these; "Other" is sent as the
+   group's name. */
+export const OCCASION_CHOICES: { occ: OccasionId; label: string; subs: string[] }[] = (Object.keys(OCC) as OccasionId[]).map((occ) => ({ occ, label: OCC[occ].label, subs: SUB_OCC[occ] }))
+
+/* The group and sub-occasion for a name the admin uses (a group's label
+   like "Wedding", or a sub-occasion like "Sweet 16"), or null. A
+   sub-occasion in two groups (Birthday) lands in the first. */
+export function occasionPick(name: string | null | undefined): { occ: OccasionId; subOcc: string } | null {
+  if (!name) return null
+  const key = name.trim().toLowerCase()
+  for (const { occ, label, subs } of OCCASION_CHOICES) {
+    if (label.toLowerCase() === key) return { occ, subOcc: "Other" }
+    const sub = subs.find((s) => s.toLowerCase() === key)
+    if (sub) return { occ, subOcc: sub }
+  }
+  return null
+}
+
 export const PKGS: Record<OccasionId, Pkg[]> = {
   kids: [
     { id: "starter", n: "Backyard Starter", p: 999, plate: "", inc: ["1 bounce house, 4 hours", "Popcorn or cotton candy station", "Corn hole and ladder ball", "Delivery, setup, teardown"], items: [item("Bounce Castle A", "Inflatable", ["Bounce Castle B", "Bounce/slide combo (+$150)"]), item("Cotton candy station", "Fun food", ["Popcorn station", "Snow cone station"]), item("Corn hole + ladder ball", "Games", ["Giant Jenga", "Ring toss"])] },

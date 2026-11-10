@@ -95,6 +95,48 @@ const rows: Row[] = [
     retainer: null,
     balance: null,
   }),
+  // S7: three wedding bookings; the questionnaire on them is answered by
+  // weddingMock.ts under ?mock=wedding (404 under ?mock=portal alone).
+  base("bk-wedding-new", "Signed", 2, [unit("Wedding Film, Essential")], {
+    eventDate: day(75),
+    eventTime: "3 PM",
+    steps: [
+      { key: "sign", state: "done", at: "2026-10-20T18:20:00.000Z" },
+      { key: "retainer", state: "next" },
+    ],
+    contract: { agreementId: "ag-wed-1", status: "signed", signedAt: "2026-10-20T18:20:00.000Z", pdfUrl: "https://example.com/contracts/mock-signed.pdf" },
+    retainer: { amount: 2400, paid: false, payable: true },
+    balance: { amount: 5600, dueDate: day(45).slice(0, 10), paid: false, payable: false },
+    _signed: true,
+  }),
+  base("bk-wedding-progress", "Confirmed", 2, [unit("Wedding Film, Dream")], {
+    eventDate: day(40),
+    eventTime: "3 PM",
+    depositPaid: true,
+    steps: [
+      { key: "sign", state: "done", at: "2026-09-02T15:00:00.000Z" },
+      { key: "retainer", state: "done", at: "2026-09-02T15:10:00.000Z" },
+      { key: "balance", state: "next" },
+    ],
+    contract: { agreementId: "ag-wed-2", status: "signed", signedAt: "2026-09-02T15:00:00.000Z", pdfUrl: "https://example.com/contracts/mock-signed.pdf" },
+    retainer: { amount: 3700, paid: true, paidAt: "2026-09-02T15:10:00.000Z", payable: false },
+    balance: { amount: 8700, dueDate: day(10).slice(0, 10), paid: false, payable: true },
+    _signed: true,
+  }),
+  base("bk-wedding-submitted", "Confirmed", 2, [unit("Wedding Film, Essential")], {
+    eventDate: day(90),
+    eventTime: "4 PM",
+    depositPaid: true,
+    steps: [
+      { key: "sign", state: "done", at: "2026-09-20T15:00:00.000Z" },
+      { key: "retainer", state: "done", at: "2026-09-20T15:10:00.000Z" },
+      { key: "balance", state: "blocked" },
+    ],
+    contract: { agreementId: "ag-wed-3", status: "signed", signedAt: "2026-09-20T15:00:00.000Z", pdfUrl: "https://example.com/contracts/mock-signed.pdf" },
+    retainer: { amount: 2400, paid: true, paidAt: "2026-09-20T15:10:00.000Z", payable: false },
+    balance: { amount: 5600, dueDate: day(60).slice(0, 10), paid: false, payable: false },
+    _signed: true,
+  }),
   base("bk-done", "Completed", 1, [unit("Snow Cone Station")], { eventDate: day(-14), depositPaid: true, steps: [], retainer: { amount: 60, paid: true, payable: false }, balance: { amount: 140, dueDate: day(-21).slice(0, 10), paid: true, payable: false } }),
   base("bk-cancelled", "Cancelled", 1, [], { eventDate: day(-3), steps: [], retainer: null, balance: null }),
   base("bk-released", "Released", 1, [unit("Test Gladiator Bounce House")], { eventDate: day(40), steps: [], retainer: null, balance: null }),

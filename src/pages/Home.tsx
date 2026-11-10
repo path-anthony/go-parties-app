@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import type { PublicPackage } from "@/lib/adminApi"
 import { needsConfig } from "@/lib/addons"
 import { retryCatalog, useAllPackages, useCatalog } from "@/lib/storeCatalog"
-import { fmt } from "@/data/catalog"
+import { fmt, occasionPick } from "@/data/catalog"
 import { useBooking, type DirectItem } from "@/state/booking"
 import { useStoreUi } from "@/state/store"
 import { ErrorNotice } from "@/components/go/ErrorNotice"
@@ -144,6 +144,13 @@ function Packages() {
     const iso = b.itemDate
     b.pickItems(items, { id: p.id, name: p.name, price: p.price })
     if (iso) b.set("itemDate", iso)
+    // S7.1: the package's occasion pre-selects "What are you celebrating?"
+    // on the event step (the admin names a group when it was asked with none).
+    const occ = occasionPick(p.occasion)
+    if (occ) {
+      b.set("occ", occ.occ)
+      b.set("subOcc", occ.subOcc)
+    }
     if (items.some(needsConfig)) {
       navigate(`/item/${items[0].id}/options`)
       return

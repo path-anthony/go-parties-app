@@ -19,7 +19,7 @@ import { labelForIso } from "@/lib/availability"
 import { bookDirect, type DirectReason } from "@/lib/adminApi"
 import { directInput, tierInput } from "@/lib/directInput"
 import { fetchTier } from "@/lib/tierApi"
-import { clockLabel as clockFor } from "@/data/catalog"
+import { OCCASION_CHOICES, clockLabel as clockFor, type OccasionId } from "@/data/catalog"
 import { missingRequired } from "@/lib/addons"
 import { checkoutSteps } from "@/lib/steps"
 import { useBooking } from "@/state/booking"
@@ -38,6 +38,11 @@ import { useCustomer } from "@/state/customer"
    Google key the event address is picked from Places suggestions, then a
    pin and setup notes (Block M); without one it is the plain field. Tier 1
    holds here ("Hold my date"); tier 2 goes on to the contract ("Next").
+   S7.1: "What are you celebrating?" is a required select of the
+   storefront's groups and sub-occasions (the admin's list is a copy of
+   it); the pick travels with the hold as `occasion`, which is what lets
+   the admin recognise a wedding and offer the wedding details. A package
+   from Home pre-selects its occasion.
    Every refusal is the red notice directly above the button; a 401
    account-required sends the customer back to the account step, cart
    kept. The contract step can hand a notice over in location state. */
@@ -102,8 +107,21 @@ export default function ItemWho() {
   }
   const SETUP_MAX = 200
   const nameSettled = needsName ? b.contactName.trim() !== "" : true
+  const occasionSettled = b.occ !== null && b.subOcc !== null
+  const occasionValue = occasionSettled ? `${b.occ}:${b.subOcc}` : ""
+  const pickOccasion = (value: string) => {
+    const [occ, ...rest] = value.split(":")
+    const sub = rest.join(":")
+    if (!occ || !sub) {
+      b.set("occ", null)
+      b.set("subOcc", null)
+      return
+    }
+    b.set("occ", occ as OccasionId)
+    b.set("subOcc", sub)
+  }
   // Only the last screen holds the date, so only there does the policy wait.
-  const canSubmit = !!customer && nameSettled && homeSettled && addressSettled && !submitting && !agreementBlocked
+  const canSubmit = !!customer && nameSettled && occasionSettled && homeSettled && addressSettled && !submitting && !agreementBlocked
 
   const tier = b.tier?.tier ?? null
   const steps = checkoutSteps(b.optionsStep, !b.accountStep, tier)
@@ -197,6 +215,27 @@ export default function ItemWho() {
             <Input placeholder="Sarah Lin" autoComplete="name" value={b.contactName} onChange={(e) => b.set("contactName", e.target.value)} />
           </div>
         )}
+        <div className="mt-3.5">
+          <GoLabel className="mb-1.5 tracking-[.1em]">What are you celebrating?</GoLabel>
+          <select
+            aria-label="What are you celebrating?"
+            required
+            value={occasionValue}
+            onChange={(e) => pickOccasion(e.target.value)}
+            className="min-h-[50px] w-full rounded-[12px] border-[1.5px] border-line bg-white px-3.5 text-[16px] text-charcoal focus:border-charcoal focus:outline-none"
+          >
+            <option value="">Pick one</option>
+            {OCCASION_CHOICES.map(({ occ, label, subs }) => (
+              <optgroup key={occ} label={label}>
+                {subs.map((s) => (
+                  <option key={s} value={`${occ}:${s}`}>
+                    {s === "Other" ? `Other ${label.toLowerCase()}` : s}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
         {customer && !homeOnFile && (
           <div className="mt-3.5">
             <GoLabel className="mb-1.5 tracking-[.1em]">Your home address</GoLabel>

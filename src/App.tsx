@@ -22,6 +22,7 @@ import ItemContract from "@/pages/ItemContract"
 import ItemPay from "@/pages/ItemPay"
 import PartyContract from "@/pages/PartyContract"
 import PartyPay from "@/pages/PartyPay"
+import PartyWedding from "@/pages/PartyWedding"
 import ItemHeld from "@/pages/ItemHeld"
 import Kit from "@/pages/Kit"
 
@@ -52,6 +53,7 @@ function App() {
             <Route path="/party/:id/change" element={<PartyChange />} />
             <Route path="/party/:id/contract" element={<PartyContract />} />
             <Route path="/party/:id/pay" element={<PartyPay />} />
+            <Route path="/party/:id/wedding-details" element={<PartyWedding />} />
             <Route path="/item/held" element={<ItemHeld />} />
             <Route path="/item/review" element={<ItemReview />} />
             <Route path="/item/pay" element={<ItemPay />} />
