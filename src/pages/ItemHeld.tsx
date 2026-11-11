@@ -1,7 +1,9 @@
+import { useState } from "react"
 import { Navigate, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { MetaCard } from "@/components/go/MetaCard"
+import { WeddingWaiting } from "@/components/go/WeddingWaiting"
 import { LineItems, type Line, type SubLine } from "@/components/go/LineItems"
 import { pickedOf } from "@/lib/addons"
 import { labelForIso } from "@/lib/availability"
@@ -19,8 +21,18 @@ export default function ItemHeld() {
   const navigate = useNavigate()
   const b = useBooking()
   const settings = usePublicSettings()
+  const [leaving, setLeaving] = useState(false)
 
-  if (!b.direct || b.items.length === 0) return <Navigate to="/home" replace />
+  // The booking is made; an emptied cart means Browse starts clean.
+  const clear = () => {
+    setLeaving(true)
+    b.setItems([])
+    b.set("direct", null)
+    b.set("payment", null)
+    b.set("agreed", false)
+  }
+
+  if (!b.direct || b.items.length === 0) return leaving ? null : <Navigate to="/home" replace />
   const { direct, items } = b
   const rush = direct.rush === true
   const tier = direct.tier ?? b.tier?.tier ?? 1
@@ -45,7 +57,7 @@ export default function ItemHeld() {
   const extras = direct.addonsTotal ?? 0
   // The admin's total is the truth (the package's bundle price, or the
   // items times quantity); the cart's own sum only fills in if it's absent.
-  const total = direct.total ?? cartTotal(items, b.bundle)
+  const total = direct.total ?? cartTotal(items, b.bundle, b.guestCount)
 
   return (
     <AppShell>
@@ -74,6 +86,8 @@ export default function ItemHeld() {
             <LineItems lines={lines} total={total} note={b.bundle ? `Package price, ${b.bundle.name}${extras !== 0 ? ", plus what you picked." : "."}` : undefined} />
           </div>
         )}
+        {/* Block S9a: a wedding order has its details form from the hold on. */}
+        <WeddingWaiting bookingId={direct.bookingId} onOpen={clear} className="mt-4" />
         <p className="mt-4 text-small text-muted">
           Reply STOP anytime to opt out of texts.
         </p>
@@ -81,11 +95,7 @@ export default function ItemHeld() {
       <Foot>
         <Button
           onClick={() => {
-            // The booking is made; an emptied cart means Browse starts clean.
-            b.setItems([])
-            b.set("direct", null)
-            b.set("payment", null)
-            b.set("agreed", false)
+            clear()
             navigate("/home")
           }}
         >

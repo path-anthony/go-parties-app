@@ -3,6 +3,8 @@ import { fetchTier, type TierInfo } from "@/lib/tierApi"
 import { tierInput } from "@/lib/directInput"
 import { useBooking } from "@/state/booking"
 import { usePublicSettings } from "@/lib/settings"
+import { guestsReady } from "@/lib/guests"
+import { reviewLine } from "@/lib/review"
 
 /* The tier for the cart as it stands (Block S1): asked from the admin once
    there are items and a date, kept in the booking store (which clears it
@@ -20,7 +22,7 @@ export function useCartTier(enabled = true): TierInfo | null {
   const b = useBooking()
   const key = `${b.items.map((i) => `${i.id}:${i.quantity ?? 1}:${JSON.stringify(i.picks ?? {})}`).join(",")}|${b.bundle?.id ?? ""}|${b.itemDate}|${b.itemTime}`
   useEffect(() => {
-    if (!enabled || b.tier || !b.itemDate || b.items.length === 0) return
+    if (!enabled || b.tier || !b.itemDate || b.items.length === 0 || !guestsReady(b.bundle, b.guestCount)) return
     let live = true
     const t = setTimeout(() => {
       fetchTier(tierInput(b)).then((r) => {
@@ -32,15 +34,15 @@ export function useCartTier(enabled = true): TierInfo | null {
       clearTimeout(t)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, b.tier, key])
+  }, [enabled, b.tier, key, b.guestCount])
   return b.tier
 }
 
-export const TIER_LINE: Record<1 | 2 | 3, string> = {
-  1: "Checkout asks you to agree to the rental policy.",
-  2: "Checkout includes GO's contract to sign.",
-  3: "GO reviews this one and sends you a proposal.",
-}
+/* What checkout will ask for, one line per tier. Tier 3 (Block F2) is the
+   review promise: nothing is due, and a person makes contact within N
+   business days (N from the admin; see use-response-days.ts). */
+export const tierLine = (tier: 1 | 2 | 3, responseDays: number | null): string =>
+  tier === 1 ? "Checkout asks you to agree to the rental policy." : tier === 2 ? "Checkout includes GO's contract to sign." : reviewLine(responseDays)
 
 /* The retainer due today, in dollars, when it can be known: the tier's
    amount first, else the settings' deposit percent of the total. */

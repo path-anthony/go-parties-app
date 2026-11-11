@@ -38,6 +38,9 @@ export function tierInput(b: BookingState): TierInput {
     // refuse a vague one early. Typed text without a pick is left for the
     // hold, which checks it too.
     ...(b.verified ? { placeId: b.verified.placeId, address: b.verified.formattedAddress } : {}),
+    // Block S9a: the guest count goes with the tier call, which prices a
+    // per-guest package from it and prints it on a tier 2 quote.
+    ...(b.guestCount ? { guestCount: b.guestCount } : {}),
   }
 }
 
@@ -87,6 +90,7 @@ export function directInput(b: BookingState, customer: Customer | null) {
     // admin never overwrites one on file. The checkbox state always goes.
     homeAddress: customer && !customer.homeAddress ? b.homeAddress.trim() || null : null,
     eventAddressSameAsHome: customer ? b.sameAsHome : null,
+    guestCount: b.guestCount,
     tier: b.tier?.tier ?? null,
     signature,
     // The preference chips are gone (S2); the line on the screen says a

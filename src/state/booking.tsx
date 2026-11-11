@@ -41,7 +41,12 @@ export interface DirectItem {
 export interface Bundle {
   id: string
   name: string
+  /* The bundle price, or for a per-guest package (perGuest set) the price
+     for each guest. Read through lib/guests.ts, never as the total. */
   price: number
+  /* Block S9a (admin Block A8): a per-guest package costs base + price x
+     guests, for min to max guests (max null: no limit). */
+  perGuest?: { base: number; min: number; max: number | null }
 }
 
 export interface BookingState {
@@ -83,6 +88,11 @@ export interface BookingState {
   homeVerified: VerifiedAddress | null
   setup: LatLng | null
   setupNotes: string
+  /* Block S9a: the guest count, a whole number or null; optional on every
+     order, required for a per-guest package. guestBad is true while the
+     field holds something that is not a count, so the screen can wait. */
+  guestCount: number | null
+  guestBad: boolean
   /* The checkbox on the last screen, the real state, never pre-checked. */
   agreed: boolean
   /* Bot checks sent with the booking: the honeypot (stays empty) and when the
@@ -127,6 +137,8 @@ const INITIAL: BookingState = {
   homeVerified: null,
   setup: null,
   setupNotes: "",
+  guestCount: null,
+  guestBad: false,
   agreed: false,
   hp: "",
   formStartedAt: 0,
@@ -144,6 +156,10 @@ interface BookingApi extends BookingState {
   pickItems: (items: DirectItem[], bundle?: Bundle) => void
   setItems: (items: DirectItem[]) => void
   setPicks: (itemId: string, picks: Picks) => void
+  /* The guest field's value: a count, or null with bad set when what is
+     typed is not one. A count changes what a per-guest package costs and
+     what a tier 2 contract says, so it drops the tier answer then. */
+  setGuests: (count: number | null, bad: boolean) => void
 }
 
 /* Anything that changes what the contract would say drops the tier answer,
@@ -174,6 +190,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           itemDate: null,
           itemTime: null,
           agreed: false,
+          guestCount: null,
+          guestBad: false,
           hp: "",
           formStartedAt: Date.now(),
           ...CLEAR_TIER,
@@ -186,10 +204,16 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           ...prev,
           items,
           bundle: null,
-          ...(items.length === 0 ? { accountStep: false } : {}),
+          ...(items.length === 0 ? { accountStep: false, guestCount: null, guestBad: false } : {}),
           ...CLEAR_TIER,
           formStartedAt: items.length === 0 ? 0 : prev.items.length === 0 || prev.formStartedAt === 0 ? Date.now() : prev.formStartedAt,
         })),
+      setGuests: (count, bad) =>
+        setS((prev) => {
+          if (prev.guestCount === count && prev.guestBad === bad) return prev
+          const asked = prev.bundle?.perGuest || prev.tier?.tier === 2
+          return { ...prev, guestCount: count, guestBad: bad, ...(asked ? CLEAR_TIER : {}) }
+        }),
       // Not setItems: choosing an option doesn't change what the cart is, so
       // a package stays the package.
       setPicks: (itemId, picks) => setS((prev) => ({ ...prev, ...CLEAR_TIER, items: prev.items.map((i) => (i.id === itemId ? { ...i, picks } : i)) })),

@@ -153,7 +153,7 @@ const base = (id: string) => `/api/customer/bookings/${encodeURIComponent(id)}/w
 /* Every mock branch is `import.meta.env.DEV && ...` with the import inside
    it, so a production build drops the branch and the fixture chunk. The
    portal mock alone answers 404 (no wedding on those bookings). */
-const mocked = () => import.meta.env.DEV && (mockMode("wedding") !== null || mockMode("portal") !== null)
+const mocked = () => import.meta.env.DEV && (mockMode("wedding") !== null || mockMode("portal") !== null || mockMode("checkout") !== null)
 
 export const weddingApi = {
   get: async (id: string): Promise<WeddingResult<WeddingDetails>> => {

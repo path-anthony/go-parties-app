@@ -8,7 +8,9 @@ import { cn } from "@/lib/utils"
 /* The "Wedding details" row on a My party booking card (Block S7). Asks
    the booking's wedding details once; a 404 (not a wedding) shows nothing.
    Status ("Not started", "6 of 10 done", "Submitted Oct 2"), the due date
-   ("Due Oct 14"), and the door to the questionnaire. Due within 14 days
+   ("Due Oct 14"), and the door to the questionnaire. Block S9a: until it is
+   sent the heading says so, "Your wedding details form is waiting.", the
+   same words as the confirmation screen after payment. Due within 14 days
    and not yet sent: the red error style with "Due in N days". */
 
 export function WeddingRow({ booking }: { booking: CustomerBooking }) {
@@ -32,8 +34,8 @@ export function WeddingRow({ booking }: { booking: CustomerBooking }) {
 
   return (
     <div className={cn("mt-3 rounded-[12px] px-3.5 py-3", urgent ? "border-l-4 border-error bg-error-tint" : "border border-line bg-cream")}>
-      <b className={cn("block text-sm", urgent ? "text-error" : "text-charcoal")}>Wedding details</b>
-      <span className={cn("block text-small", urgent ? "font-semibold text-error" : "text-charcoal-soft")}>
+      <b className={cn("block text-sm", urgent ? "text-error" : "text-charcoal")}>{submitted ? "Wedding details" : "Your wedding details form is waiting."}</b>
+      <span className={urgent ? "block text-small font-semibold text-error" : "block text-small text-charcoal-soft"}>
         {weddingStatusText(details)}
         {due ? ` · ${due.text}` : ""}
       </span>

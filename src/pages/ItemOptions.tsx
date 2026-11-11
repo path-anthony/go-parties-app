@@ -68,7 +68,7 @@ export default function ItemOptions() {
         {plain > 0 && <p className="mt-2.5 text-small text-muted">Everything else is ready as is.</p>}
         <div className="mt-3.5 flex justify-between rounded-[14px] border border-line bg-white px-4 py-3.5 text-base">
           <span className="text-charcoal-soft">Total</span>
-          <b className="text-price text-charcoal">{fmt(cartTotal(b.items, b.bundle))}</b>
+          <b className="text-price text-charcoal">{fmt(cartTotal(b.items, b.bundle, b.guestCount))}</b>
         </div>
       </Body>
       <Foot>

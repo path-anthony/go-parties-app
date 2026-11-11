@@ -4,6 +4,7 @@ import { GoLabel } from "@/components/go/GoLabel"
 import { AddressField } from "@/components/go/AddressField"
 import { AddressPreview } from "@/components/go/AddressPreview"
 import { ErrorNotice, FieldError } from "@/components/go/ErrorNotice"
+import { PhoneField } from "@/components/go/PhoneField"
 import type { SignUpProblem, SignUpValues } from "@/hooks/use-signup"
 
 /* The sign-up inputs: name, email, phone, password and the home address
@@ -37,18 +38,18 @@ export function SignUpFields({
      the old one goes away. */
   onClearProblem?: () => void
 }) {
-  const set = (key: "name" | "email" | "phone" | "password") => (e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...values, [key]: e.target.value })
-  const under = (field: "phone" | "email") =>
-    problem?.field === field ? (
-      <FieldError id={`signup-${field}-error`}>
-        {problem.message}
-        {problem.taken && onSignIn && (
-          <Button type="button" variant="ghost" size="sm" className="mt-2 block" onClick={onSignIn}>
-            Sign in
-          </Button>
-        )}
-      </FieldError>
-    ) : null
+  const set = (key: "name" | "email" | "password") => (e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...values, [key]: e.target.value })
+  const signInDoor = (
+    <>
+      {problem?.message}
+      {problem?.taken && onSignIn && (
+        <Button type="button" variant="ghost" size="sm" className="mt-2 block" onClick={onSignIn}>
+          Sign in
+        </Button>
+      )}
+    </>
+  )
+  const under = (field: "email") => (problem?.field === field ? <FieldError id={`signup-${field}-error`}>{signInDoor}</FieldError> : null)
   return (
     <form
       onSubmit={(e) => {
@@ -62,8 +63,15 @@ export function SignUpFields({
       <Input placeholder="you@email.com" autoComplete="email" inputMode="email" value={values.email} onChange={set("email")} aria-invalid={problem?.field === "email" || undefined} aria-describedby={problem?.field === "email" ? "signup-email-error" : undefined} />
       {under("email")}
       <GoLabel className="mt-2.5 mb-1.5 tracking-[.1em]">Phone</GoLabel>
-      <Input placeholder="860 555 0134" autoComplete="tel" inputMode="tel" value={values.phone} onChange={set("phone")} aria-invalid={problem?.field === "phone" || undefined} aria-describedby={problem?.field === "phone" ? "signup-phone-error" : undefined} />
-      {under("phone")}
+      <PhoneField
+        id="signup-phone"
+        value={values.phone}
+        error={problem?.field === "phone" ? signInDoor : null}
+        onChange={(phone) => {
+          if (problem?.field === "phone") onClearProblem?.()
+          onChange({ ...values, phone })
+        }}
+      />
       <GoLabel className="mt-2.5 mb-1.5 tracking-[.1em]">Password</GoLabel>
       <Input type="password" autoComplete="new-password" value={values.password} onChange={set("password")} />
       <p className="mt-1.5 text-small text-muted">8 characters or more.</p>

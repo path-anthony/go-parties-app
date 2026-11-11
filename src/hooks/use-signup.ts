@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { phoneDigits, phoneProblem } from "@/lib/phone"
 import { customerApi, type Customer } from "@/lib/customerApi"
 import type { VerifiedAddress } from "@/lib/places"
 import { useCustomer } from "@/state/customer"
@@ -77,9 +78,16 @@ export function useSignUp() {
      pick. */
   const signUp = async (v: SignUpValues): Promise<{ customer: Customer | null; refusedHome: boolean }> => {
     if (!canSignUp(v) || busy) return { customer: null, refusedHome: false }
+    // Block S9a: the admin's phone rule, checked here first so a bad number
+    // is named under the field and nothing is sent.
+    const bad = phoneProblem(v.phone)
+    if (bad) {
+      setProblem({ message: bad, field: "phone", taken: null })
+      return { customer: null, refusedHome: false }
+    }
     setBusy(true)
     setProblem(null)
-    const result = await customerApi.signup({ name: v.name.trim() || null, phone: v.phone.trim(), email: v.email.trim(), password: v.password, homeAddress: v.homeAddress.trim() || null })
+    const result = await customerApi.signup({ name: v.name.trim() || null, phone: phoneDigits(v.phone) ?? v.phone.trim(), email: v.email.trim(), password: v.password, homeAddress: v.homeAddress.trim() || null })
     setBusy(false)
     if (result.ok) {
       setCustomer(result.data.customer)

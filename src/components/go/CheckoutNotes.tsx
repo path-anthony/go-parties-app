@@ -1,4 +1,7 @@
 import { cartTotal } from "@/components/go/CartItems"
+import { totalIsFrom } from "@/lib/guests"
+import { useResponseDays } from "@/hooks/use-response-days"
+import { reviewLine } from "@/lib/review"
 import { fmt } from "@/data/catalog"
 import { useRetainer } from "@/hooks/use-cart-tier"
 import { usePublicSettings } from "@/lib/settings"
@@ -26,9 +29,11 @@ export function BalanceLine({ className }: { className?: string }) {
   const b = useBooking()
   const settings = usePublicSettings()
   const tier = b.tier
-  const total = tier?.total ?? cartTotal(b.items, b.bundle)
+  const total = tier?.total ?? cartTotal(b.items, b.bundle, b.guestCount)
   const retainer = useRetainer(total, tier)
-  if (tier?.tier === 3 || total <= 0) return null
+  // Nothing is due where review starts, and a per-guest package has no
+  // balance to name until its guest count is in.
+  if (tier?.tier === 3 || total <= 0 || (!tier && totalIsFrom(b.bundle, b.guestCount))) return null
   const days = settings?.tokens.balanceDueDays ?? null
   const when = days !== null ? `${days} ${days === 1 ? "day" : "days"} before your event` : "before your event"
   const balance = retainer.amount !== null ? Math.max(0, Math.round(total - retainer.amount)) : null
@@ -39,13 +44,16 @@ export function BalanceLine({ className }: { className?: string }) {
   )
 }
 
-const NEXT_LINE: Record<Tier, string> = {
+const NEXT_LINE = {
   1: "Your retainer is next. Paying it holds the date.",
   2: "This booking comes with a contract. You'll read and sign it on the next screen, then pay the retainer.",
-  3: "Nothing to pay yet. GO reviews this one first and sends you a proposal.",
 }
 
+/* Tier 3 (Block F2) holds nothing and charges nothing: a person looks at the
+   order and makes contact within N business days, N from the admin. */
 export function CheckoutNext({ tier, className }: { tier: Tier | null; className?: string }) {
+  const b = useBooking()
+  const days = useResponseDays(b.tier)
   if (tier === null) return null
-  return <p className={cn("text-small text-charcoal-soft", className)}>{NEXT_LINE[tier]}</p>
+  return <p className={cn("text-small text-charcoal-soft", className)}>{tier === 3 ? reviewLine(days) : NEXT_LINE[tier]}</p>
 }

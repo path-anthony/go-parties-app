@@ -31,6 +31,8 @@ export interface TierInfo {
   /* Tier 2 only. */
   contract: TierQuote | null
   quoteExpiresAt: string | null
+  /* Tier 3 only (Block F2): business days until a person makes contact. */
+  responseDays: number | null
 }
 
 export interface TierInput {
@@ -45,6 +47,8 @@ export interface TierInput {
      address has been picked. */
   placeId?: string | null
   address?: string | null
+  /* Block S9a: the guest count, left out when none. */
+  guestCount?: number | null
 }
 
 /* reason and field are the admin's, set on the one refusal the screen
@@ -75,6 +79,7 @@ export function parseTier(data: unknown): TierInfo | null {
     policy: p && str(p.text) ? { version: num(p.version) ?? 0, text: str(p.text) as string } : null,
     contract: tier === 2 && document && quoteId && contentHash ? { quoteId, contentHash, termsVersion: num(c?.termsVersion), format: "go-v2", document } : null,
     quoteExpiresAt: str(d.quoteExpiresAt),
+    responseDays: tier === 3 ? num(d.responseDays) : null,
   }
 }
 
@@ -87,6 +92,7 @@ export function tierBody(input: TierInput): Record<string, unknown> {
   if (input.occasion) body.occasion = input.occasion
   if (input.placeId) body.placeId = input.placeId
   if (input.address) body.address = input.address
+  if (input.guestCount) body.guestCount = input.guestCount
   return body
 }
 

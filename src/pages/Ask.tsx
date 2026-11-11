@@ -11,7 +11,8 @@ import { fmt } from "@/data/catalog"
 import { customerApi } from "@/lib/customerApi"
 import { needsConfig } from "@/lib/addons"
 import { PRICE_ON_REQUEST, keyUnit, onRequest, priceText, useCatalog, useOpenOn } from "@/lib/storeCatalog"
-import { TIER_LINE, useRetainer } from "@/hooks/use-cart-tier"
+import { tierLine, useRetainer } from "@/hooks/use-cart-tier"
+import { useResponseDays } from "@/hooks/use-response-days"
 import { fetchTier, type TierInfo } from "@/lib/tierApi"
 import { tierInput } from "@/lib/directInput"
 import type { ConciergeContext } from "@/lib/concierge"
@@ -59,6 +60,7 @@ export default function Ask() {
   const bookable = party.filter((i) => !onRequest(i))
   const unpriced = party.length - bookable.length
   const retainer = useRetainer(total, tier)
+  const responseDays = useResponseDays(tier)
   const dayLabel = b.itemDate ? labelForIso(b.itemDate) : null
   const changeFor = b.changeFor
 
@@ -328,7 +330,7 @@ export default function Ask() {
                 {unpriced > 0 && <p className="text-small text-charcoal-soft">{unpriced === 1 ? "1 item is priced on request. It stays out of checkout; ask GO about it." : `${unpriced} items are priced on request. They stay out of checkout; ask GO about them.`}</p>}
               </div>
               <div className="px-4 pb-4">
-                <p className="mb-3 text-small text-charcoal-soft">{tier ? TIER_LINE[tier.tier] : b.itemDate ? "Checking what checkout will ask for." : "Pick a party date to see what checkout asks for."}</p>
+                <p className="mb-3 text-small text-charcoal-soft">{tier ? tierLine(tier.tier, responseDays) : b.itemDate ? "Checking what checkout will ask for." : "Pick a party date to see what checkout asks for."}</p>
                 {/* Under 901px the pinned bar carries the one orange action. */}
                 <Button className="hidden w-full min-[901px]:inline-flex" disabled={bookable.length === 0} onClick={book}>
                   Book this party

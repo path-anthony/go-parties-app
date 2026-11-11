@@ -1,4 +1,5 @@
-import type { Availability, DirectBooking, DirectResult, PublicItem } from "@/lib/adminApi"
+import type { Availability, DirectBooking, DirectResult, PublicItem, PublicPackage } from "@/lib/adminApi"
+import { PHONE_HINT } from "@/lib/phone"
 import { BLANK, FULL } from "@/lib/contractMock"
 import { mockMode } from "@/lib/mock"
 import { MOCK_SECRET } from "@/lib/paymentMockState"
@@ -16,6 +17,11 @@ import type { TierInfo, TierInput, TierResult } from "@/lib/tierApi"
      tier3          a review booking: the hold answers 202
      tier1-taken    tier 1 whose first hold is refused (409 unavailable, the admin's own words); the next one holds
      tier1-account  tier 1 whose first hold is refused 401 account-required (S3); the next one holds
+   Block S9a: Browse and Home carry two packages (a fixed one and a per-guest
+   one, 25 to 100 guests), the tier answer for tier 3 carries responseDays 3,
+   the hold logs the guest count, the same-as-home tick and the setup pin, a
+   phone of 860 555 0123 is refused 400 phone-invalid (sign in with "serverphone"
+   in the email), and a hold with a wedding occasion makes a wedding booking.
    Nothing here touches the admin. */
 
 const POLICY = {
@@ -42,8 +48,8 @@ const quoteDocument = () => ({
 })
 
 function tierFor(scenario: string, input: TierInput): TierInfo {
-  const base = { reasons: [] as string[], policy: null, contract: null, quoteExpiresAt: endOfDayEastern() }
-  if (scenario === "tier3") return { ...base, tier: 3, reasons: ["review-occasion"], total: 18400, retainerPercent: 30, retainerAmount: 5520 }
+  const base = { reasons: [] as string[], policy: null, contract: null, quoteExpiresAt: endOfDayEastern(), responseDays: null }
+  if (scenario === "tier3") return { ...base, tier: 3, reasons: ["threshold"], total: 18400, retainerPercent: 30, retainerAmount: 5520, responseDays: 3 }
   if (scenario.startsWith("tier2") && !(scenario === "tier2-retier" && retiered)) {
     return {
       ...base,
@@ -56,11 +62,26 @@ function tierFor(scenario: string, input: TierInput): TierInfo {
     }
   }
   const n = Math.max(1, input.itemIds.length)
-  return { ...base, tier: 1, policy: POLICY, total: 1499 * n, retainerPercent: 30, retainerAmount: Math.round(1499 * n * 0.3 * 100) / 100 }
+  const total = input.packageId === PER_GUEST_ID && input.guestCount ? PER_GUEST_BASE + PER_GUEST_RATE * input.guestCount : 1499 * n
+  return { ...base, tier: 1, policy: POLICY, total, retainerPercent: 30, retainerAmount: Math.round(total * 0.3 * 100) / 100 }
+}
+
+/* Block A8: the per-guest package's rule, as the admin's packagePrice states it. */
+const PER_GUEST_ID = "pkg-perguest"
+const PER_GUEST_RATE = 12
+const PER_GUEST_BASE = 150
+const guestRefusal = (packageId: string | null | undefined, guestCount: number | null | undefined) => {
+  if (packageId !== PER_GUEST_ID) return null
+  if (!guestCount) return { reason: "guest-count-required", message: "Tell us how many guests, so we can price this package." }
+  if (guestCount < 25 || guestCount > 100) return { reason: "guest-count-range", message: "This package is for 25 to 100 guests." }
+  return null
 }
 
 export async function mockTier(input: TierInput): Promise<TierResult> {
   await new Promise((r) => setTimeout(r, 250))
+  console.debug("mock tier body", JSON.stringify({ packageId: input.packageId, guestCount: input.guestCount ?? null }))
+  const refusal = guestRefusal(input.packageId, input.guestCount)
+  if (refusal) return { ok: false, message: refusal.message, reason: refusal.reason }
   if (input.address || input.placeId) console.debug("mock tier address", JSON.stringify({ placeId: input.placeId ?? null, address: input.address ?? null }))
   if (input.placeId === "mock-place-refused") return { ok: false, message: NOT_EXACT, reason: "address-not-exact", field: "address" }
   return { ok: true, tier: tierFor(mockMode("checkout") ?? "tier1", input) }
@@ -74,10 +95,20 @@ const NOT_EXACT = "We couldn't find that exact address. Pick it from the suggest
    after a pick). */
 const vague = (text: string | null | undefined) => !!text && (!/\d/.test(text) || /refused/i.test(text))
 
-export async function mockHold(input: { occasion?: string | null; itemIds: string[]; eventDate: string; eventTime: string | null; address: string | null; homeAddress?: string | null; delivery: unknown; customerName: string | null; tier: number | null; signature: { contentHash: string } | null }): Promise<DirectResult> {
+let wedding = false
+/* Block S9a: whether the last mock hold was a wedding, which is what gives
+   "bk_mock" a wedding details form (weddingMock.ts reads this). */
+export const mockIsWedding = () => wedding
+
+export async function mockHold(input: { occasion?: string | null; itemIds: string[]; packageId?: string | null; eventDate: string; eventTime: string | null; address: string | null; homeAddress?: string | null; delivery: unknown; customerName: string | null; phone?: string | null; guestCount?: number | null; eventAddressSameAsHome?: boolean | null; tier: number | null; signature: { contentHash: string } | null }): Promise<DirectResult> {
   await new Promise((r) => setTimeout(r, 400))
   console.debug("mock hold delivery", JSON.stringify(input.delivery))
   console.debug("mock hold occasion", JSON.stringify(input.occasion ?? null))
+  console.debug("mock hold extras", JSON.stringify({ guestCount: input.guestCount ?? null, eventAddressSameAsHome: input.eventAddressSameAsHome ?? null, packageId: input.packageId ?? null }))
+  if (input.phone && input.phone.replace(/\D/g, "") === "8605550123") return { ok: false, reason: "phone-invalid", message: PHONE_HINT, field: "phone" }
+  const guests = guestRefusal(input.packageId, input.guestCount)
+  if (guests) return { ok: false, reason: "guest-count", message: guests.message, field: "guestCount" }
+  wedding = /wedding|rehearsal|reception/i.test(input.occasion ?? "")
   const placeId = (input.delivery as { placeId?: string } | null)?.placeId ?? null
   console.debug("mock hold address", JSON.stringify({ placeId, address: input.address, homeAddress: input.homeAddress ?? null }))
   if (input.homeAddress && vague(input.homeAddress)) return { ok: false, reason: "address-not-exact", message: NOT_EXACT, field: "homeAddress" }
@@ -89,7 +120,7 @@ export async function mockHold(input: { occasion?: string | null; itemIds: strin
     message: "Your cart or the contract changed. Please read it again.",
   })
   if (scenario === "tier3") {
-    return { ok: true, kind: "review", review: { designRequestId: "dr_mock", eventDate: input.eventDate, total: 18400, message: "This one goes to our team first." } }
+    return { ok: true, kind: "review", review: { designRequestId: "dr_mock", eventDate: input.eventDate, total: 18400, responseDays: 3, message: "This one goes to our team first." } }
   }
   if (scenario === "tier1-account" && !refusedOnce) {
     refusedOnce = true
@@ -173,4 +204,15 @@ export async function mockAvailability(itemId: string, date: string): Promise<Av
   await new Promise((r) => setTimeout(r, 150))
   const item = ITEMS.find((i) => i.id === itemId)
   return { itemId, date, directBooking: true, available: true, freeUnits: item?.freeUnits ?? 1, totalUnits: item?.freeUnits ?? 1 }
+}
+
+/* Block S9a: a fixed package and a per-guest one, so Home shows both and the
+   cart asks for a guest count on the second. The items are the mock catalog's. */
+export async function mockPackages(): Promise<PublicPackage[]> {
+  await new Promise((r) => setTimeout(r, 150))
+  const item = (itemId: string, name: string, category: string, price: number, quantity = 1) => ({ itemId, name, category, price, priceUnit: "per event", quantity, addonGroups: [] })
+  return [
+    { id: "pkg-fixed", name: "Backyard Bash", description: null, price: 899, theme: null, tag: "Most booked", guestNote: "Up to 25 kids", occasion: "Birthday", photoUrl: null, pricingMode: "fixed", items: [item("it-bounce", "Test Gladiator Bounce House", "Bounce Houses", 700)] },
+    { id: PER_GUEST_ID, name: "Taco Night", description: null, price: PER_GUEST_RATE, theme: null, tag: null, guestNote: null, occasion: "Birthday", photoUrl: null, pricingMode: "per_guest", basePrice: PER_GUEST_BASE, minGuests: 25, maxGuests: 100, items: [item("it-bartender", "Test Bartender", "Bar and Cigar", 45), item("it-dj", "Go DJ", "DJ and AV", 1800)] },
+  ]
 }

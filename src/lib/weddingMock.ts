@@ -1,3 +1,4 @@
+import { mockIsWedding } from "@/lib/checkoutMock"
 import { mockMode } from "@/lib/mock"
 import type { WeddingDetails, WeddingFailure, WeddingField, WeddingItem, WeddingNote, WeddingResult, WeddingSection, WeddingTemplate, WeddingValue } from "@/lib/weddingApi"
 import { sectionFields } from "@/lib/weddingApi"
@@ -443,6 +444,11 @@ const NOT_FOUND: WeddingFailure = { ok: false, status: 404, message: "booking no
 const refuse = (status: number, reason: string, message: string, extra: Partial<WeddingFailure> = {}): WeddingFailure => ({ ok: false, status, reason, message, ...extra })
 
 function rowFor(id: string): Row | null {
+  // Block S9a: the checkout mock's booking is a wedding when its hold was one.
+  if (id === "bk_mock" && mockMode("checkout") !== null && mockIsWedding()) {
+    if (!rows.has(id)) rows.set(id, { eventDate: day(60), status: "not_started", answers: {}, submittedAt: null, changeRequestedAt: null })
+    return rows.get(id) ?? null
+  }
   if (!mockMode("wedding")) return null
   return rows.get(id) ?? null
 }
