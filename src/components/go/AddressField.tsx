@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from "react"
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { Input } from "@/components/ui/input"
 import { FieldError } from "@/components/go/ErrorNotice"
 import { useAddressMode } from "@/hooks/use-address-mode"
@@ -27,7 +28,25 @@ import { PICK_MESSAGE, resolveAddress, suggestAddresses, type Suggestion, type V
    When Google cannot be reached (no key, the script blocked or offline, the
    key refused, Places answering with an error) the field becomes a plain
    input, `verified` stays null, and the parent stops requiring a pick: the
-   admin checks the typed text and flags it for staff. */
+   admin checks the typed text and flags it for staff.
+
+   The suggestion list (Block S8) is drawn in a portal on the page body with
+   fixed positioning, not inside the field's wrapper. Inside the wrapper it
+   was cut off by any parent that clips (the sign-up form lives in a
+   collapsing panel with overflow hidden, so only a few pixels showed) and
+   sat under the bottom bar (the list's layer was below the bar's inside the
+   screen's own stacking context). It shows at most five rows of 44px or
+   more, opens below the field (above it when there is no room below), follows
+   the field on scroll and resize, and on a phone the field is scrolled up
+   when it gets focus so the field and the whole list fit above the
+   keyboard. Arrow keys move, Enter picks, Escape closes; a tap outside
+   closes it. */
+
+const MAX_ROWS = 5
+const ROW_MIN_PX = 44
+/* Above the header and bottom bar (40) and the drawers (50), under toasts (70). */
+const LIST_Z = "z-[60]"
+const PHONE_MAX = 640
 
 export function AddressField({
   value,
@@ -60,10 +79,13 @@ export function AddressField({
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [rejected, setRejected] = useState(false)
+  const [active, setActive] = useState(-1)
   /* The text the last finished lookup was for, so "nothing matched" can be
      told apart from "still looking". */
   const [searched, setSearched] = useState("")
   const seq = useRef(0)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
   const picking = mode === "pick"
 
   // Start loading Google as soon as a field is on screen, so a script that
@@ -85,6 +107,7 @@ export function AddressField({
         .then((r) => {
           if (mine !== seq.current) return
           setRows(r)
+          setActive(-1)
           setSearched(value)
         })
         .catch(() => {
@@ -95,6 +118,89 @@ export function AddressField({
     }, 250)
     return () => clearTimeout(t)
   }, [value, listening])
+
+  const shown = listening ? rows.slice(0, MAX_ROWS) : []
+  const showing = shown.length > 0
+
+  // Keep the fixed list under the field (or above it when the bottom is too
+  // close to the edge), at the field's width, on every scroll and resize.
+  // Written straight to the element, so no state changes on a scroll.
+  useLayoutEffect(() => {
+    const ul = listRef.current
+    const input = inputRef.current
+    if (!showing || !ul || !input) return
+    const place = () => {
+      const r = input.getBoundingClientRect()
+      const vv = window.visualViewport
+      const bottomEdge = (vv ? vv.offsetTop + vv.height : window.innerHeight) - 8
+      const need = Math.min(shown.length, MAX_ROWS) * ROW_MIN_PX + 2
+      const roomBelow = bottomEdge - r.bottom - 6
+      const above = roomBelow < need && r.top - 6 > roomBelow
+      ul.style.left = `${r.left}px`
+      ul.style.width = `${r.width}px`
+      if (above) {
+        ul.style.top = "auto"
+        ul.style.bottom = `${window.innerHeight - r.top + 6}px`
+      } else {
+        ul.style.bottom = "auto"
+        ul.style.top = `${r.bottom + 6}px`
+      }
+    }
+    place()
+    window.addEventListener("resize", place)
+    window.addEventListener("scroll", place, true)
+    window.visualViewport?.addEventListener("resize", place)
+    window.visualViewport?.addEventListener("scroll", place)
+    return () => {
+      window.removeEventListener("resize", place)
+      window.removeEventListener("scroll", place, true)
+      window.visualViewport?.removeEventListener("resize", place)
+      window.visualViewport?.removeEventListener("scroll", place)
+    }
+  }, [showing, shown.length])
+
+  // On a phone, bring the field up under the header when it gets focus, so
+  // the field and the five rows fit above the keyboard. Once after the
+  // keyboard has started to rise, and again when the visible area changes.
+  // A field near the end of a short page cannot scroll that far, so a spacer
+  // after the page gives it the room while the field is in use.
+  useEffect(() => {
+    if (!picking || !open || window.innerWidth > PHONE_MAX) return
+    const spacer = document.createElement("div")
+    spacer.setAttribute("aria-hidden", "true")
+    document.body.appendChild(spacer)
+    const bring = () => {
+      const input = inputRef.current
+      if (!input) return
+      const hdr = document.querySelector("header")?.getBoundingClientRect().height ?? 0
+      const delta = input.getBoundingClientRect().top - (hdr + 12)
+      if (Math.abs(delta) <= 4) return
+      if (delta > 0) {
+        const room = document.documentElement.scrollHeight - window.innerHeight - window.scrollY
+        if (delta > room) spacer.style.height = `${spacer.offsetHeight + (delta - room)}px`
+      }
+      window.scrollBy({ top: delta, behavior: "instant" })
+    }
+    const t = setTimeout(bring, 250)
+    window.visualViewport?.addEventListener("resize", bring)
+    return () => {
+      clearTimeout(t)
+      window.visualViewport?.removeEventListener("resize", bring)
+      setTimeout(() => spacer.remove(), 400)
+    }
+  }, [picking, open])
+
+  // A tap or click outside the field and the list closes it.
+  useEffect(() => {
+    if (!open) return
+    const away = (e: PointerEvent) => {
+      const t = e.target as Node
+      if (inputRef.current?.contains(t) || listRef.current?.contains(t)) return
+      setOpen(false)
+    }
+    document.addEventListener("pointerdown", away)
+    return () => document.removeEventListener("pointerdown", away)
+  }, [open])
 
   const pick = async (s: Suggestion) => {
     setBusy(true)
@@ -148,46 +254,71 @@ export function AddressField({
   const nothingFound = searched === value && rows.length === 0
   const showMessage = !!error || (unverifiedText && (rejected || !open || nothingFound))
 
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      if (showing) e.stopPropagation()
+      setOpen(false)
+    } else if (e.key === "ArrowDown" && showing) {
+      e.preventDefault()
+      setActive((a) => (a + 1) % shown.length)
+    } else if (e.key === "ArrowUp" && showing) {
+      e.preventDefault()
+      setActive((a) => (a <= 0 ? shown.length - 1 : a - 1))
+    } else if (e.key === "Enter" && showing && active >= 0) {
+      // Picks the highlighted row; never submits the form behind it.
+      e.preventDefault()
+      void pick(shown[active])
+    } else if (e.key === "Tab") {
+      setOpen(false)
+    }
+  }
+
   return (
     <div className="relative">
       <Input
+        ref={inputRef}
         placeholder={placeholder}
         autoComplete="off"
+        role="combobox"
         aria-autocomplete="list"
-        aria-expanded={open && rows.length > 0}
+        aria-expanded={showing}
         aria-controls={listId}
+        aria-activedescendant={showing && active >= 0 ? `${listId}-${active}` : undefined}
         aria-invalid={showMessage || undefined}
         aria-describedby={showMessage ? errorId : undefined}
         value={value}
         disabled={disabled || busy}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") setOpen(false)
-        }}
+        onKeyDown={onKeyDown}
         onChange={(e) => change(e.target.value)}
       />
-      {listening && rows.length > 0 && (
-        <ul
-          id={listId}
-          role="listbox"
-          className="absolute right-0 left-0 z-20 mt-1.5 overflow-hidden rounded-[12px] border border-line bg-white shadow-[0_10px_30px_rgba(33,29,28,.12)]"
-        >
-          {rows.map((s) => (
-            <li key={s.placeId} role="option" aria-selected={false}>
-              <button
-                type="button"
-                className="block w-full border-b border-line px-3.5 py-3 text-left last:border-b-0 active:bg-orange-tint"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => pick(s)}
-              >
-                <span className="block text-sm font-semibold text-charcoal">{s.mainText}</span>
-                {s.secondaryText && <span className="block text-small text-muted">{s.secondaryText}</span>}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      {showing &&
+        createPortal(
+          <ul
+            ref={listRef}
+            id={listId}
+            role="listbox"
+            className={`fixed ${LIST_Z} overflow-hidden rounded-[12px] border border-line bg-white shadow-[0_10px_30px_rgba(33,29,28,.12)]`}
+          >
+            {shown.map((s, i) => (
+              <li key={s.placeId} id={`${listId}-${i}`} role="option" aria-selected={i === active}>
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className={`flex min-h-[44px] w-full flex-col justify-center border-b border-line px-3.5 py-2 text-left last:border-b-0 active:bg-orange-tint ${i === active ? "bg-orange-tint" : ""}`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseEnter={() => setActive(i)}
+                  onClick={() => pick(s)}
+                >
+                  <span className="block text-sm font-semibold text-charcoal">{s.mainText}</span>
+                  {s.secondaryText && <span className="block text-small text-muted">{s.secondaryText}</span>}
+                </button>
+              </li>
+            ))}
+          </ul>,
+          document.body
+        )}
       {showMessage && <FieldError id={errorId}>{error ?? PICK_MESSAGE}</FieldError>}
     </div>
   )

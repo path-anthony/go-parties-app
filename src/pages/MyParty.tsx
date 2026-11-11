@@ -298,7 +298,7 @@ function Details({ customer, onSaved }: { customer: Customer; onSaved: (c: Custo
               setHomeVerified(v)
             }}
           />
-          {homeVerified && <AddressPreview address={homeVerified} className="mt-2.5" />}
+          {homeVerified && <AddressPreview address={homeVerified} map={false} className="mt-2.5" />}
           {problem && problem.field !== "phone" && problem.field !== "homeAddress" && <ErrorNotice className="mt-3">{problem.message}</ErrorNotice>}
           <div className="mt-3 flex gap-2">
             <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => setEditing(false)}>
