@@ -58,7 +58,7 @@ export function GigPage({ token, gig, onGig }: { token: string; gig: BidGig; onG
       <p className="mb-4 text-body text-charcoal-soft">{gig.crewFirstName ? `${gig.crewFirstName}, you're on this one.` : "You're on this one."}</p>
       <GigFacts gig={gig} />
 
-      {(gig.address || gig.arrivalNotes || gig.contactPhone) && (
+      {(gig.address || gig.arrivalNotes || gig.setupNotes || gig.contactPhone) && (
         <div className={`mt-2 ${card}`}>
           {gig.address && (
             <div className="border-b border-line pb-3 last:border-b-0 last:pb-0">
@@ -72,13 +72,19 @@ export function GigPage({ token, gig, onGig }: { token: string; gig: BidGig; onG
             </div>
           )}
           {gig.arrivalNotes && (
-            <div className={`${gig.address ? "pt-3" : ""} ${gig.contactPhone ? "border-b border-line pb-3" : ""}`}>
+            <div className={`${gig.address ? "pt-3" : ""} ${gig.setupNotes || gig.contactPhone ? "border-b border-line pb-3" : ""}`}>
               <div className="text-[10.5px] font-bold tracking-[.1em] text-taupe uppercase">Arrival</div>
               <div className="mt-[3px] text-sm whitespace-pre-line text-charcoal">{gig.arrivalNotes}</div>
             </div>
           )}
+          {gig.setupNotes && (
+            <div className={`${gig.address || gig.arrivalNotes ? "pt-3" : ""} ${gig.contactPhone ? "border-b border-line pb-3" : ""}`}>
+              <div className="text-[10.5px] font-bold tracking-[.1em] text-taupe uppercase">Setup notes</div>
+              <div className="mt-[3px] text-sm whitespace-pre-line text-charcoal">{gig.setupNotes}</div>
+            </div>
+          )}
           {gig.contactPhone && (
-            <div className={gig.address || gig.arrivalNotes ? "pt-3" : ""}>
+            <div className={gig.address || gig.arrivalNotes || gig.setupNotes ? "pt-3" : ""}>
               <div className="text-[10.5px] font-bold tracking-[.1em] text-taupe uppercase">Day-of contact</div>
               <a href={`tel:${gig.contactPhone}`} className="-my-1 mt-0.5 inline-block py-2.5 text-sm font-bold text-charcoal underline">
                 {usPhone(gig.contactPhone)}

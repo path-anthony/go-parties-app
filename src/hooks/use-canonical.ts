@@ -7,13 +7,13 @@ import { useLocation } from "react-router-dom"
    reported as a copy of the home page. Always the public domain, never the
    address the page happened to be opened on (the old Vercel address, a
    preview). The home page has two paths and one canonical. Pages reached
-   from a private link (a contract, a crew gig) point at the root, so a
+   from a private link (a contract, a crew gig, a pay link) point at the root, so a
    token never lands in a tag. */
 export const SITE_ORIGIN = "https://parties.thegoeventgroup.com"
 
 export function canonicalFor(pathname: string): string {
   if (pathname === "/" || pathname === "/home") return `${SITE_ORIGIN}/`
-  if (pathname.startsWith("/sign/") || pathname.startsWith("/bid/")) return `${SITE_ORIGIN}/`
+  if (pathname.startsWith("/sign/") || pathname.startsWith("/bid/") || pathname.startsWith("/pay/")) return `${SITE_ORIGIN}/`
   return `${SITE_ORIGIN}${pathname.replace(/\/+$/, "")}`
 }
 

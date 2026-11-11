@@ -1,5 +1,4 @@
 import { ADMIN_API } from "@/lib/adminApi"
-import { mockMode } from "@/lib/mock"
 import { isMockSecret } from "@/lib/stripe"
 
 /* Payment status, as the admin knows it. The page never decides a booking is
@@ -41,7 +40,7 @@ export function parseOffer(raw: unknown): PaymentOffer | null {
 }
 
 export async function paymentStatus(sessionId: string): Promise<PaymentStatus | null> {
-  if (import.meta.env.DEV && isMockSecret(sessionId) && (mockMode("checkout") || mockMode("portal"))) {
+  if (import.meta.env.DEV && isMockSecret(sessionId)) {
     return (await import("./paymentMockState")).mockPaymentStatus(sessionId)
   }
   try {

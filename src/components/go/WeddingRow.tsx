@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import type { CustomerBooking } from "@/lib/customerApi"
-import { weddingApi, weddingDueText, weddingStatusText, type WeddingDetails } from "@/lib/weddingApi"
+import { useWeddingDetails } from "@/hooks/use-wedding"
+import { weddingDueText, weddingStatusText } from "@/lib/weddingApi"
 import { cn } from "@/lib/utils"
 
 /* The "Wedding details" row on a My party booking card (Block S7). Asks
@@ -15,17 +15,7 @@ import { cn } from "@/lib/utils"
 
 export function WeddingRow({ booking }: { booking: CustomerBooking }) {
   const navigate = useNavigate()
-  const [details, setDetails] = useState<WeddingDetails | null>(null)
-
-  useEffect(() => {
-    let live = true
-    weddingApi.get(booking.id).then((r) => {
-      if (live && r.ok) setDetails(r.data)
-    })
-    return () => {
-      live = false
-    }
-  }, [booking.id])
+  const details = useWeddingDetails(booking.id)
 
   if (!details) return null
   const due = weddingDueText(details)

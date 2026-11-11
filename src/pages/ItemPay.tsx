@@ -62,7 +62,7 @@ export default function ItemPay() {
       <AppShell>
         <Body className="text-center">
           <span className="mx-auto mb-3.5 inline-block rounded-full bg-orange-tint px-3 py-1 text-[11px] font-bold tracking-[.14em] text-charcoal uppercase">Paid</span>
-          <h1 className="text-hero text-charcoal">{tier === 2 ? "Signed and paid. Your date is confirmed." : "Paid. Your date is held."}</h1>
+          <h1 className="text-hero text-charcoal">{tier === 2 ? "Signed and paid. Your date is confirmed." : "Paid. Your date is confirmed."}</h1>
           <p className="mt-2 text-body text-charcoal-soft">{day} is yours. The rest lives in My party.</p>
           {/* Block S9a: a wedding order under the review amount pays online and
               its details form is waiting; this shows only for a wedding. */}
@@ -92,6 +92,7 @@ export default function ItemPay() {
         {available && offer ? (
           <div className="mt-4">
             {phase === "form" && <PaymentForm clientSecret={offer.clientSecret} onComplete={onComplete} />}
+            {phase === "form" && <p className="mt-2.5 text-small text-muted">If you leave before paying, we will text and email you a payment link.</p>}
             {phase === "checking" && <p className="text-body text-muted">Checking with our booking system.</p>}
             {phase === "unconfirmed" && (
               <div className="rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">

@@ -1,5 +1,5 @@
 import { FULL, SIGNED_DOC } from "@/lib/contractMock"
-import type { ApiResult, CustomerBooking, CustomerContract, CustomerRequests, SignBody } from "@/lib/customerApi"
+import type { ApiResult, CancelAsked, CancelInfo, CancelTerms, CustomerBooking, CustomerContract, CustomerRequests, SignBody } from "@/lib/customerApi"
 import { MOCK_SECRET, mockPaymentStatus } from "@/lib/paymentMockState"
 import { sessionIdOf, type PaymentOffer } from "@/lib/paymentApi"
 
@@ -136,12 +136,50 @@ const rows: Row[] = [
     steps: [
       { key: "sign", state: "done", at: "2026-09-20T15:00:00.000Z" },
       { key: "retainer", state: "done", at: "2026-09-20T15:10:00.000Z" },
-      { key: "balance", state: "blocked" },
+      { key: "balance", state: "next" },
     ],
     contract: { agreementId: "ag-wed-3", status: "signed", signedAt: "2026-09-20T15:00:00.000Z", pdfUrl: "https://example.com/contracts/mock-signed.pdf" },
     retainer: { amount: 2400, paid: true, paidAt: "2026-09-20T15:10:00.000Z", payable: false },
-    balance: { amount: 5600, dueDate: day(60).slice(0, 10), paid: false, payable: false },
+    balance: { amount: 5600, dueDate: day(60).slice(0, 10), paid: false, payable: true },
     _signed: true,
+  }),
+  // Block S9b: a small rental whose retainer is paid (terms from the policy),
+  // and one with a cancellation request already waiting on staff.
+  base("bk-small-confirmed", "Confirmed", 1, [unit("Snow Cone Station")], {
+    eventDate: day(26),
+    depositPaid: true,
+    steps: [
+      { key: "retainer", state: "done", at: "2026-11-02T15:10:00.000Z" },
+      { key: "balance", state: "next" },
+    ],
+    contract: null,
+    retainer: { amount: 45, paid: true, paidAt: "2026-11-02T15:10:00.000Z", payable: false },
+    balance: { amount: 180, dueDate: day(19).slice(0, 10), paid: false, payable: true },
+    total: 225,
+  }),
+  base("bk-allset", "Confirmed", 1, [unit("Cotton Candy Machine")], {
+    eventDate: day(35),
+    depositPaid: true,
+    steps: [
+      { key: "retainer", state: "done", at: "2026-11-02T15:10:00.000Z" },
+      { key: "balance", state: "done", at: "2026-11-04T15:10:00.000Z" },
+    ],
+    contract: null,
+    retainer: { amount: 40, paid: true, paidAt: "2026-11-02T15:10:00.000Z", payable: false },
+    balance: { amount: 0, dueDate: day(28).slice(0, 10), paid: true, payable: false },
+    total: 40,
+  }),
+  base("bk-cancel-pending", "Confirmed", 1, [unit("Popcorn Machine")], {
+    eventDate: day(33),
+    depositPaid: true,
+    steps: [
+      { key: "retainer", state: "done", at: "2026-11-02T15:10:00.000Z" },
+      { key: "balance", state: "next" },
+    ],
+    contract: null,
+    retainer: { amount: 30, paid: true, paidAt: "2026-11-02T15:10:00.000Z", payable: false },
+    balance: { amount: 120, dueDate: day(26).slice(0, 10), paid: false, payable: true },
+    pendingRequest: { type: "cancellation", id: "cr-1", status: "open", requestedAt: new Date().toISOString(), reason: "We moved the party." },
   }),
   base("bk-done", "Completed", 1, [unit("Snow Cone Station")], { eventDate: day(-14), depositPaid: true, steps: [], retainer: { amount: 60, paid: true, payable: false }, balance: { amount: 140, dueDate: day(-21).slice(0, 10), paid: true, payable: false } }),
   base("bk-cancelled", "Cancelled", 1, [], { eventDate: day(-3), steps: [], retainer: null, balance: null }),
@@ -172,7 +210,8 @@ function settle(b: Row) {
     b.steps = (b.steps ?? []).map((s) => (s.key === kind ? { ...s, state: "done", at: new Date().toISOString() } : s))
     if (kind === "retainer") {
       b.depositPaid = true
-      b.stage = b.tier === 1 ? "Held" : b._signed ? "Confirmed" : "Retainer Paid"
+      // Block F1: a small rental is Confirmed the moment its retainer is paid.
+      b.stage = b.tier === 1 || b._signed ? "Confirmed" : "Retainer Paid"
     }
   }
 }
@@ -245,4 +284,47 @@ export async function mockRequests(): Promise<ApiResult<CustomerRequests>> {
       ],
     },
   }
+}
+
+/* Block F1: the cancel call. Terms are asked for once anything is paid; the
+   text here is made up for the mock (the real wording is the admin's). */
+const paidOn = (b: Row) => (b.retainer?.paid ? (b.retainer.amount ?? 0) : 0) + (b.balance?.paid ? (b.balance.amount ?? 0) : 0)
+const termsFor = (b: Row): CancelTerms =>
+  b.contract
+    ? { source: "contract", title: "Your retainer and cancellation terms", text: "The retainer holds your date and is not refundable. If you cancel, GO keeps the retainer. Any other amount you paid is reviewed by our team case by case.\n\nThese are the terms from the contract you signed." }
+    : { source: "policy", title: "Cancellation and retainer policy", text: "The retainer holds your date and is not refundable. If you cancel, GO keeps the retainer. Any other amount you paid is reviewed by our team case by case." }
+const notChangeable = (b: Row) =>
+  b.stage === "Cancelled" ? "This booking was cancelled." : b.stage === "Released" ? "This hold was released because it wasn't confirmed in time." : b.stage === "Completed" ? "This booking already happened." : null
+
+export async function mockCancelInfo(id: string): Promise<ApiResult<CancelInfo>> {
+  await wait()
+  const b = rows.find((r) => r.id === id)
+  if (!b) return { ok: false, status: 404, message: "booking not found" }
+  const why = notChangeable(b)
+  if (why) return { ok: false, status: 409, message: why }
+  const paid = paidOn(b)
+  return {
+    ok: true,
+    data: {
+      paid,
+      retainerPaid: b.retainer?.paid === true,
+      termsRequired: paid > 0,
+      terms: paid > 0 ? termsFor(b) : null,
+      pendingRequest: b.pendingRequest ? { id: b.pendingRequest.id, status: "open", requestedAt: b.pendingRequest.requestedAt, reason: b.pendingRequest.reason } : null,
+    },
+  }
+}
+
+export async function mockRequestCancel(id: string, body: { reason: string; acceptTerms: boolean }): Promise<ApiResult<CancelAsked>> {
+  await wait()
+  const b = rows.find((r) => r.id === id)
+  if (!b) return { ok: false, status: 404, message: "booking not found" }
+  const why = notChangeable(b)
+  if (why) return { ok: false, status: 409, message: why }
+  const paid = paidOn(b)
+  if (paid > 0 && body.acceptTerms !== true) {
+    return { ok: false, status: 409, reason: "terms-required", message: "A retainer has been paid on this booking. Read and accept the retainer terms to ask to cancel, or call or text GO." }
+  }
+  if (!b.pendingRequest) b.pendingRequest = { type: "cancellation", id: `cr-${id}`, status: "open", requestedAt: new Date().toISOString(), reason: body.reason || null }
+  return { ok: true, data: { ...strip(b), paid, terms: paid > 0 ? termsFor(b) : null, message: "We got your request to cancel. Your booking is still in place until our team reviews it, and we will email you with the outcome." } }
 }
