@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
+import { useCanonical } from "@/hooks/use-canonical"
 import { BookingProvider } from "@/state/booking"
 import { CustomerProvider } from "@/state/customer"
 import { AskProvider } from "@/state/ask"
@@ -26,11 +27,18 @@ import PartyWedding from "@/pages/PartyWedding"
 import ItemHeld from "@/pages/ItemHeld"
 import Kit from "@/pages/Kit"
 
+/* Inside the router, so it can read the path (Block D1). */
+function Canonical() {
+  useCanonical()
+  return null
+}
+
 function App() {
   return (
     <BookingProvider>
       <CustomerProvider>
       <BrowserRouter>
+        <Canonical />
         <AskProvider>
           <StoreUiProvider>
           <Routes>
