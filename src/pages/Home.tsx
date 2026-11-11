@@ -142,7 +142,10 @@ function Packages() {
     }))
     if (items.length === 0) return
     const iso = b.itemDate
-    b.pickItems(items, { id: p.id, name: p.name, price: p.price })
+    // Block S9a: a per-guest package carries its rate, base and range; its
+    // price comes from the guest count the customer gives in the cart.
+    const perGuest = p.pricingMode === "per_guest" ? { base: p.basePrice ?? 0, min: p.minGuests ?? 1, max: p.maxGuests ?? null } : undefined
+    b.pickItems(items, { id: p.id, name: p.name, price: p.price, ...(perGuest ? { perGuest } : {}) })
     if (iso) b.set("itemDate", iso)
     // S7.1: the package's occasion pre-selects "What are you celebrating?"
     // on the event step (the admin names a group when it was asked with none).
@@ -188,7 +191,12 @@ function Packages() {
                 </ul>
                 <div className="mt-1 flex items-center justify-between gap-2.5">
                   <span className="text-[18px] font-extrabold text-charcoal">
-                    {fmt(p.price)}
+                    {p.pricingMode === "per_guest" ? `From ${fmt((p.basePrice ?? 0) + p.price * (p.minGuests ?? 1))}` : fmt(p.price)}
+                    {p.pricingMode === "per_guest" && (
+                      <small className="block text-[11px] font-semibold text-muted">
+                        {fmt(p.price)} per guest{(p.basePrice ?? 0) > 0 ? `, plus ${fmt(p.basePrice ?? 0)}` : ""}
+                      </small>
+                    )}
                     {p.guestNote && <small className="block max-w-[22ch] truncate text-[11px] font-semibold text-muted">{p.guestNote}</small>}
                   </span>
                   <Button variant="dark" size="sm" className="min-h-[44px]" onClick={() => add(p)}>

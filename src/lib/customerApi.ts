@@ -71,6 +71,84 @@ export interface CustomerBooking {
   addons?: Array<{ itemId: string | null; itemName: string; groupName: string; addonName: string; priceDelta: number; quantity: number }>
 }
 
+/* Block F2: a review request the customer sent (GET /api/customer/requests,
+   newest first). Built field by field on the admin: staff notes and the
+   reason for closing never arrive. There is deliberately no total here, so
+   nothing can show a dollar where review starts. */
+export type RequestStatus = "received" | "being-reviewed" | "booked" | "closed"
+
+export interface CustomerRequest {
+  id: string
+  status: RequestStatus
+  statusLabel: string
+  /* Set when the request became a booking; the booking is in the list too. */
+  bookingId: string | null
+  createdAt: string
+  /* "2026-12-26" */
+  eventDate: string
+  eventTime: string | null
+  occasion: string | null
+  address: string | null
+  mapsUrl: string | null
+  setupNotes: string | null
+  guestCount: number | null
+  /* The package's name, or null (the admin sends the name alone). */
+  package: string | null
+  items: Array<{ name: string; quantity: number }>
+  addons: Array<{ itemName: string; groupName: string; addonName: string }>
+  /* The admin's sentence while the request is waiting, else null. */
+  promise: string | null
+}
+
+export interface CustomerRequests {
+  responseDays: number | null
+  promise: string | null
+  requests: CustomerRequest[]
+}
+
+const text = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null)
+
+/* Reads the admin's answer field by field; a row that is not usable is
+   dropped rather than shown half empty. */
+export function parseRequests(data: unknown): CustomerRequests {
+  const d = (data ?? {}) as Record<string, unknown>
+  const rows = Array.isArray(d.requests) ? d.requests : []
+  const requests = rows.flatMap((raw): CustomerRequest[] => {
+    const r = raw as Record<string, unknown>
+    const status = r.status
+    if (typeof r.id !== "string" || (status !== "received" && status !== "being-reviewed" && status !== "booked" && status !== "closed")) return []
+    const items = (Array.isArray(r.items) ? r.items : []).flatMap((i) => {
+      const o = i as Record<string, unknown>
+      return typeof o.name === "string" ? [{ name: o.name, quantity: typeof o.quantity === "number" && o.quantity > 0 ? o.quantity : 1 }] : []
+    })
+    const addons = (Array.isArray(r.addons) ? r.addons : []).flatMap((a) => {
+      const o = a as Record<string, unknown>
+      return typeof o.itemName === "string" && typeof o.groupName === "string" && typeof o.addonName === "string" ? [{ itemName: o.itemName, groupName: o.groupName, addonName: o.addonName }] : []
+    })
+    return [
+      {
+        id: r.id,
+        status,
+        statusLabel: text(r.statusLabel) ?? "",
+        bookingId: text(r.bookingId),
+        createdAt: text(r.createdAt) ?? "",
+        eventDate: text(r.eventDate)?.slice(0, 10) ?? "",
+        eventTime: text(r.eventTime),
+        occasion: text(r.occasion),
+        address: text(r.address),
+        mapsUrl: text(r.mapsUrl),
+        setupNotes: text(r.setupNotes),
+        guestCount: typeof r.guestCount === "number" ? r.guestCount : null,
+        package: text(r.package),
+        items,
+        addons,
+        promise: text(r.promise),
+      },
+    ]
+  })
+  return { responseDays: typeof d.responseDays === "number" ? d.responseDays : null, promise: text(d.promise), requests }
+}
+
 export type StepKey = "sign" | "retainer" | "balance" | "proposal" | "confirm-date"
 export type StepState = "done" | "next" | "waiting" | "blocked"
 export interface BookingStep {
@@ -180,6 +258,12 @@ export const customerApi = {
   bookings: async () => {
     if (import.meta.env.DEV && mockMode("portal")) return (await import("./portalMock")).mockBookings()
     return call<CustomerBooking[]>("/api/customer/bookings")
+  },
+  /* Block F2. Signed in only; 401 without the session. */
+  requests: async (): Promise<ApiResult<CustomerRequests>> => {
+    if (import.meta.env.DEV && mockMode("portal")) return (await import("./portalMock")).mockRequests()
+    const r = await call<unknown>("/api/customer/requests")
+    return r.ok ? { ok: true, data: parseRequests(r.data) } : r
   },
   contract: async (id: string): Promise<ApiResult<CustomerContract>> => {
     if (import.meta.env.DEV && mockMode("portal")) return (await import("./portalMock")).mockContract(id)

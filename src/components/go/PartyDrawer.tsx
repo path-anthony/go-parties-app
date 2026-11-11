@@ -4,10 +4,14 @@ import { Button } from "@/components/ui/button"
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
 import { Thumb } from "@/components/go/Thumb"
 import { cartTotal, lineTotal, qtyOf } from "@/components/go/CartItems"
+import { bundleNote, totalIsFrom } from "@/lib/guests"
+import { GuestCountField } from "@/components/go/GuestCountField"
+import { addonsTotal } from "@/lib/addons"
 import { labelForIso } from "@/lib/availability"
 import { PRICE_ON_REQUEST, keyUnit, useOpenOn } from "@/lib/storeCatalog"
 import { fmt } from "@/data/catalog"
-import { TIER_LINE, useCartTier, useRetainer } from "@/hooks/use-cart-tier"
+import { tierLine, useCartTier, useRetainer } from "@/hooks/use-cart-tier"
+import { useResponseDays } from "@/hooks/use-response-days"
 import { useBooking } from "@/state/booking"
 import { useStoreUi } from "@/state/store"
 
@@ -39,8 +43,10 @@ export function PartyDrawer() {
   const { partyOpen, setPartyOpen } = useStoreUi()
   const desktop = useDesktop()
   const items = b.items
-  const total = cartTotal(items, b.bundle)
+  const total = cartTotal(items, b.bundle, b.guestCount)
+  const from = totalIsFrom(b.bundle, b.guestCount)
   const tier = useCartTier(partyOpen)
+  const days = useResponseDays(tier)
   const retainer = useRetainer(total, tier)
   const count = items.reduce((n, i) => n + qtyOf(i), 0)
   // Free units on the party date: an item with more than one gets a
@@ -57,8 +63,8 @@ export function PartyDrawer() {
     navigate(`/item/${items[0].id}`)
   }
 
-  const what = tier ? TIER_LINE[tier.tier] : b.itemDate ? null : "Pick a date to see what checkout asks for."
-  const due = retainer.amount !== null && tier?.tier !== 3 ? `${fmt(retainer.amount)} today holds the date.` : null
+  const what = tier ? tierLine(tier.tier, days) : b.itemDate ? null : "Pick a date to see what checkout asks for."
+  const due = retainer.amount !== null && tier?.tier !== 3 && !from ? `${fmt(retainer.amount)} today holds the date.` : null
 
   return (
     <Drawer open={partyOpen} onOpenChange={setPartyOpen} direction={desktop ? "right" : "bottom"}>
@@ -103,13 +109,18 @@ export function PartyDrawer() {
                 </div>
               ))
             )}
+            {/* Block S9a: a per-guest package is priced from its guest count. */}
+            {b.bundle?.perGuest && items.length > 0 && <GuestCountField label="Guests" className="py-3" />}
           </div>
           <div className="border-t border-line px-5 pt-3 pb-5">
             <div className="flex justify-between text-base">
               <b className="text-charcoal">Total</b>
-              <b className="text-charcoal">{fmt(total)}</b>
+              <b className="text-charcoal">
+                {from ? "From " : ""}
+                {fmt(total)}
+              </b>
             </div>
-            {b.bundle && <small className="block text-small text-muted">Package price, {b.bundle.name}.</small>}
+            {b.bundle && <small className="block text-small text-muted">{bundleNote(b.bundle, b.guestCount, addonsTotal(items) !== 0)}</small>}
             {items.length > 0 && (what || due) && (
               <p className="mt-1.5 text-small text-charcoal-soft">
                 {what} {due}

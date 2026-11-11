@@ -61,7 +61,7 @@ export function CheckoutAgreement({ className }: { className?: string }) {
         <span>I have read and agree to the rental policy</span>
       </label>
       {!read && <p className="mt-1 pl-8 text-small text-muted">Read the policy to continue.</p>}
-      {read && !b.agreed && <p className="mt-1 pl-8 text-small text-muted">Check the box to hold your date.</p>}
+      {read && !b.agreed && <p className="mt-1 pl-8 text-small text-muted">{b.tier?.tier === 3 ? "Check the box to send your request." : "Check the box to hold your date."}</p>}
     </div>
   )
 }

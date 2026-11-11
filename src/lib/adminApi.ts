@@ -5,6 +5,7 @@ import type { AddonGroup } from "@/lib/addons"
 import { mockMode } from "@/lib/mock"
 import type { Delivery } from "@/lib/places"
 import { parseOffer, type PaymentOffer } from "@/lib/paymentApi"
+import { PHONE_HINT } from "@/lib/phone"
 import type { Tier } from "@/lib/tierApi"
 
 export const ADMIN_API = import.meta.env.VITE_ADMIN_API_URL || "http://localhost:3001"
@@ -103,7 +104,7 @@ export const bookedNames = (b: DirectBooking): string[] =>
 /* account-required (Block A5): the admin's 401 when accounts are required
    and no customer session arrived; checkout sends the customer to its
    sign-in step with the cart kept. */
-export type DirectReason = "unavailable" | "not-tracked" | "addons" | "agreement" | "quote-expired" | "contract-changed" | "tier-changed" | "account-required" | "address-not-exact" | "error"
+export type DirectReason = "unavailable" | "not-tracked" | "addons" | "agreement" | "quote-expired" | "contract-changed" | "tier-changed" | "account-required" | "address-not-exact" | "phone-invalid" | "guest-count" | "error"
 
 /* The three refusals that mean the quote the customer read is no longer the
    one the admin would hold: the page fetches the tier again and sends them
@@ -125,7 +126,10 @@ export interface HoldSignature {
 export interface ReviewReceipt {
   designRequestId: string
   eventDate: string
+  /* Never shown: where an order goes to review nothing is due. */
   total: number | null
+  /* Block F2: business days until a person makes contact. */
+  responseDays: number | null
   message: string
 }
 
@@ -137,7 +141,7 @@ export interface ReviewReceipt {
 export type DirectResult =
   | { ok: true; kind: "held"; booking: DirectBooking }
   | { ok: true; kind: "review"; review: ReviewReceipt }
-  | { ok: false; reason: DirectReason; message: string; detail?: string; field?: "address" | "homeAddress" }
+  | { ok: false; reason: DirectReason; message: string; detail?: string; field?: "address" | "homeAddress" | "phone" | "guestCount" }
 
 const FALLBACK = "That didn't go through. Try again, or text us."
 const REVIEW_FALLBACK = "This one goes to our team first. Nothing is held yet; we'll be in touch to put it together with you."
@@ -179,6 +183,8 @@ export async function bookDirect(input: {
      left out when null. */
   homeAddress: string | null
   eventAddressSameAsHome: boolean | null
+  /* Block S9a: the guest count (a whole number from 1 to 5000), or null. */
+  guestCount: number | null
   /* The real state of the checkbox, always sent (false when there is none). */
   agreedToPolicy: boolean
   balancePaymentPreference: BalancePreference
@@ -195,10 +201,11 @@ export async function bookDirect(input: {
   if (import.meta.env.DEV && mockMode("checkout")) {
     return (await import("./checkoutMock")).mockHold(input)
   }
-  const { customerName, phone, email, itemIds, packageId, addons, occasion, formStartedAt, tier, signature, homeAddress, eventAddressSameAsHome, ...rest } = input
+  const { customerName, phone, email, itemIds, packageId, addons, occasion, formStartedAt, tier, signature, homeAddress, eventAddressSameAsHome, guestCount, ...rest } = input
   const body: Record<string, unknown> = { ...rest }
   if (homeAddress) body.homeAddress = homeAddress
   if (eventAddressSameAsHome !== null) body.eventAddressSameAsHome = eventAddressSameAsHome
+  if (guestCount !== null) body.guestCount = guestCount
   if (tier !== null) body.tier = tier
   if (signature) body.signature = signature
   if (formStartedAt !== null) body.formStartedAt = formStartedAt
@@ -233,6 +240,7 @@ export async function bookDirect(input: {
         designRequestId: data.designRequestId,
         eventDate: typeof data.eventDate === "string" ? data.eventDate : input.eventDate,
         total: typeof data.total === "number" ? data.total : null,
+        responseDays: typeof data.responseDays === "number" && data.responseDays > 0 ? data.responseDays : null,
         message: typeof data.message === "string" && data.message ? data.message : REVIEW_FALLBACK,
       },
     }
@@ -242,6 +250,10 @@ export async function bookDirect(input: {
       ? "account-required"
       : res.status === 400 && data.reason === "address-not-exact"
       ? "address-not-exact"
+      : res.status === 400 && data.reason === "phone-invalid"
+      ? "phone-invalid"
+      : res.status === 400 && typeof data.reason === "string" && data.reason.startsWith("guest-count")
+      ? "guest-count"
       : data.reason === "agreement-required"
       ? "agreement"
       : QUOTE_REASONS.includes(data.reason)
@@ -261,6 +273,10 @@ export async function bookDirect(input: {
   // Block A9: the admin's own sentence, with the field it belongs to (the
   // event address, or the home address a first booking is saving).
   if (reason === "address-not-exact") return { ok: false, reason, message: detail ?? FALLBACK, detail, field: data.field === "homeAddress" ? "homeAddress" : "address" }
+  // Block F2 and A8: the admin's own sentence, under the field it names. A
+  // bad phone is the one on the signed-in account; the fix is in My party.
+  if (reason === "phone-invalid") return { ok: false, reason, message: detail ?? PHONE_HINT, detail, field: "phone" }
+  if (reason === "guest-count") return { ok: false, reason, message: detail ?? FALLBACK, detail, field: "guestCount" }
   return { ok: false, reason, message: detail ?? FALLBACK }
 }
 
@@ -291,12 +307,20 @@ export interface PublicPackage {
   occasion: string
   photoUrl: string | null
   items: PublicPackageItem[]
+  /* Block A8: "fixed" (price is the bundle) or "per_guest" (price is for
+     each guest, plus basePrice, for minGuests to maxGuests). An older admin
+     sends none of these and the package is fixed. */
+  pricingMode?: "fixed" | "per_guest"
+  basePrice?: number | null
+  minGuests?: number | null
+  maxGuests?: number | null
 }
 
 /* With no occasion (Block A2) one call answers every published package; an
    older admin answers 400 and the caller falls back to one call per
    occasion. */
 export async function publicPackages(occasion: string | null, signal?: AbortSignal): Promise<PublicPackage[]> {
+  if (import.meta.env.DEV && mockMode("checkout")) return (await import("./checkoutMock")).mockPackages()
   const params = occasion ? `?${new URLSearchParams({ occasion })}` : ""
   const res = await fetch(`${ADMIN_API}/api/packages/public${params}`, { signal })
   if (!res.ok) throw new Error(`packages ${res.status}`)

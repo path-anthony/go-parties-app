@@ -1,4 +1,5 @@
 import type { ApiResult, Customer } from "@/lib/customerApi"
+import { phoneProblem } from "@/lib/phone"
 
 /* Account fixtures, DEV only (loaded lazily behind import.meta.env.DEV),
    used while `?mock=<checkout scenario>` or `?mock=portal` is on so the
@@ -21,11 +22,16 @@ export const mockSetSession = (c: Customer | null) => {
    fixture "3 Refused Rd" is refused anyway. */
 const NOT_EXACT = "We couldn't find that exact address. Pick it from the suggestions, or check the street number."
 const vagueHome = (t: string | null | undefined) => !!t && t.trim() !== "" && (!/\d/.test(t) || /refused/i.test(t))
+/* The admin's phone refusal (Block F2), word for word, with its reason and field. */
+const refusedPhone = (message: string): ApiResult<{ customer: Customer }> => ({ ok: false, status: 400, message, reason: "phone-invalid", field: "phone" })
 const refusedHome = (): ApiResult<{ customer: Customer }> => ({ ok: false, status: 400, message: NOT_EXACT, reason: "address-not-exact", field: "homeAddress" })
 
 export async function mockSignup(input: { name: string | null; phone: string; email: string; password: string; homeAddress?: string | null }): Promise<ApiResult<{ customer: Customer }>> {
   await wait(300)
   console.debug("mock sign-up home address", JSON.stringify(input.homeAddress ?? null))
+  console.debug("mock sign-up phone", JSON.stringify(input.phone))
+  const badPhone = phoneProblem(input.phone)
+  if (badPhone) return refusedPhone(badPhone)
   if (vagueHome(input.homeAddress)) return refusedHome()
   if (/taken/i.test(input.email)) return { ok: false, status: 409, message: "That email already has an account. Sign in instead.", field: "email" }
   session = { id: "cus_mock_new", name: input.name, phone: input.phone.replace(/\D/g, ""), email: input.email, homeAddress: input.homeAddress?.trim() || null, createdAt: new Date().toISOString() }
@@ -36,10 +42,13 @@ export async function mockLogin(input: { identifier: string; password: string })
   await wait(300)
   if (input.password === "wrong") return { ok: false, status: 401, message: "That phone or email and password did not match. Try again." }
   const noHome = /nohome/i.test(input.identifier)
+  // "badphone": an account made before the phone rule, holding a number that now fails.
+  // "serverphone": a number the browser accepts and the mock hold refuses (860 555 0123).
+  const phone = /badphone/i.test(input.identifier) ? "2222222222" : /serverphone/i.test(input.identifier) ? "8605550123" : "8605550199"
   session = {
     id: noHome ? "cus_mock_nohome" : "cus_mock_returning",
     name: noHome ? "Claude Nohome Test" : "Claude Returning Test",
-    phone: "8605550199",
+    phone,
     email: input.identifier.includes("@") ? input.identifier : "returning.test@example.com",
     homeAddress: noHome ? null : "228 Ridge Rd, Avon, CT 06001, USA",
     createdAt: "2026-09-01T12:00:00.000Z",
@@ -52,6 +61,8 @@ export async function mockUpdateMe(current: Customer | null, patch: { name?: str
   console.debug("mock patch me", JSON.stringify(patch))
   const base = session ?? current
   if (!base) return { ok: false, status: 401, message: "Please sign in." }
+  console.debug("mock patch phone", JSON.stringify(patch.phone ?? null))
+  if (patch.phone !== undefined && phoneProblem(patch.phone)) return refusedPhone(phoneProblem(patch.phone) as string)
   if (patch.homeAddress !== undefined && vagueHome(patch.homeAddress)) return refusedHome()
   if (patch.phone && patch.phone.replace(/\D/g, "") === "8605550000") return { ok: false, status: 409, message: "That phone number already has an account.", field: "phone" }
   session = { ...base, ...(patch.name !== undefined ? { name: patch.name } : {}), ...(patch.phone !== undefined ? { phone: patch.phone.replace(/\D/g, "") } : {}), ...(patch.homeAddress !== undefined ? { homeAddress: patch.homeAddress } : {}) }

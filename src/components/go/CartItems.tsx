@@ -1,7 +1,8 @@
 import { fmt } from "@/data/catalog"
 import { addonsTotal, deltaText, needsConfig, pickedOf } from "@/lib/addons"
 import { Thumb } from "@/components/go/Thumb"
-import type { Bundle, DirectItem } from "@/state/booking"
+import { bundleFrom, bundleNote, bundleTotal, totalIsFrom } from "@/lib/guests"
+import { useBooking, type Bundle, type DirectItem } from "@/state/booking"
 
 /* The items in a booking, one row each with a Remove button, so anything can be
    removed at any step before the date is held: the cart sheet, the date
@@ -10,11 +11,15 @@ import type { Bundle, DirectItem } from "@/state/booking"
    the item they belong to, each with its own price change (times the
    quantity, which is how the admin charges it), and Change reopens them.
    With a bundle (the cart is a package as published) the base is the
-   package's price, not the sum; add-ons go on top either way. */
+   package's price, not the sum; add-ons go on top either way. A per-guest
+   package (Block S9a) is its base plus its rate times the guest count; with
+   no usable count the total is its lowest price and reads "From". */
 export const qtyOf = (item: DirectItem) => item.quantity ?? 1
 export const lineTotal = (item: DirectItem) => (item.price ?? 0) * qtyOf(item)
-export const cartTotal = (items: DirectItem[], bundle: Bundle | null) =>
-  (bundle ? bundle.price : items.reduce((sum, i) => sum + lineTotal(i), 0)) + addonsTotal(items)
+export const cartTotal = (items: DirectItem[], bundle: Bundle | null, guests: number | null = null) =>
+  (bundle ? (bundleTotal(bundle, guests) ?? bundleFrom(bundle)) : items.reduce((sum, i) => sum + lineTotal(i), 0)) + addonsTotal(items)
+
+
 
 export function CartItems({
   items,
@@ -31,7 +36,9 @@ export function CartItems({
   flag?: (item: DirectItem) => string | null
   showTotal?: boolean
 }) {
-  const total = cartTotal(items, bundle)
+  const guests = useBooking().guestCount
+  const total = cartTotal(items, bundle, guests)
+  const from = totalIsFrom(bundle, guests)
   const extras = addonsTotal(items)
   return (
     <div className="rounded-[14px] border border-line bg-white px-4 py-1">
@@ -89,14 +96,12 @@ export function CartItems({
         <div className="py-3">
           <div className="flex justify-between text-base">
             <span className="text-charcoal-soft">Total</span>
-            <b className="text-price text-charcoal">{fmt(total)}</b>
+            <b className="text-price text-charcoal">
+              {from ? "From " : ""}
+              {fmt(total)}
+            </b>
           </div>
-          {bundle && (
-            <small className="block text-small text-muted">
-              Package price, {bundle.name}
-              {extras !== 0 ? ", plus what you picked." : "."}
-            </small>
-          )}
+          {bundle && <small className="block text-small text-muted">{bundleNote(bundle, guests, extras !== 0)}</small>}
         </div>
       )}
     </div>

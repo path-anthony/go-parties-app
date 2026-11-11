@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { GoLabel } from "@/components/go/GoLabel"
 import { MetaCard } from "@/components/go/MetaCard"
+import { WeddingWaiting } from "@/components/go/WeddingWaiting"
 import { PAYMENT_SOON, PaymentForm } from "@/components/go/PaymentForm"
 import { labelForIso } from "@/lib/availability"
 import { waitForPayment } from "@/lib/paymentApi"
@@ -26,6 +27,9 @@ export default function ItemPay() {
   const navigate = useNavigate()
   const b = useBooking()
   const [phase, setPhase] = useState<Phase>("form")
+  // Set while the cart is cleared on the way to the wedding details form, so
+  // the guard below does not send the customer home instead.
+  const [leaving, setLeaving] = useState(false)
 
   const offer = b.payment
   const onComplete = useCallback(() => {
@@ -34,18 +38,22 @@ export default function ItemPay() {
     waitForPayment(offer.sessionId).then((s) => setPhase(s?.paid ? "paid" : "unconfirmed"))
   }, [offer])
 
-  if (!b.direct || b.items.length === 0) return <Navigate to="/home" replace />
+  if (!b.direct || b.items.length === 0) return leaving ? null : <Navigate to="/home" replace />
   const { direct } = b
   const tier = direct.tier ?? b.tier?.tier ?? 1
   const steps = checkoutSteps(b.optionsStep, !b.accountStep, tier === 3 ? 1 : tier)
   const available = paymentAvailable(offer)
   const day = labelForIso(direct.eventDate)
 
-  const finish = () => {
+  const clear = () => {
+    setLeaving(true)
     b.setItems([])
     b.set("direct", null)
     b.set("payment", null)
     b.set("agreed", false)
+  }
+  const finish = () => {
+    clear()
     navigate("/home")
   }
 
@@ -56,6 +64,9 @@ export default function ItemPay() {
           <span className="mx-auto mb-3.5 inline-block rounded-full bg-orange-tint px-3 py-1 text-[11px] font-bold tracking-[.14em] text-charcoal uppercase">Paid</span>
           <h1 className="text-hero text-charcoal">{tier === 2 ? "Signed and paid. Your date is confirmed." : "Paid. Your date is held."}</h1>
           <p className="mt-2 text-body text-charcoal-soft">{day} is yours. The rest lives in My party.</p>
+          {/* Block S9a: a wedding order under the review amount pays online and
+              its details form is waiting; this shows only for a wedding. */}
+          <WeddingWaiting bookingId={direct.bookingId} onOpen={clear} className="mt-5" />
         </Body>
         <Foot>
           <Button onClick={finish}>Done</Button>

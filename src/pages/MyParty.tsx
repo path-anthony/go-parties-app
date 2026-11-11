@@ -7,7 +7,7 @@ import { AppShell, Body } from "@/components/go/AppShell"
 import { ErrorNotice, FieldError } from "@/components/go/ErrorNotice"
 import { GoLabel } from "@/components/go/GoLabel"
 import { Reveal } from "@/components/go/DatePicker"
-import { customerApi, whatOf, whenOf, type BookingStep, type Customer, type CustomerBooking } from "@/lib/customerApi"
+import { customerApi, whatOf, whenOf, type BookingStep, type Customer, type CustomerBooking, type CustomerRequests } from "@/lib/customerApi"
 import { usePublicSettings } from "@/lib/settings"
 import { MiniMap, OpenInMapsLink } from "@/components/go/MiniMap"
 import { AddressField } from "@/components/go/AddressField"
@@ -17,6 +17,9 @@ import type { VerifiedAddress } from "@/lib/places"
 import { mapsUrlFor, safeMapsUrl } from "@/lib/maps"
 import { stageView, type StageView } from "@/lib/stage"
 import { WeddingRow } from "@/components/go/WeddingRow"
+import { RequestsList } from "@/components/go/RequestsList"
+import { PhoneField } from "@/components/go/PhoneField"
+import { phoneDigits, phoneProblem, showPhone } from "@/lib/phone"
 import { useCustomer } from "@/state/customer"
 import { cn } from "@/lib/utils"
 
@@ -143,7 +146,7 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
   }
 
   return (
-    <div className="rounded-[14px] border border-line bg-white px-4 py-3.5">
+    <div id={`booking-${booking.id}`} className="scroll-mt-20 rounded-[14px] border border-line bg-white px-4 py-3.5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <b className="block text-sm text-charcoal">{whatOf(booking)}</b>
@@ -208,20 +211,25 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
 }
 
 /* Your details (S3). Opens read-only; "Edit" turns the three fields on. */
-function Details({ customer, onSaved }: { customer: Customer; onSaved: (c: Customer) => void }) {
+function Details({ customer, onSaved, fixPhone }: { customer: Customer; onSaved: (c: Customer) => void; fixPhone: boolean }) {
   const { toast } = useToast()
-  const [editing, setEditing] = useState(false)
+  // Block S9a: sent here from checkout because the number on the account is
+  // refused, so the fields open ready to fix it.
+  const [editing, setEditing] = useState(fixPhone)
   const [name, setName] = useState(customer.name ?? "")
-  const [phone, setPhone] = useState(customer.phone)
+  const [phone, setPhone] = useState(showPhone(customer.phone))
   const [home, setHome] = useState(customer.homeAddress ?? "")
   const [homeVerified, setHomeVerified] = useState<VerifiedAddress | null>(null)
   const pick = useAddressMode() === "pick"
   const [busy, setBusy] = useState(false)
-  const [problem, setProblem] = useState<{ message: string; field: string | null } | null>(null)
+  const [problem, setProblem] = useState<{ message: string; field: string | null } | null>(() => {
+    const bad = fixPhone ? phoneProblem(customer.phone) : null
+    return bad ? { message: bad, field: "phone" } : null
+  })
 
   const open = () => {
     setName(customer.name ?? "")
-    setPhone(customer.phone)
+    setPhone(showPhone(customer.phone))
     setHome(customer.homeAddress ?? "")
     setHomeVerified(null)
     setProblem(null)
@@ -233,9 +241,15 @@ function Details({ customer, onSaved }: { customer: Customer; onSaved: (c: Custo
   const homeSettled = !pick || homeText === "" || homeText === (customer.homeAddress ?? "").trim() || homeVerified !== null
   const save = async () => {
     if (busy || phone.trim() === "" || !homeSettled) return
+    // The admin's phone rule, checked here first (Block S9a).
+    const bad = phoneProblem(phone)
+    if (bad) {
+      setProblem({ message: bad, field: "phone" })
+      return
+    }
     setBusy(true)
     setProblem(null)
-    const result = await customerApi.updateMe({ name: name.trim() || null, phone: phone.trim(), homeAddress: home.trim() || null }, customer)
+    const result = await customerApi.updateMe({ name: name.trim() || null, phone: phoneDigits(phone) ?? phone.trim(), homeAddress: home.trim() || null }, customer)
     setBusy(false)
     if (result.ok) {
       onSaved(result.data.customer)
@@ -264,7 +278,8 @@ function Details({ customer, onSaved }: { customer: Customer; onSaved: (c: Custo
       {!editing ? (
         <div className="mt-1.5 rounded-[14px] border border-line bg-white px-4 py-3.5">
           {customer.name && <b className="block text-sm text-charcoal">{customer.name}</b>}
-          <span className="block text-small text-charcoal-soft">{customer.phone}</span>
+          <span className="block text-small text-charcoal-soft">{showPhone(customer.phone)}</span>
+          {phoneProblem(customer.phone) && <FieldError>{phoneProblem(customer.phone)}</FieldError>}
           <span className="block text-small text-charcoal-soft">{customer.email}</span>
           <span className="block text-small text-charcoal-soft">{customer.homeAddress?.trim() || "No home address yet."}</span>
         </div>
@@ -279,8 +294,15 @@ function Details({ customer, onSaved }: { customer: Customer; onSaved: (c: Custo
           <GoLabel className="mb-1.5 tracking-[.1em]">Name</GoLabel>
           <Input placeholder="Sarah Lin" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
           <GoLabel className="mt-2.5 mb-1.5 tracking-[.1em]">Phone</GoLabel>
-          <Input autoComplete="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} aria-invalid={problem?.field === "phone" || undefined} aria-describedby={problem?.field === "phone" ? "details-phone-error" : undefined} />
-          {problem?.field === "phone" && <FieldError id="details-phone-error">{problem.message}</FieldError>}
+          <PhoneField
+            id="details-phone"
+            value={phone}
+            error={problem?.field === "phone" ? problem.message : null}
+            onChange={(v) => {
+              if (problem?.field === "phone") setProblem(null)
+              setPhone(v)
+            }}
+          />
           <GoLabel className="mt-2.5 mb-1.5 tracking-[.1em]">Email</GoLabel>
           <Input value={customer.email} readOnly aria-readonly="true" className="bg-cream" />
           <p className="mt-1.5 text-small text-muted">To change your email, call or text GO.</p>
@@ -319,11 +341,18 @@ export default function MyParty() {
   const location = useLocation()
   // The event step's "Change" link sends the customer here and back.
   const returnTo = typeof (location.state as { returnTo?: unknown } | null)?.returnTo === "string" ? (location.state as { returnTo: string }).returnTo : null
+  const fixPhone = (location.state as { fixPhone?: unknown } | null)?.fixPhone === true
+  const settings = usePublicSettings()
   const { customer, ready, logout, setCustomer } = useCustomer()
   const [bookings, setBookings] = useState<CustomerBooking[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [requests, setRequests] = useState<CustomerRequests | null>(null)
 
   const load = useCallback(async () => {
+    // Block S9a: the review requests, asked with the bookings. A failure here
+    // only leaves the list out; the bookings are what the page is for.
+    setRequests(null)
+    void customerApi.requests().then((r) => setRequests(r.ok ? r.data : null))
     const result = await customerApi.bookings()
     if (result.ok) {
       setBookings(result.data)
@@ -377,10 +406,11 @@ export default function MyParty() {
             Back to checkout
           </Button>
         )}
-        <Details customer={customer} onSaved={setCustomer} />
+        <Details customer={customer} onSaved={setCustomer} fixPhone={fixPhone} />
+        <RequestsList requests={requests?.requests ?? []} days={requests?.responseDays ?? null} phone={settings?.companyPhone ?? settings?.rushContactPhone ?? null} />
         {bookings === null && <p className="mt-2 text-body text-muted">Checking the calendar.</p>}
         {loadError && <ErrorNotice className="mt-3">{loadError}</ErrorNotice>}
-        {bookings && bookings.length === 0 && !loadError && (
+        {bookings && bookings.length === 0 && !loadError && (requests?.requests.length ?? 0) === 0 && (
           <>
             <p className="mt-2 text-body text-charcoal-soft">Nothing here yet. Build a party and it'll live here.</p>
             <Button className="mt-[18px] w-full" onClick={() => navigate("/home")}>Build one</Button>

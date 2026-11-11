@@ -10,7 +10,10 @@ import { CheckoutConcierge } from "@/components/go/CheckoutConcierge"
 import { Honeypot } from "@/components/go/Honeypot"
 import { CheckoutAgreement } from "@/components/go/CheckoutAgreement"
 import { BalanceLine, CheckoutNext } from "@/components/go/CheckoutNotes"
-import { ErrorNotice } from "@/components/go/ErrorNotice"
+import { ErrorNotice, FieldError } from "@/components/go/ErrorNotice"
+import { GuestCountField } from "@/components/go/GuestCountField"
+import { guestsReady } from "@/lib/guests"
+import { phoneProblem, showPhone } from "@/lib/phone"
 import { AddressField } from "@/components/go/AddressField"
 import { AddressPreview } from "@/components/go/AddressPreview"
 import { SetupMap } from "@/components/go/SetupMap"
@@ -44,7 +47,11 @@ import { useCustomer } from "@/state/customer"
    Google cannot be reached the fields are plain and the admin checks the
    text. The admin's address-not-exact refusal (the hold or the tier call)
    shows in red under the field it names and drops that pick. Tier 1
-   holds here ("Hold my date"); tier 2 goes on to the contract ("Next").
+   holds here ("Hold my date"); tier 2 goes on to the contract ("Next");
+   tier 3 sends the request ("Send request"; nothing is held and nothing is
+   due, so no retainer or balance line shows). Block S9a: a guest count (optional; required
+   and priced for a per-guest package) and the account's phone, which the
+   admin refuses when it is not a real US number.
    S7.1: "What are you celebrating?" is a required select of the
    storefront's groups and sub-occasions (the admin's list is a copy of
    it); the pick travels with the hold as `occasion`, which is what lets
@@ -68,30 +75,40 @@ export default function ItemWho() {
   const [addressError, setAddressError] = useState<string | null>(null)
   const [homeError, setHomeError] = useState<string | null>(null)
   const [resolving, setResolving] = useState(false)
+  // Block S9a: the admin refused the phone on the account (400 phone-invalid).
+  const [phoneRefused, setPhoneRefused] = useState<string | null>(null)
   const sameSeq = useRef(0)
+  // A per-guest package is priced from the guest count, so the tier is not
+  // asked until the count is a usable one.
+  const guestsOk = guestsReady(b.bundle, b.guestCount) && !b.guestBad
 
   // The tier is asked for as soon as this screen opens, so the button and
   // the step count can say what comes next; it is cleared by the store
   // whenever the cart or date changes, and asked again then.
   const tierKey = `${b.items.map((i) => `${i.id}:${JSON.stringify(i.picks ?? {})}`).join(",")}|${b.bundle?.id ?? ""}|${b.itemDate}|${b.itemTime}`
   useEffect(() => {
-    if (b.tier || !b.itemDate || b.items.length === 0) return
+    if (b.tier || !b.itemDate || b.items.length === 0 || !guestsOk) return
     let live = true
-    fetchTier(tierInput(b)).then((r) => {
-      if (live && r.ok) b.set("tier", r.tier)
-    })
+    // A short pause, so typing a guest count asks once, not once a digit
+    // (the tier call shares the admin's five-an-hour booking budget).
+    const t = setTimeout(() => {
+      fetchTier(tierInput(b)).then((r) => {
+        if (live && r.ok) b.set("tier", r.tier)
+      })
+    }, 700)
     return () => {
       live = false
+      clearTimeout(t)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [b.tier, tierKey])
+  }, [b.tier, tierKey, guestsOk])
 
   // Block S6: a picked event address goes to the tier call with its place
   // id, so a vague one is refused now (400 address-not-exact) and not at the
   // hold. The refusal shows under the field and drops the pick.
   const pickedId = b.verified?.placeId ?? null
   useEffect(() => {
-    if (!pickedId || b.sameAsHome || !b.itemDate || b.items.length === 0) return
+    if (!pickedId || b.sameAsHome || !b.itemDate || b.items.length === 0 || !guestsOk) return
     let live = true
     fetchTier(tierInput(b)).then((r) => {
       if (!live) return
@@ -198,7 +215,12 @@ export default function ItemWho() {
     b.set("subOcc", sub)
   }
   // Only the last screen holds the date, so only there does the policy wait.
-  const canSubmit = !!customer && nameSettled && occasionSettled && homeSettled && addressSettled && !resolving && !submitting && !agreementBlocked
+  // Block S9a: the account's phone must be one the admin accepts (a number
+  // made before the rule can fail it; the fix is in Your details), and a
+  // per-guest package needs a guest count inside its range.
+  const phoneProblemText = customer ? (phoneRefused ?? phoneProblem(customer.phone)) : null
+  const guestSettled = guestsOk
+  const canSubmit = !!customer && nameSettled && occasionSettled && guestSettled && !phoneProblemText && homeSettled && addressSettled && !resolving && !submitting && !agreementBlocked
 
   const tier = b.tier?.tier ?? null
   const steps = checkoutSteps(b.optionsStep, !b.accountStep, tier)
@@ -258,7 +280,11 @@ export default function ItemWho() {
         return
       }
       if (result.reason === "address-not-exact") {
-        refuseAddress(result.field ?? "address", result.message)
+        refuseAddress(result.field === "homeAddress" ? "homeAddress" : "address", result.message)
+        return
+      }
+      if (result.reason === "phone-invalid") {
+        setPhoneRefused(result.message)
         return
       }
       if (result.reason === "account-required") {
@@ -303,11 +329,12 @@ export default function ItemWho() {
             <div className="min-w-0">
               <small className="block text-[10.5px] font-bold tracking-[.1em] text-taupe uppercase">Booking as</small>
               {customer.name && <b className="mt-[3px] block text-sm text-charcoal">{customer.name}</b>}
-              <span className="block text-small text-charcoal-soft">{customer.phone}</span>
+              <span className="block text-small text-charcoal-soft">{showPhone(customer.phone)}</span>
+              {phoneProblemText && <FieldError id="booking-phone-error">{phoneProblemText}</FieldError>}
               <span className="block truncate text-small text-charcoal-soft">{customer.email}</span>
             </div>
-            <Link to="/party" state={{ returnTo: here }} className="inline-flex min-h-[44px] flex-none items-center text-[13px] font-bold text-charcoal underline underline-offset-2">
-              Change
+            <Link to="/party" state={{ returnTo: here, fixPhone: phoneProblemText !== null }} className="inline-flex min-h-[44px] flex-none items-center text-[13px] font-bold text-charcoal underline underline-offset-2">
+              {phoneProblemText ? "Fix it" : "Change"}
             </Link>
           </div>
         )}
@@ -338,6 +365,7 @@ export default function ItemWho() {
             ))}
           </select>
         </div>
+        <GuestCountField className="mt-3.5" />
         {customer && !homeOnFile && (
           <div className="mt-3.5">
             <GoLabel className="mb-1.5 tracking-[.1em]">Your home address</GoLabel>
@@ -426,7 +454,7 @@ export default function ItemWho() {
       )}
       <Foot>
         <Button variant="ghost" onClick={() => navigate(`/item/${firstId}`)}>Back</Button>
-        <Button disabled={!canSubmit} onClick={submit}>{tier === 2 ? "Next" : "Hold my date"}</Button>
+        <Button disabled={!canSubmit} onClick={submit}>{tier === 2 ? "Next" : tier === 3 ? "Send request" : "Hold my date"}</Button>
       </Foot>
     </AppShell>
   )

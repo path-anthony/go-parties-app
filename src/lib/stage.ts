@@ -51,7 +51,7 @@ const VIEWS: Record<string, StageView> = {
   },
   "In review": {
     label: "In review",
-    message: "Big events get a personal look. We'll reach out within one business day.",
+    message: "Our team is reviewing this one. Nothing is due yet.",
     tone: "pending",
     live: true,
   },

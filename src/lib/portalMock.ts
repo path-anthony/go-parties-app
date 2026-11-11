@@ -1,5 +1,5 @@
 import { FULL, SIGNED_DOC } from "@/lib/contractMock"
-import type { ApiResult, CustomerBooking, CustomerContract, SignBody } from "@/lib/customerApi"
+import type { ApiResult, CustomerBooking, CustomerContract, CustomerRequests, SignBody } from "@/lib/customerApi"
 import { MOCK_SECRET, mockPaymentStatus } from "@/lib/paymentMockState"
 import { sessionIdOf, type PaymentOffer } from "@/lib/paymentApi"
 
@@ -224,4 +224,25 @@ export async function mockPaymentSession(id: string, kind: "retainer" | "balance
   const secret = b._sessions?.[kind] ?? `${MOCK_SECRET.split("_secret_")[0]}_${kind}_${id}_secret_1`
   b._sessions = { ...(b._sessions ?? {}), [kind]: secret }
   return { ok: true, data: { kind, amount: money.amount, clientSecret: secret, sessionId: sessionIdOf(secret) } }
+}
+
+/* Block F2: the customer's review requests, one in each of the four
+   statuses the admin sends, newest first. No total, as on the real call. */
+const PROMISE = "We will contact you within 3 business days."
+export async function mockRequests(): Promise<ApiResult<CustomerRequests>> {
+  await wait()
+  const maps = "https://www.google.com/maps/search/?api=1&query=41.810200,-72.830900&query_place_id=mock-place-maple"
+  return {
+    ok: true,
+    data: {
+      responseDays: 3,
+      promise: PROMISE,
+      requests: [
+        { id: "dr-received", status: "received", statusLabel: "Received", bookingId: null, createdAt: day(-1), eventDate: day(120).slice(0, 10), eventTime: "4 PM", occasion: "Reception only", address: "14 Maple Ln, Avon, CT 06001, USA", mapsUrl: maps, setupNotes: "Backyard, gate on the left", guestCount: 120, package: null, items: [{ name: "Grand Tent", quantity: 1 }, { name: "Round Tables", quantity: 12 }], addons: [{ itemName: "Grand Tent", groupName: "Sides", addonName: "With walls" }], promise: PROMISE },
+        { id: "dr-reviewing", status: "being-reviewed", statusLabel: "Being reviewed", bookingId: null, createdAt: day(-4), eventDate: day(150).slice(0, 10), eventTime: null, occasion: "Wedding", address: "228 Ridge Rd, Avon, CT 06001, USA", mapsUrl: null, setupNotes: null, guestCount: null, package: "Dream Wedding Package", items: [{ name: "Wedding Film, Dream", quantity: 1 }], addons: [], promise: null },
+        { id: "dr-booked", status: "booked", statusLabel: "Turned into a booking", bookingId: "bk-held", createdAt: day(-9), eventDate: day(30).slice(0, 10), eventTime: "2 PM", occasion: "Birthday", address: "9 Elm St, Farmington", mapsUrl: null, setupNotes: null, guestCount: 40, package: null, items: [{ name: "Test Gladiator Bounce House", quantity: 1 }], addons: [], promise: null },
+        { id: "dr-closed", status: "closed", statusLabel: "Closed", bookingId: null, createdAt: day(-20), eventDate: day(10).slice(0, 10), eventTime: null, occasion: null, address: null, mapsUrl: null, setupNotes: null, guestCount: null, package: null, items: [{ name: "Snow Cone Station", quantity: 2 }], addons: [], promise: null },
+      ],
+    },
+  }
 }
