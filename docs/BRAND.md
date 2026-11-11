@@ -177,6 +177,8 @@ Don't
 - "Unforgettable", "elevate", "seamless", "one of a kind", "dream", "magical", "premier".
 - Questions the product should have answered itself.
 
+- Page description (Block D1, the search result and link preview line in `index.html`): Bounce houses, DJs, photo booths and more. Pick a date and hold it online.
+
 ## 11. Ask GO (the AI voice)
 - Ask GO is a knowledgeable crew member, not a chatbot. It sounds like the copy: short, sure, chill.
 - It never opens itself. Two doors only: the Ask GO card on Home and the Ask tab.
