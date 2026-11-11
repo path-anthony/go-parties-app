@@ -1,4 +1,5 @@
 import { ADMIN_API } from "@/lib/adminApi"
+import type { LeadContact } from "@/lib/contact"
 
 /* White-glove concierge: the customer would rather talk to a person than
    check out. Two doors (a quiet option on the checkout's last screen, a nudge under an Ask
@@ -42,9 +43,16 @@ export function calendlyUrl(ctx: ConciergeContext): string {
   return url.toString()
 }
 
-/* POST /api/leads/concierge. Never awaited by a screen. */
-export function logConcierge(ctx: ConciergeContext, bot?: { hpField: string; formStartedAt: number }): void {
+/* POST /api/leads/concierge. Never awaited by a screen. Block S9b: it sends
+   whatever the customer is known by (name, email, phone) and the session
+   cookie, so the admin can fill in a signed-in customer's details. With none
+   of the three the admin makes no lead and the customer still goes to
+   Calendly. */
+export function logConcierge(ctx: ConciergeContext, bot?: { hpField: string; formStartedAt: number }, contact: LeadContact = {}): void {
   const body: Record<string, string | number> = { source: ctx.source }
+  if (contact.name) body.name = contact.name
+  if (contact.email) body.email = contact.email
+  if (contact.phone) body.phone = contact.phone
   if (bot) {
     body.hpField = bot.hpField
     if (bot.formStartedAt > 0) body.formStartedAt = bot.formStartedAt
@@ -58,6 +66,7 @@ export function logConcierge(ctx: ConciergeContext, bot?: { hpField: string; for
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
       keepalive: true,
+      credentials: "include",
     }).catch(() => {})
   } catch {
     /* a log, not a requirement */

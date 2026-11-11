@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils"
    right now" line.
 
    BalanceLine: "Your balance of $X is due N days before your event. We'll
-   email you a secure payment link." X is the total less the retainer (the
+   text and email you a secure payment link." X is the total less the retainer (the
    tier's amount, else the settings' deposit percent). N is the admin's
    `balanceDueDays` once GET /api/settings/public carries it (settings
    keeps every number it sends, so no change is needed here then); until it
@@ -39,7 +39,7 @@ export function BalanceLine({ className }: { className?: string }) {
   const balance = retainer.amount !== null ? Math.max(0, Math.round(total - retainer.amount)) : null
   return (
     <p className={cn("text-small text-charcoal-soft", className)}>
-      {balance !== null ? `Your balance of ${fmt(balance)} is due ${when}.` : `Your balance is due ${when}.`} We'll email you a secure payment link.
+      {balance !== null ? `Your balance of ${fmt(balance)} is due ${when}.` : `Your balance is due ${when}.`} We'll text and email you a secure payment link.
     </p>
   )
 }

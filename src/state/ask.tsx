@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { ADMIN_API } from "@/lib/adminApi"
+import { contactFrom, contactInChat } from "@/lib/contact"
+import { useCustomer } from "@/state/customer"
 import { mockMode } from "@/lib/mock"
 import type { AddonGroup } from "@/lib/addons"
 import { useBooking, type DirectItem } from "@/state/booking"
@@ -89,7 +91,8 @@ const Ctx = createContext<AskApi | null>(null)
 
 export function AskProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
-  const { subOcc } = useBooking()
+  const { subOcc, contactName, email, phone } = useBooking()
+  const { customer } = useCustomer()
   const [s, setS] = useState<AskState>(INITIAL)
   const ref = useRef(s)
   ref.current = s
@@ -103,7 +106,9 @@ export function AskProvider({ children }: { children: React.ReactNode }) {
       const next: ChatMessage[] = [...cur.messages, { role: "user", content: t }]
       setS((p) => ({ ...p, messages: next, startedAt: started, loading: true, error: null }))
       try {
-        const body = { subOcc, messages: next.map(({ role, content }) => ({ role, content })), hpField: cur.hp, formStartedAt: started }
+        // Block S9b: who is asking, when the customer is signed in or gave it.
+        const who = { ...contactFrom(customer, { name: contactName, email, phone }), ...contactInChat(next) }
+        const body = { subOcc, messages: next.map(({ role, content }) => ({ role, content })), hpField: cur.hp, formStartedAt: started, ...who }
         let data: AskApiResponse
         if (import.meta.env.DEV && mockMode("ask")) {
           data = await (await import("@/lib/askMock")).mockRecommend(body.messages)
@@ -111,6 +116,7 @@ export function AskProvider({ children }: { children: React.ReactNode }) {
           const response = await fetch(`${ADMIN_API}/api/recommend`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify(body),
           })
           if (!response.ok) throw new Error("Server error")
@@ -128,7 +134,7 @@ export function AskProvider({ children }: { children: React.ReactNode }) {
         setS((p) => ({ ...p, loading: false, error: FAILED }))
       }
     },
-    [subOcc]
+    [subOcc, customer, contactName, email, phone]
   )
 
   const api = useMemo<AskApi>(

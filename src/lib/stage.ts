@@ -6,7 +6,12 @@ import type { CustomerBooking } from "@/lib/customerApi"
    paid; Confirmed is only ever Signed plus retainer paid. `status` is the old
    field and reads "Confirmed" for any live booking, so it is never the source
    of truth for this. The words here are the customer's, never the internal
-   labels, and never claim more than is true: only Confirmed says confirmed. */
+   labels, and never claim more than is true: only Confirmed says confirmed.
+   Block S9b: a small rental (tier 1) is Confirmed the moment its retainer is
+   paid, so a tier 1 "Retainer Paid" (a booking paid before 2026-11-13) is
+   read as Confirmed. A held booking with a retainer still owed reads
+   "Awaiting retainer". A cancellation request waiting on staff overrides all
+   of it: "Cancellation requested", and the booking is otherwise unchanged. */
 
 export type StageTone = "good" | "pending" | "done" | "cancelled"
 
@@ -63,7 +68,7 @@ const VIEWS: Record<string, StageView> = {
   },
   Confirmed: {
     label: "Confirmed",
-    message: "Signed and paid. You're all set.",
+    message: "Your date is confirmed.",
     tone: "good",
     live: true,
   },
@@ -90,7 +95,15 @@ const VIEWS: Record<string, StageView> = {
 /* An admin that doesn't send `stage` yet, or a stage this doesn't know, is
    read as Held (nothing claimed) unless the old field says the booking is
    over. Never as Confirmed. */
-export function stageView(booking: Pick<CustomerBooking, "stage" | "status">): StageView {
+const AWAITING: StageView = { label: "Awaiting retainer", message: "Your date is held until the retainer is paid.", tone: "pending", live: true }
+const ASKED: StageView = { label: "Cancellation requested", message: "Cancellation requested. We will contact you.", tone: "pending", live: true }
+const APPROVED: StageView = { ...VIEWS.Cancelled, message: "Cancellation approved. This booking is cancelled and the date is open again." }
+
+export function stageView(booking: Pick<CustomerBooking, "stage" | "status"> & Partial<Pick<CustomerBooking, "tier" | "retainer" | "pendingRequest">>, opts: { cancelApproved?: boolean } = {}): StageView {
+  if (booking.pendingRequest) return ASKED
+  if (booking.stage === "Cancelled" && opts.cancelApproved) return APPROVED
+  if (booking.stage === "Held" && booking.retainer && !booking.retainer.paid) return AWAITING
+  if (booking.stage === "Retainer Paid" && booking.tier === 1) return VIEWS.Confirmed
   const known = booking.stage ? VIEWS[booking.stage] : undefined
   if (known) return known
   if (booking.stage === "Released" || booking.status === "Released") return VIEWS.Released

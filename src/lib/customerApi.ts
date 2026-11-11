@@ -65,7 +65,15 @@ export interface CustomerBooking {
      booking has no place yet. */
   mapsUrl?: string | null
   rescheduleMode?: "self" | "request"
-  pendingRequest?: { kind: "reschedule" | "cancel"; eventDate?: string; reason?: string; requestedAt: string } | null
+  /* Block F1: set while a cancellation request waits on staff. The booking
+     is unchanged until they decide; approved it becomes Cancelled, declined
+     this goes back to null. */
+  pendingRequest?: { type: "cancellation"; id: string; status: "open"; requestedAt: string; reason: string | null } | null
+  /* The booking's own total (null until priced) and its occasion. */
+  total?: number | null
+  occasion?: string | null
+  /* Not sent by the admin today (S9b contract gap); shown when it is. */
+  guestCount?: number | null
   units: BookingUnit[]
   /* What was picked for which item, as booked. */
   addons?: Array<{ itemId: string | null; itemName: string; groupName: string; addonName: string; priceDelta: number; quantity: number }>
@@ -148,6 +156,28 @@ export function parseRequests(data: unknown): CustomerRequests {
   })
   return { responseDays: typeof d.responseDays === "number" ? d.responseDays : null, promise: text(d.promise), requests }
 }
+
+/* Block F1: what a customer sees before asking to cancel. The terms are
+   finished wording (the numbers are filled in) and shown in full. */
+export interface CancelTerms {
+  source: "contract" | "policy"
+  title: string
+  text: string
+}
+
+export interface CancelInfo {
+  /* Dollars paid so far. */
+  paid: number
+  retainerPaid: boolean
+  /* True when anything has been paid: the terms must be accepted to ask. */
+  termsRequired: boolean
+  terms: CancelTerms | null
+  pendingRequest: { id: string; status: "open"; requestedAt: string; reason: string | null } | null
+}
+
+/* The customer booking as the list returns it, plus the request that was
+   made (POST .../cancel, 202 or 200). */
+export type CancelAsked = CustomerBooking & { message?: string; paid?: number; terms?: CancelTerms | null }
 
 export type StepKey = "sign" | "retainer" | "balance" | "proposal" | "confirm-date"
 export type StepState = "done" | "next" | "waiting" | "blocked"
@@ -281,7 +311,17 @@ export const customerApi = {
     const offer = parseOffer({ ...r.data, kind })
     return offer ? { ok: true, data: offer } : { ok: false, status: 0, message: FALLBACK }
   },
-  cancel: (id: string) => post<CustomerBooking>(`/api/customer/bookings/${encodeURIComponent(id)}/cancel`),
+  /* Block F1: the customer can no longer cancel a booking; this asks GO to.
+     cancelInfo is read when "Request to cancel" opens, to know whether terms
+     must be accepted first. */
+  cancelInfo: async (id: string): Promise<ApiResult<CancelInfo>> => {
+    if (import.meta.env.DEV && mockMode("portal")) return (await import("./portalMock")).mockCancelInfo(id)
+    return call<CancelInfo>(`/api/customer/bookings/${encodeURIComponent(id)}/cancel`)
+  },
+  requestCancel: async (id: string, body: { reason: string; acceptTerms: boolean }): Promise<ApiResult<CancelAsked>> => {
+    if (import.meta.env.DEV && mockMode("portal")) return (await import("./portalMock")).mockRequestCancel(id, body)
+    return post<CancelAsked>(`/api/customer/bookings/${encodeURIComponent(id)}/cancel`, body)
+  },
   reschedule: (id: string, change: { eventDate?: string; eventTime?: string | null }) =>
     post<CustomerBooking>(`/api/customer/bookings/${encodeURIComponent(id)}/reschedule`, change),
   changeItem: (id: string, itemId: string) =>

@@ -23,6 +23,7 @@ import ItemContract from "@/pages/ItemContract"
 import ItemPay from "@/pages/ItemPay"
 import PartyContract from "@/pages/PartyContract"
 import PartyPay from "@/pages/PartyPay"
+import Pay from "@/pages/Pay"
 import PartyWedding from "@/pages/PartyWedding"
 import ItemHeld from "@/pages/ItemHeld"
 import Kit from "@/pages/Kit"
@@ -72,6 +73,7 @@ function App() {
             <Route path="/item/:id/account" element={<ItemAccount />} />
             {/* The contract, reached only from the texted link. */}
             <Route path="/sign/:token" element={<Sign />} />
+            <Route path="/pay/:token" element={<Pay />} />
             {/* The crew gig page, reached only from a text: bid first, then the gig. */}
             <Route path="/bid/:token" element={<Bid />} />
             <Route path="/kit" element={<Kit />} />

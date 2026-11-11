@@ -7,6 +7,11 @@ import { AppShell, Body } from "@/components/go/AppShell"
 import { ErrorNotice, FieldError } from "@/components/go/ErrorNotice"
 import { GoLabel } from "@/components/go/GoLabel"
 import { Reveal } from "@/components/go/DatePicker"
+import { BookingMoney } from "@/components/go/BookingMoney"
+import { CancelRequest } from "@/components/go/CancelRequest"
+import { NextSteps } from "@/components/go/NextStep"
+import { askedBefore, forgetAsked, rememberAsked } from "@/lib/cancelMemory"
+import { clearWeddingCache } from "@/hooks/use-wedding"
 import { customerApi, whatOf, whenOf, type BookingStep, type Customer, type CustomerBooking, type CustomerRequests } from "@/lib/customerApi"
 import { usePublicSettings } from "@/lib/settings"
 import { MiniMap, OpenInMapsLink } from "@/components/go/MiniMap"
@@ -23,10 +28,12 @@ import { phoneDigits, phoneProblem, showPhone } from "@/lib/phone"
 import { useCustomer } from "@/state/customer"
 import { cn } from "@/lib/utils"
 
-/* Screen 12, My party. Signed in: the customer's real bookings from
-   go-parties-admin, each with Reschedule, Change item and Cancel (Cancel asks
-   first, inline, never a popup; a refusal is the red notice directly above
-   the Keep it / Cancel it buttons, S2). "Your details" (S3): name, phone
+/* Screen 12, My party. Signed in: a Next step box for each booking (S9b), then
+   the customer's real bookings from go-parties-admin, each with Reschedule
+   and Change item (small rentals only) and Request to cancel (Block S9b: the
+   admin no longer cancels on the customer's say-so; the request opens inline
+   under the card, never a popup, and the booking shows "Cancellation
+   requested" until staff decide). "Your details" (S3): name, phone
    and home address, edited in place through PATCH /api/customer/me; the
    email is shown and not editable (the admin refuses it). A phone another
    account holds (409, field "phone") shows in red under the field; any
@@ -63,10 +70,10 @@ function Status({ view }: { view: StageView }) {
   )
 }
 
-/* What is left to do on a booking, from the admin's steps list. "next" is a
-   real button into the page that does it; "done" a check; "waiting" is on
-   GO; "blocked" waits on an earlier step. Proposals and date confirmations
-   are listed but not actionable here yet (Block T3). */
+/* What is left to do on a booking, from the admin's steps list, as a plain
+   progress list: "done" a check, "next" is what the Next step box at the top
+   of the page has the button for (Block S9b, so there is one button for it,
+   not two), "waiting" is on GO, "blocked" waits on an earlier step. */
 const STEP_LABEL: Record<BookingStep["key"], string> = {
   sign: "Sign your contract",
   retainer: "Pay your retainer",
@@ -76,31 +83,19 @@ const STEP_LABEL: Record<BookingStep["key"], string> = {
 }
 
 function Steps({ booking }: { booking: CustomerBooking }) {
-  const navigate = useNavigate()
   const steps = booking.steps ?? []
   if (steps.length === 0) return null
-  const target = (s: BookingStep) =>
-    s.key === "sign" ? `/party/${booking.id}/contract` : s.key === "retainer" || s.key === "balance" ? `/party/${booking.id}/pay?kind=${s.key}` : null
   return (
     <ol className="mt-3 space-y-1.5">
-      {steps.map((s) => {
-        const to = target(s)
-        return (
-          <li key={s.key} className="flex items-center justify-between gap-3 text-sm">
-            <span className={cn("flex items-center gap-2", s.state === "done" ? "text-muted" : "text-charcoal")}>
-              {s.state === "done" && <i className="inline-block size-1.5 rounded-full bg-good" />}
-              {STEP_LABEL[s.key]}
-            </span>
-            {s.state === "next" && to ? (
-              <Button variant="dark" size="sm" onClick={() => navigate(to)}>
-                {s.key === "sign" ? "Sign" : s.key === "balance" ? "Pay balance" : s.key === "retainer" ? "Pay retainer" : "Open"}
-              </Button>
-            ) : (
-              <span className="text-small text-muted">{s.state === "done" ? "Done" : s.state === "waiting" || (s.state === "next" && !to) ? "Waiting on GO" : "After the step above"}</span>
-            )}
-          </li>
-        )
-      })}
+      {steps.map((s) => (
+        <li key={s.key} className="flex items-center justify-between gap-3 text-sm">
+          <span className={cn("flex items-center gap-2", s.state === "done" ? "text-muted" : "text-charcoal")}>
+            {s.state === "done" && <i className="inline-block size-1.5 rounded-full bg-good" />}
+            {STEP_LABEL[s.key]}
+          </span>
+          <span className="text-small text-muted">{s.state === "done" ? "Done" : s.state === "next" ? "Next" : s.state === "waiting" ? "Waiting on GO" : "After the step above"}</span>
+        </li>
+      ))}
     </ol>
   )
 }
@@ -116,11 +111,18 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
   const navigate = useNavigate()
   const { toast } = useToast()
   const settings = usePublicSettings()
-  const [confirming, setConfirming] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [notice, setNotice] = useState<string | null>(null)
-  const view = stageView(booking)
+  const [asking, setAsking] = useState(false)
+  // What this device saw happen to a cancellation request (see
+  // lib/cancelMemory.ts): the admin says nothing when staff decline.
+  const [dismissed, setDismissed] = useState(false)
+  const pending = booking.pendingRequest ?? null
+  const asked = askedBefore(booking.id)
+  const view = stageView(booking, { cancelApproved: asked })
   const live = view.live
+  const declined = live && !pending && asked && !dismissed
+  useEffect(() => {
+    if (pending) rememberAsked(booking.id)
+  }, [pending, booking.id])
   // The admin's link to the exact address; the pin's own link when it has
   // sent none (an older admin).
   const setup = setupOf(booking)
@@ -130,20 +132,6 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
   // and written-agreement terms apply, and that is a request, not a button.
   const selfServe = (booking.tier ?? 1) === 1 && booking.rescheduleMode !== "request"
   const phone = settings?.companyPhone ?? settings?.rushContactPhone ?? null
-
-  const cancel = async () => {
-    setBusy(true)
-    setNotice(null)
-    const result = await customerApi.cancel(booking.id)
-    setBusy(false)
-    if (result.ok) {
-      setConfirming(false)
-      onChanged(result.data)
-      toast({ title: "Cancelled." })
-    } else {
-      setNotice(result.message)
-    }
-  }
 
   return (
     <div id={`booking-${booking.id}`} className="scroll-mt-20 rounded-[14px] border border-line bg-white px-4 py-3.5">
@@ -156,6 +144,8 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
             </span>
           ))}
           <span className="block text-small text-charcoal-soft">{whenOf(booking)}</span>
+          {booking.occasion && <span className="block text-small text-charcoal-soft">{booking.occasion}</span>}
+          {typeof booking.guestCount === "number" && <span className="block text-small text-charcoal-soft">{booking.guestCount} guests</span>}
           {(booking.delivery?.formattedAddress ?? booking.address) && (
             <span className="block text-small text-muted">{booking.delivery?.formattedAddress ?? booking.address}</span>
           )}
@@ -164,47 +154,69 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
         <Status view={view} />
       </div>
       <p className={`mt-2 text-small ${view.tone === "cancelled" ? "text-charcoal" : "text-charcoal-soft"}`}>{view.message}</p>
+      {declined && (
+        <div className="mt-3 rounded-[12px] border border-line bg-cream px-3.5 py-3 text-sm text-charcoal">
+          <b className="block">We did not approve your request to cancel.</b>
+          Your booking is still in place. Call or text GO{phone ? ` at ${phone}` : ""} with any questions.
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2.5 block"
+            onClick={() => {
+              forgetAsked(booking.id)
+              setDismissed(true)
+            }}
+          >
+            Got it
+          </Button>
+        </div>
+      )}
       {setupOf(booking) ? (
         <MiniMap setup={setupOf(booking)!} href={mapsHref} className="mt-3" />
       ) : (
         mapsHref && <OpenInMapsLink href={mapsHref} />
       )}
-      {live && <Steps booking={booking} />}
-      {live && <WeddingRow booking={booking} />}
+      <BookingMoney booking={booking} />
+      {live && !pending && <Steps booking={booking} />}
+      {live && !pending && <WeddingRow booking={booking} />}
       {live && booking.contract?.status === "signed" && booking.contract.pdfUrl?.startsWith("https://") && (
         <a href={booking.contract.pdfUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex min-h-[44px] items-center text-small font-bold text-charcoal underline">
           Your signed contract (PDF)
         </a>
       )}
-      {live && !selfServe && (
-        <p className="mt-3 text-small text-charcoal-soft">To change or cancel, call or text GO{phone ? ` at ${phone}` : ""}.</p>
+      {live && !pending && !selfServe && (
+        <p className="mt-3 text-small text-charcoal-soft">To change this booking, call or text GO{phone ? ` at ${phone}` : ""}.</p>
       )}
-      {live && selfServe && (
+      {live && !pending && (
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/party/${booking.id}/reschedule`)}>
-            Reschedule
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/party/${booking.id}/change`)}>
-            Change item
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => setConfirming((v) => !v)}>
-            Cancel
+          {selfServe && (
+            <>
+              <Button variant="ghost" size="sm" onClick={() => navigate(`/party/${booking.id}/reschedule`)}>
+                Reschedule
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate(`/party/${booking.id}/change`)}>
+                Change item
+              </Button>
+            </>
+          )}
+          <Button variant="ghost" size="sm" aria-expanded={asking} onClick={() => setAsking((v) => !v)}>
+            Request to cancel
           </Button>
         </div>
       )}
-      <Reveal open={confirming} className="mt-3">
-        <div className="rounded-[12px] border border-line bg-cream px-3.5 py-3 text-sm text-charcoal">
-          Cancel this booking? The date opens back up.
-          {notice && <ErrorNotice className="mt-2.5">{notice}</ErrorNotice>}
-          <div className="mt-2.5 flex gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setConfirming(false)} disabled={busy}>
-              Keep it
-            </Button>
-            <Button variant="dark" size="sm" onClick={cancel} disabled={busy}>
-              Cancel it
-            </Button>
-          </div>
-        </div>
+      <Reveal open={asking && !pending} className="mt-3" max="max-h-[1400px]">
+        {asking && !pending && (
+          <CancelRequest
+            bookingId={booking.id}
+            onClose={() => setAsking(false)}
+            onAsked={(updated) => {
+              rememberAsked(booking.id)
+              setAsking(false)
+              onChanged(updated)
+              toast({ title: "Request sent." })
+            }}
+          />
+        )}
       </Reveal>
     </div>
   )
@@ -352,6 +364,7 @@ export default function MyParty() {
     // Block S9a: the review requests, asked with the bookings. A failure here
     // only leaves the list out; the bookings are what the page is for.
     setRequests(null)
+    clearWeddingCache()
     void customerApi.requests().then((r) => setRequests(r.ok ? r.data : null))
     const result = await customerApi.bookings()
     if (result.ok) {
@@ -405,6 +418,9 @@ export default function MyParty() {
           <Button className="mt-3 w-full" onClick={() => navigate(returnTo)}>
             Back to checkout
           </Button>
+        )}
+        {bookings && (
+          <NextSteps bookings={bookings} requests={requests?.requests ?? []} phone={settings?.companyPhone ?? settings?.rushContactPhone ?? null} days={requests?.responseDays ?? settings?.tokens.requestResponseDays ?? null} />
         )}
         <Details customer={customer} onSaved={setCustomer} fixPhone={fixPhone} />
         <RequestsList requests={requests?.requests ?? []} days={requests?.responseDays ?? null} phone={settings?.companyPhone ?? settings?.rushContactPhone ?? null} />

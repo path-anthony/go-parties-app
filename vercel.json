@@ -39,6 +39,19 @@
       ]
     },
     {
+      "source": "/pay/(.*)",
+      "headers": [
+        {
+          "key": "Referrer-Policy",
+          "value": "origin"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    },
+    {
       "source": "/bid/(.*)",
       "headers": [
         {
