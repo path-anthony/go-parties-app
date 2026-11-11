@@ -79,7 +79,8 @@ export function SignUpFields({
           onChange({ ...values, homeAddress: text, homeVerified: v })
         }}
       />
-      {values.homeVerified && <AddressPreview address={values.homeVerified} className="mt-2.5" />}
+      {/* Block S8: the line only, no map. The map with the pin lives on the checkout event address. */}
+      {values.homeVerified && <AddressPreview address={values.homeVerified} map={false} className="mt-2.5" />}
       <p className="mt-1.5 text-small text-muted">{full ? "Where you live. Checkout can use it as the event address." : "Optional. Checkout can use it as the event address."}</p>
       <button type="submit" className="hidden" aria-hidden />
     </form>
