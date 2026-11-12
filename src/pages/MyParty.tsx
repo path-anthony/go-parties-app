@@ -10,7 +10,6 @@ import { Reveal } from "@/components/go/DatePicker"
 import { BookingMoney } from "@/components/go/BookingMoney"
 import { CancelRequest } from "@/components/go/CancelRequest"
 import { NextSteps } from "@/components/go/NextStep"
-import { askedBefore, forgetAsked, rememberAsked } from "@/lib/cancelMemory"
 import { clearWeddingCache } from "@/hooks/use-wedding"
 import { customerApi, whatOf, whenOf, type BookingStep, type Customer, type CustomerBooking, type CustomerRequests } from "@/lib/customerApi"
 import { usePublicSettings } from "@/lib/settings"
@@ -20,7 +19,8 @@ import { AddressPreview } from "@/components/go/AddressPreview"
 import { useAddressMode } from "@/hooks/use-address-mode"
 import type { VerifiedAddress } from "@/lib/places"
 import { mapsUrlFor, safeMapsUrl } from "@/lib/maps"
-import { stageView, type StageView } from "@/lib/stage"
+import { shortDay } from "@/lib/nextStep"
+import { cancelWaiting, stageView, type StageView } from "@/lib/stage"
 import { WeddingRow } from "@/components/go/WeddingRow"
 import { RequestsList } from "@/components/go/RequestsList"
 import { PhoneField } from "@/components/go/PhoneField"
@@ -112,17 +112,13 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
   const { toast } = useToast()
   const settings = usePublicSettings()
   const [asking, setAsking] = useState(false)
-  // What this device saw happen to a cancellation request (see
-  // lib/cancelMemory.ts): the admin says nothing when staff decline.
-  const [dismissed, setDismissed] = useState(false)
-  const pending = booking.pendingRequest ?? null
-  const asked = askedBefore(booking.id)
-  const view = stageView(booking, { cancelApproved: asked })
+  // The outcome of a request to cancel comes from the booking itself
+  // (S9-CONTRACT section 13): waiting, approved or declined.
+  const pending = cancelWaiting(booking)
+  const view = stageView(booking)
   const live = view.live
-  const declined = live && !pending && asked && !dismissed
-  useEffect(() => {
-    if (pending) rememberAsked(booking.id)
-  }, [pending, booking.id])
+  const declinedOn = live && !pending && booking.cancellation?.status === "declined" ? booking.cancellation.decidedAt : undefined
+  const declined = declinedOn !== undefined
   // The admin's link to the exact address; the pin's own link when it has
   // sent none (an older admin).
   const setup = setupOf(booking)
@@ -145,7 +141,7 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
           ))}
           <span className="block text-small text-charcoal-soft">{whenOf(booking)}</span>
           {booking.occasion && <span className="block text-small text-charcoal-soft">{booking.occasion}</span>}
-          {typeof booking.guestCount === "number" && <span className="block text-small text-charcoal-soft">{booking.guestCount} guests</span>}
+          {typeof booking.guestCount === "number" && <span className="block text-small text-charcoal-soft">{booking.guestCount === 1 ? "1 guest" : `${booking.guestCount} guests`}</span>}
           {(booking.delivery?.formattedAddress ?? booking.address) && (
             <span className="block text-small text-muted">{booking.delivery?.formattedAddress ?? booking.address}</span>
           )}
@@ -154,21 +150,13 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
         <Status view={view} />
       </div>
       <p className={`mt-2 text-small ${view.tone === "cancelled" ? "text-charcoal" : "text-charcoal-soft"}`}>{view.message}</p>
+      {live && booking.policyRequired === true && booking.policyAccepted === true && (
+        <p className="mt-1 text-small text-muted">Policy accepted{booking.policyAcceptedAt ? ` ${shortDay(booking.policyAcceptedAt)}` : ""}.</p>
+      )}
       {declined && (
         <div className="mt-3 rounded-[12px] border border-line bg-cream px-3.5 py-3 text-sm text-charcoal">
-          <b className="block">We did not approve your request to cancel.</b>
+          <b className="block">We did not approve your request to cancel{declinedOn ? ` on ${shortDay(declinedOn)}` : ""}.</b>
           Your booking is still in place. Call or text GO{phone ? ` at ${phone}` : ""} with any questions.
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mt-2.5 block"
-            onClick={() => {
-              forgetAsked(booking.id)
-              setDismissed(true)
-            }}
-          >
-            Got it
-          </Button>
         </div>
       )}
       {setupOf(booking) ? (
@@ -210,7 +198,6 @@ function BookingCard({ booking, onChanged }: { booking: CustomerBooking; onChang
             bookingId={booking.id}
             onClose={() => setAsking(false)}
             onAsked={(updated) => {
-              rememberAsked(booking.id)
               setAsking(false)
               onChanged(updated)
               toast({ title: "Request sent." })

@@ -1,5 +1,5 @@
 import type { CustomerBooking, CustomerRequest } from "@/lib/customerApi"
-import { stageView } from "@/lib/stage"
+import { cancelWaiting, stageView } from "@/lib/stage"
 import { promiseLine } from "@/lib/review"
 import { weddingDueText, weddingStatusText, type WeddingDetails } from "@/lib/weddingApi"
 
@@ -12,11 +12,14 @@ import { weddingDueText, weddingStatusText, type WeddingDetails } from "@/lib/we
    form is asked of the wedding route. Money is shown as the admin sent it
    and never computed here.
 
-   The rental policy is not a step of its own here: the admin sends no
-   "policy accepted" flag on a booking, so the policy is read and accepted
-   on the pay screen (/pay/:token) and at checkout. */
+   Block S9c: the admin now says whether the customer accepted the rental
+   policy (policyRequired, policyAccepted), so "Review and accept the
+   policy" comes first when it is still open. A signed-in customer holds no
+   pay token and the admin has no account call to accept, so the policy is
+   accepted on the pay link it texted and emailed; the box points there and
+   has no button of its own. */
 
-export type NextKey = "sign" | "retainer" | "wedding" | "balance" | "proposal" | "review" | "cancel" | "allset" | "quiet"
+export type NextKey = "policy" | "sign" | "retainer" | "wedding" | "balance" | "proposal" | "review" | "cancel" | "allset" | "quiet"
 
 export interface NextStep {
   key: NextKey
@@ -36,7 +39,7 @@ export function longDay(iso: string): string {
 }
 
 /* "Dec 12". */
-const shortDay = (iso: string): string => {
+export const shortDay = (iso: string): string => {
   const [y, m, d] = iso.slice(0, 10).split("-").map(Number)
   if (!y || !m || !d) return iso
   return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" })
@@ -49,10 +52,19 @@ const stepState = (b: CustomerBooking, key: "sign" | "retainer" | "balance") => 
 export function nextStepFor(b: CustomerBooking, wedding: WeddingDetails | null, opts: { phone: string | null; days: number | null }): NextStep | null {
   const view = stageView(b)
   if (!view.live) return null
-  if (b.pendingRequest) {
+  if (cancelWaiting(b)) {
     return { key: "cancel", title: "Cancellation requested", line: "We will contact you.", button: null }
   }
   const call = `Call or text GO${opts.phone ? ` at ${opts.phone}` : ""}.`
+
+  if (b.policyRequired === true && b.policyAccepted === false) {
+    return {
+      key: "policy",
+      title: "Review and accept the policy",
+      line: `Open the payment link we texted and emailed you. It has the rental policy and the box to accept. Lost it? ${call}`,
+      button: null,
+    }
+  }
 
   if (stepState(b, "sign") === "next") {
     return { key: "sign", title: "Sign your contract", line: "Read it and sign to hold your date.", button: { label: "Sign contract", to: `/party/${b.id}/contract` } }

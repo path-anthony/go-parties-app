@@ -29,9 +29,23 @@ export interface PayView {
      already filled in. */
   policy: { id: string; version: number; text: string } | null
   hasAccount: boolean
+  /* Block S9c (S9-CONTRACT section 11). The policy must be accepted before
+     the pay form when it is required and not yet accepted. */
+  policyRequired: boolean
+  policyAccepted: boolean
+  eventTime: string | null
+  guestCount: number | null
+  /* The package's name when the booking is a package; items is still filled. */
+  package: string | null
+  items: Array<{ name: string; quantity: number }>
+  /* What is left after the retainer, and when it is due ("2026-12-12"). */
+  balance: number | null
+  balanceDueDate: string | null
 }
 
 export type PayLoad = { kind: "ok"; view: PayView } | { kind: "not-found" } | { kind: "error" }
+
+export type PolicyResult = { ok: true } | { ok: false; reason: "policy-changed" | "closed" | "error"; message: string; policy?: { id: string; version: number; text: string } }
 
 export type PaySession = { ok: true; offer: PaymentOffer } | { ok: false; reason: "not-payable" | "nothing-due" | "error"; message: string }
 
@@ -40,11 +54,22 @@ const STEPS: PayStep[] = ["sign", "retainer", "balance", "nothing", "closed"]
 const str = (v: unknown) => (typeof v === "string" ? v : "")
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null)
 
+function readPolicy(p: Record<string, unknown> | null | undefined): PayView["policy"] {
+  return p && typeof p === "object" && str(p.text).trim() !== "" ? { id: str(p.id), version: num(p.version) ?? 0, text: str(p.text) } : null
+}
+
 export function parsePay(raw: unknown): PayView | null {
   const d = (raw ?? {}) as Record<string, unknown>
   const step = STEPS.find((s) => s === d.step)
   if (!step) return null
   const p = d.policy as Record<string, unknown> | null | undefined
+  const policy = readPolicy(p)
+  const items = Array.isArray(d.items)
+    ? d.items.flatMap((i: unknown) => {
+        const r = (i ?? {}) as Record<string, unknown>
+        return str(r.name).trim() ? [{ name: str(r.name), quantity: num(r.quantity) ?? 1 }] : []
+      })
+    : []
   return {
     step,
     amount: num(d.amount),
@@ -57,8 +82,17 @@ export function parsePay(raw: unknown): PayView | null {
     retainerPaid: d.retainerPaid === true,
     balancePaid: d.balancePaid === true,
     contractLink: str(d.contractLink) || null,
-    policy: p && typeof p === "object" && str(p.text).trim() !== "" ? { id: str(p.id), version: num(p.version) ?? 0, text: str(p.text) } : null,
+    policy,
     hasAccount: d.hasAccount === true,
+    // An older admin sends no flag: a policy present means it is required.
+    policyRequired: typeof d.policyRequired === "boolean" ? d.policyRequired : policy !== null,
+    policyAccepted: d.policyAccepted === true,
+    eventTime: str(d.eventTime).trim() || null,
+    guestCount: num(d.guestCount),
+    package: str(d.package).trim() || null,
+    items,
+    balance: num(d.balance),
+    balanceDueDate: str(d.balanceDueDate).slice(0, 10) || null,
   }
 }
 
@@ -73,6 +107,31 @@ export const payLinkApi = {
       return view ? { kind: "ok", view } : { kind: "error" }
     } catch {
       return { kind: "error" }
+    }
+  },
+  /* Tells the admin the customer ticked the policy box (S9-CONTRACT section
+     10), before the pay form opens. The first acceptance stands, so calling
+     again is harmless. A 409 policy-changed carries the current text. The
+     admin does not refuse a payment without it; the screen does. */
+  policy: async (token: string, policyId: string): Promise<PolicyResult> => {
+    if (import.meta.env.DEV && token.startsWith("mock-")) return (await import("./payLinkMock")).mockPayPolicy(token, policyId)
+    try {
+      const res = await fetch(`${ADMIN_API}/api/pay/${encodeURIComponent(token)}/policy`, {
+        method: "POST",
+        credentials: "omit",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accept: true, policyId }),
+      })
+      if (res.ok) return { ok: true }
+      const d = (await res.json().catch(() => ({}))) as Record<string, unknown>
+      const message = typeof d.error === "string" ? d.error : FALLBACK
+      // Nothing to accept here: the contract is the agreement, or no policy exists.
+      if (d.reason === "not-needed" || d.reason === "no-policy") return { ok: true }
+      if (d.reason === "policy-changed") return { ok: false, reason: "policy-changed", message, policy: readPolicy(d.policy as Record<string, unknown> | undefined) ?? undefined }
+      if (d.reason === "closed") return { ok: false, reason: "closed", message }
+      return { ok: false, reason: "error", message }
+    } catch {
+      return { ok: false, reason: "error", message: FALLBACK }
     }
   },
   /* An embedded Stripe form for what is owed. The form's completion is
