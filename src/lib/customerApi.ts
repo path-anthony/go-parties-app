@@ -35,6 +35,15 @@ export interface BookingUnit {
   itemName: string
 }
 
+export interface BookingCancellation {
+  id: string
+  status: "waiting" | "approved" | "declined"
+  requestedAt: string
+  /* Null while waiting. */
+  decidedAt: string | null
+  reason: string | null
+}
+
 export interface CustomerBooking {
   id: string
   eventDate: string
@@ -72,8 +81,18 @@ export interface CustomerBooking {
   /* The booking's own total (null until priced) and its occasion. */
   total?: number | null
   occasion?: string | null
-  /* Not sent by the admin today (S9b contract gap); shown when it is. */
+  /* Block S9c (S9-CONTRACT sections 12 and 13). A whole number or null. */
   guestCount?: number | null
+  /* The rental policy: whether this booking has one to accept (false on a
+     contract booking), and whether the customer has accepted it themselves,
+     in the store or on the pay link. A staff "customer agreed" tick does not
+     count. Absent from an older admin, which reads as nothing to ask. */
+  policyRequired?: boolean
+  policyAccepted?: boolean
+  policyAcceptedAt?: string | null
+  /* The newest request to cancel and what became of it; null when the
+     customer never asked. Replaces the device memory S9b kept. */
+  cancellation?: BookingCancellation | null
   units: BookingUnit[]
   /* What was picked for which item, as booked. */
   addons?: Array<{ itemId: string | null; itemName: string; groupName: string; addonName: string; priceDelta: number; quantity: number }>

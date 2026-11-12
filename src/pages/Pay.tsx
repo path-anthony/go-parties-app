@@ -8,7 +8,7 @@ import { Letterhead } from "@/components/go/Letterhead"
 import { MetaCard } from "@/components/go/MetaCard"
 import { PAYMENT_SOON, PAYMENT_SOON_BALANCE, PaymentForm } from "@/components/go/PaymentForm"
 import { usePrivateLink } from "@/hooks/use-private-link"
-import { longDay } from "@/lib/nextStep"
+import { longDay, shortDay } from "@/lib/nextStep"
 import { payLinkApi, type PayLoad, type PayView } from "@/lib/payLinkApi"
 import { waitForPayment, type PaymentOffer } from "@/lib/paymentApi"
 import { paymentAvailable } from "@/lib/stripe"
@@ -22,11 +22,16 @@ import { usePublicSettings } from "@/lib/settings"
 
    What it shows is what the admin returns for the token: who it is for, the
    event date, the amount owed and whether it is the retainer or the balance,
-   and what has been paid. The admin returns no items, so none are listed.
+   and what has been paid. Block S9c adds what the admin now returns: the
+   items (or package name), the event time, the guest count, and the balance
+   with its due date.
    The amount is the admin's and never computed here. By step:
      sign      the contract comes first: a button to the existing contract page
      retainer  the rental policy (for a booking with no contract) to read and
-               accept, then Pay opens Stripe's own form on this page
+               accept; ticking the box tells the admin (POST /api/pay/:token
+               /policy) before Pay opens Stripe's own form on this page. A
+               policy the customer already accepted is not shown again, and a
+               policy saved since the page loaded is shown again to re-accept
      balance   the amount, then Pay
      nothing   all paid up; closed: nothing is owed
    After the form reports done the admin is asked (never assumed) and the
@@ -75,7 +80,12 @@ export default function Pay() {
   const phone = settings?.companyPhone ?? settings?.rushContactPhone ?? null
   const [load, setLoad] = useState<PayLoad | null>(null)
   const [round, setRound] = useState(0)
-  const [accepted, setAccepted] = useState(false)
+  // The policy box: ticking it tells the admin, so it is only "ticked" once
+  // that is recorded. A newer policy (409 policy-changed) replaces the text.
+  const [ticked, setTicked] = useState(false)
+  const [recording, setRecording] = useState(false)
+  const [recorded, setRecorded] = useState(false)
+  const [newerPolicy, setNewerPolicy] = useState<PayView["policy"]>(null)
   const [offer, setOffer] = useState<PaymentOffer | null>(null)
   const [phase, setPhase] = useState<"view" | "starting" | "form" | "checking" | "paid" | "unconfirmed">("view")
   const [error, setError] = useState<string | null>(null)
@@ -91,6 +101,24 @@ export default function Pay() {
     setLoad(null)
     setRound((n) => n + 1)
   }, [])
+
+  const tick = async (checked: boolean, policyId: string) => {
+    setError(null)
+    if (!checked) return setTicked(false)
+    setTicked(true)
+    setRecording(true)
+    const r = await payLinkApi.policy(token, policyId)
+    setRecording(false)
+    if (r.ok) return setRecorded(true)
+    setTicked(false)
+    if (r.reason === "policy-changed" && r.policy) {
+      setNewerPolicy(r.policy)
+      setError("The policy was updated. Read it again, then check the box.")
+      return
+    }
+    setError(r.message)
+    if (r.reason !== "error") retry()
+  }
 
   const start = async () => {
     setError(null)
@@ -208,10 +236,14 @@ export default function Pay() {
   // retainer or balance
   const kind = v.step
   const owed = v.amount ?? 0
-  const policyFirst = kind === "retainer" && v.policy !== null
-  const ready = !policyFirst || accepted
+  const policy = newerPolicy ?? v.policy
+  const needsPolicy = v.policyRequired && !v.policyAccepted && policy !== null
+  const ready = !needsPolicy || recorded
   const available = offer ? paymentAvailable(offer) : true
   const soon = kind === "balance" ? PAYMENT_SOON_BALANCE : PAYMENT_SOON
+  const when = v.eventDate ? `${shortDay(v.eventDate)}${v.eventTime ? `, ${v.eventTime}` : ""}` : "To be set"
+  const afterRetainer = kind === "retainer" && v.balance !== null && v.balance > 0 ? `Then your balance of ${usd(v.balance)} is due${v.balanceDueDate ? ` ${shortDay(v.balanceDueDate)}` : " before the event"}.` : null
+  const balanceDue = kind === "balance" && v.balanceDueDate ? `Due ${shortDay(v.balanceDueDate)}.` : null
 
   return (
     <Frame>
@@ -223,28 +255,52 @@ export default function Pay() {
       </p>
 
       <div className="mt-3.5 grid grid-cols-2 gap-2">
-        <MetaCard label="Event" value={v.eventDate ? longDay(v.eventDate).replace(/^\w+, /, "") : "To be set"} />
+        <MetaCard label="Event" value={when} />
         <MetaCard label={kind === "balance" ? "Balance due" : "Retainer due"} value={usd(owed)} />
       </div>
+      {(afterRetainer || balanceDue) && <p className="mt-2 text-small text-charcoal-soft">{afterRetainer ?? balanceDue}</p>}
       {v.total !== null && v.total > 0 && (
-        <p className="mt-2 text-small text-muted">
+        <p className="mt-1 text-small text-muted">
           Total {usd(v.total)}. Paid so far {usd(v.paid)}.
         </p>
       )}
 
-      {policyFirst && v.policy && (
+      {(v.package || v.items.length > 0 || v.guestCount !== null) && (
+        <div className="mt-4">
+          <GoLabel>What you booked</GoLabel>
+          <div className={`mt-1.5 ${card}`}>
+            {v.package && <b className="block text-sm text-charcoal">{v.package}</b>}
+            {v.items.map((i, n) => (
+              <div key={`${i.name}-${n}`} className="flex items-baseline justify-between gap-3 text-small text-charcoal-soft">
+                <span>{i.name}</span>
+                {i.quantity > 1 && <span className="flex-none text-muted">x{i.quantity}</span>}
+              </div>
+            ))}
+            {v.guestCount !== null && <p className={`${v.package || v.items.length > 0 ? "mt-1.5 " : ""}text-small text-muted`}>{v.guestCount === 1 ? "1 guest" : `${v.guestCount} guests`}</p>}
+          </div>
+        </div>
+      )}
+
+      {needsPolicy && policy && !recorded && (
         <div className="mt-4">
           <GoLabel>Rental policy</GoLabel>
           <div className={`mt-1.5 ${card}`}>
-            <p className="max-h-64 overflow-y-auto text-small whitespace-pre-line text-charcoal-soft">{v.policy.text}</p>
+            <p className="max-h-64 overflow-y-auto text-small whitespace-pre-line text-charcoal-soft">{policy.text}</p>
           </div>
           <label className="mt-2.5 flex cursor-pointer items-start gap-3 text-sm text-charcoal">
-            <input type="checkbox" className="mt-0.5 size-5 flex-none cursor-pointer accent-charcoal" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} disabled={phase !== "view"} />
+            <input
+              type="checkbox"
+              className="mt-0.5 size-5 flex-none cursor-pointer accent-charcoal"
+              checked={ticked}
+              onChange={(e) => tick(e.target.checked, policy.id)}
+              disabled={phase !== "view" || recording}
+            />
             <span>I have read and agree to the rental policy</span>
           </label>
-          {!accepted && <p className="mt-1 pl-8 text-small text-muted">Check the box to pay.</p>}
+          {recording ? <p className="mt-1 pl-8 text-small text-muted">Saving.</p> : !ticked && <p className="mt-1 pl-8 text-small text-muted">Check the box to pay.</p>}
         </div>
       )}
+      {(v.policyAccepted || recorded) && v.policyRequired && <p className="mt-3 text-small text-muted">Rental policy accepted.</p>}
 
       {error && <ErrorNotice className="mt-4">{error}</ErrorNotice>}
 

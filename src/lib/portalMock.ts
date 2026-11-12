@@ -49,6 +49,24 @@ const rows: Row[] = [
     contract: null,
     retainer: { amount: 210, paid: false, payable: true },
     balance: { amount: 490, dueDate: day(23).slice(0, 10), paid: false, payable: false },
+    // Staff made this one by phone: the policy is not accepted yet.
+    policyRequired: true,
+    policyAccepted: false,
+    policyAcceptedAt: null,
+    guestCount: 1,
+  }),
+  // S9c: the same kind of booking after the customer accepted the policy.
+  base("bk-held-ok", "Held", 1, [unit("Cotton Candy Machine")], {
+    eventDate: day(38),
+    steps: [{ key: "retainer", state: "next" }],
+    contract: null,
+    retainer: { amount: 40, paid: false, payable: true },
+    balance: { amount: 160, dueDate: day(31).slice(0, 10), paid: false, payable: false },
+    policyRequired: true,
+    policyAccepted: true,
+    policyAcceptedAt: "2026-11-13T15:02:40.000Z",
+    guestCount: 60,
+    total: 200,
   }),
   base("bk-requested", "Requested", 2, [unit("Go DJ"), unit("Uplighting", 2)], {
     eventDate: day(45),
@@ -156,6 +174,12 @@ const rows: Row[] = [
     retainer: { amount: 45, paid: true, paidAt: "2026-11-02T15:10:00.000Z", payable: false },
     balance: { amount: 180, dueDate: day(19).slice(0, 10), paid: false, payable: true },
     total: 225,
+    policyRequired: true,
+    policyAccepted: true,
+    policyAcceptedAt: "2026-11-02T15:05:00.000Z",
+    guestCount: 80,
+    // Asked to cancel once and staff said no: the booking is as it was.
+    cancellation: { id: "cr-old", status: "declined", requestedAt: "2026-11-09T15:04:11.000Z", decidedAt: "2026-11-10T14:30:00.000Z", reason: "We moved the party." },
   }),
   base("bk-allset", "Confirmed", 1, [unit("Cotton Candy Machine")], {
     eventDate: day(35),
@@ -180,9 +204,18 @@ const rows: Row[] = [
     retainer: { amount: 30, paid: true, paidAt: "2026-11-02T15:10:00.000Z", payable: false },
     balance: { amount: 120, dueDate: day(26).slice(0, 10), paid: false, payable: true },
     pendingRequest: { type: "cancellation", id: "cr-1", status: "open", requestedAt: new Date().toISOString(), reason: "We moved the party." },
+    cancellation: { id: "cr-1", status: "waiting", requestedAt: new Date().toISOString(), decidedAt: null, reason: "We moved the party." },
   }),
   base("bk-done", "Completed", 1, [unit("Snow Cone Station")], { eventDate: day(-14), depositPaid: true, steps: [], retainer: { amount: 60, paid: true, payable: false }, balance: { amount: 140, dueDate: day(-21).slice(0, 10), paid: true, payable: false } }),
   base("bk-cancelled", "Cancelled", 1, [], { eventDate: day(-3), steps: [], retainer: null, balance: null }),
+  // S9c: a cancelled booking whose request staff approved.
+  base("bk-cancel-approved", "Cancelled", 1, [unit("Test Gladiator Bounce House")], {
+    eventDate: day(20),
+    steps: [],
+    retainer: null,
+    balance: null,
+    cancellation: { id: "cr-ok", status: "approved", requestedAt: "2026-11-11T15:04:11.000Z", decidedAt: "2026-11-12T14:30:00.000Z", reason: "We moved the party." },
+  }),
   base("bk-released", "Released", 1, [unit("Test Gladiator Bounce House")], { eventDate: day(40), steps: [], retainer: null, balance: null }),
 ]
 
@@ -325,6 +358,10 @@ export async function mockRequestCancel(id: string, body: { reason: string; acce
   if (paid > 0 && body.acceptTerms !== true) {
     return { ok: false, status: 409, reason: "terms-required", message: "A retainer has been paid on this booking. Read and accept the retainer terms to ask to cancel, or call or text GO." }
   }
-  if (!b.pendingRequest) b.pendingRequest = { type: "cancellation", id: `cr-${id}`, status: "open", requestedAt: new Date().toISOString(), reason: body.reason || null }
+  if (!b.pendingRequest) {
+    const at = new Date().toISOString()
+    b.pendingRequest = { type: "cancellation", id: `cr-${id}`, status: "open", requestedAt: at, reason: body.reason || null }
+    b.cancellation = { id: `cr-${id}`, status: "waiting", requestedAt: at, decidedAt: null, reason: body.reason || null }
+  }
   return { ok: true, data: { ...strip(b), paid, terms: paid > 0 ? termsFor(b) : null, message: "We got your request to cancel. Your booking is still in place until our team reviews it, and we will email you with the outcome." } }
 }

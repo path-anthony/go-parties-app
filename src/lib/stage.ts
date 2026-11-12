@@ -97,11 +97,24 @@ const VIEWS: Record<string, StageView> = {
    over. Never as Confirmed. */
 const AWAITING: StageView = { label: "Awaiting retainer", message: "Your date is held until the retainer is paid.", tone: "pending", live: true }
 const ASKED: StageView = { label: "Cancellation requested", message: "Cancellation requested. We will contact you.", tone: "pending", live: true }
-const APPROVED: StageView = { ...VIEWS.Cancelled, message: "Cancellation approved. This booking is cancelled and the date is open again." }
+const dayOf = (iso: string | null | undefined): string => {
+  const [y, m, d] = (iso ?? "").slice(0, 10).split("-").map(Number)
+  return y && m && d ? new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""
+}
 
-export function stageView(booking: Pick<CustomerBooking, "stage" | "status"> & Partial<Pick<CustomerBooking, "tier" | "retainer" | "pendingRequest">>, opts: { cancelApproved?: boolean } = {}): StageView {
-  if (booking.pendingRequest) return ASKED
-  if (booking.stage === "Cancelled" && opts.cancelApproved) return APPROVED
+/* A request to cancel is waiting on staff. */
+export const cancelWaiting = (b: Pick<CustomerBooking, "pendingRequest" | "cancellation">): boolean => Boolean(b.pendingRequest) || b.cancellation?.status === "waiting"
+
+/* "Cancellation approved Nov 14. This booking is cancelled and the date is
+   open again." */
+function approved(b: Pick<CustomerBooking, "cancellation">): StageView {
+  const on = dayOf(b.cancellation?.decidedAt)
+  return { ...VIEWS.Cancelled, message: `Cancellation approved${on ? ` ${on}` : ""}. This booking is cancelled and the date is open again.` }
+}
+
+export function stageView(booking: Pick<CustomerBooking, "stage" | "status"> & Partial<Pick<CustomerBooking, "tier" | "retainer" | "pendingRequest" | "cancellation">>): StageView {
+  if (cancelWaiting(booking)) return ASKED
+  if (booking.stage === "Cancelled" && booking.cancellation?.status === "approved") return approved(booking)
   if (booking.stage === "Held" && booking.retainer && !booking.retainer.paid) return AWAITING
   if (booking.stage === "Retainer Paid" && booking.tier === 1) return VIEWS.Confirmed
   const known = booking.stage ? VIEWS[booking.stage] : undefined
