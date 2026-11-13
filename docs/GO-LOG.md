@@ -1,5 +1,15 @@
 # GO! Event Group · project log
 
+## 2026-11-13 (Block G1 admin, Ask GO suggested replies, merged and deployed)
+
+**Where we are:** Every Ask GO reply from the admin now carries its own suggested replies. `POST /api/recommend` returns `suggestions`, 2 to 4 short tap-to-send lines written by the same model call that writes the message, so there is no extra request. A reply that asks a question gets plausible answers to it (a bachelor party asked for its budget got "Under $2000", "$2000 to $5000", "$5000 to $10000", "Not sure yet" on the live route); a reply that recommends items gets next moves for that party and lineup. `GET /api/recommend/starters` serves four opening lines for an empty chat, one per kind of party, with no model call. Admin main is `71ba3cd`. No migration. How Ask GO picks items and prices is unchanged.
+
+**What we decided:** The admin never falls back to fixed text. When the model sends none, something malformed, or fewer than two lines survive the checks, `suggestions` is an empty list and the store shows no buttons. The admin checks each line after the model: 6 words or fewer, plain text, and fit for the audience (an adult party never gets a line about kids or parents, a kids party never gets an adult-only one). The opening lines are written on the server and rotate by day, because before the first message there is no conversation for the model to read.
+
+**What the storefront needs:** Read `suggestions` (an array of strings, always present) on every `POST /api/recommend` response and draw one button per string, none when it is empty. Delete the three hardcoded buttons. Before the first message, draw the buttons from `GET /api/recommend/starters` (same field name; optional `?occasion=` with the kind the customer picked). A tap sends the string as the customer's next message. Example JSON is in the admin's `docs/S9-CONTRACT.md`, sections 15 to 17.
+
+**What's next:** The storefront change above. Until it ships, customers still see the old three buttons.
+
 ## 2026-11-15 (Block S9c, the store uses the admin's new answers, merged to main, not deployed)
 
 **Where we are:** The pay screen, My party and the cancellation notice now read what the admin's Block F3b returns (S9-CONTRACT sections 10 to 14, live). Branch `s9c-catchup` merged to main. Nothing is deployed and no Vercel command was run. Types are clean, lint is at the 12-warning baseline and the build passes.
