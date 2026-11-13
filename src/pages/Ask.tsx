@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast"
 import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { useBooking, type DirectItem } from "@/state/booking"
 import { OPENER, useAsk } from "@/state/ask"
+import { fetchStarters } from "@/lib/askSuggestions"
 import { cn } from "@/lib/utils"
 
 /* Ask GO, the page (Block S1; the party it builds is "Cart" since S2).
@@ -38,8 +39,6 @@ import { cn } from "@/lib/utils"
    with no price reads "Price on request", is never offered as a swap and
    stays out of checkout (one line under the total says so). */
 
-const QUICK = ["Add something for the parents", "Keep it under $800", "It might rain"]
-
 export default function Ask() {
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -53,6 +52,7 @@ export default function Ask() {
   const [switching, setSwitching] = useState(false)
   const [switchNotice, setSwitchNotice] = useState<string | null>(null)
   const [tier, setTier] = useState<TierInfo | null>(null)
+  const [starters, setStarters] = useState<string[]>([])
   const endRef = useRef<HTMLDivElement>(null)
 
   const party = ask.party
@@ -64,9 +64,25 @@ export default function Ask() {
   const dayLabel = b.itemDate ? labelForIso(b.itemDate) : null
   const changeFor = b.changeFor
 
+  // Block G1: before the first message the buttons are the admin's starters
+  // (kept in step with the occasion picked on the store); after it, the
+  // latest reply's own suggestions. Empty or failed means no buttons.
+  const fresh = ask.messages.length === 0
+  useEffect(() => {
+    if (!fresh) return
+    let live = true
+    fetchStarters(b.occ).then((list) => {
+      if (live) setStarters(list)
+    })
+    return () => {
+      live = false
+    }
+  }, [fresh, b.occ])
+  const chips = fresh ? starters : ask.suggestions
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "nearest" })
-  }, [ask.messages.length, ask.loading, ask.error])
+  }, [ask.messages.length, ask.loading, ask.error, chips.length])
 
   // The tier note for the party as it stands: asked with the party date
   // once there is one; the admin alone decides it.
@@ -198,13 +214,20 @@ export default function Ask() {
             </div>
           )}
           <div ref={endRef} />
-          <div className="flex flex-wrap gap-2">
-            {QUICK.map((q) => (
-              <button key={q} className="min-h-[44px] rounded-full border-[1.5px] border-line min-[641px]:min-h-[36px] bg-white px-3 py-1.5 text-[12.5px] font-semibold text-charcoal disabled:opacity-50" disabled={ask.loading} onClick={() => submit(q)}>
-                {q}
-              </button>
-            ))}
-          </div>
+          {chips.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {chips.map((q) => (
+                <button
+                  key={q}
+                  className="min-h-[44px] max-w-full rounded-full border-[1.5px] border-line bg-white px-3.5 py-1.5 text-left text-[12.5px] font-semibold text-charcoal min-[641px]:min-h-[36px] disabled:opacity-50"
+                  disabled={ask.loading}
+                  onClick={() => submit(q)}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
           {ask.error && <ErrorNotice>{ask.error}</ErrorNotice>}
           <form
             className="flex gap-2"

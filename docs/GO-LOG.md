@@ -1,5 +1,17 @@
 # GO! Event Group · project log
 
+## 2026-11-13 (Block G1 storefront, Ask GO suggested replies, merged to main, not deployed)
+
+**Where we are:** The buttons under the Ask GO chat now come from the admin. The three fixed ones ("Add something for the parents", "Keep it under $800", "It might rain") and the `QUICK` list are deleted, and there is no other fixed suggestion text in the app. Branch `g1-ask-suggestions` merged to main. Nothing is deployed and no Vercel command was run. Types are clean, lint is at the 12-warning baseline and the build passes.
+
+**What changed:** (1) After every reply the buttons are that reply's `suggestions` (`src/state/ask.tsx`); a new reply replaces them, sending clears them, and a failed send leaves none. (2) Before the first message they are `GET /api/recommend/starters` (`src/lib/askSuggestions.ts`), with `?occasion=` when the customer picked Kids party, Adult party, Wedding or Corporate on the store. (3) Tapping one sends the string as the customer's message, as typed. (4) An empty list, a missing field or a failed starters call draws nothing and leaves no gap: the row is not rendered. (5) The buttons wrap onto more lines on a phone and never scroll sideways; a long one wraps inside its own pill.
+
+**What we decided:** The starters are kept in memory for five minutes (the admin caches them as long) and a failure for one minute, and a call in flight is shared, because the admin allows about 20 a hour per address and a customer going back and forth to the store would otherwise spend them. The admin's strings are shown as sent, only trimmed, de-duplicated and cut to four. "Looks good, book it" is a message like any other; the store does not send the customer to the cart on that tap.
+
+**Checked / not checked:** Checked on the dev mock at 390 and 1280: starters before the first message, a question reply (budget answers, one long one wrapping), a lineup reply (next moves), buttons replaced after each reply, an empty reply (no buttons, no extra gap, the form sits the usual 10px under the last card), `?starters=none` and a real failed call (no buttons), no sideways scroll. The live starters route answers with four strings. Not checked: real `suggestions` on a live `POST /api/recommend` reply (it uses the AI and the admin's daily cap).
+
+**What's next:** Anthony deploys. After it, try Ask GO once on the live site and look at the buttons on a kids party and an adult party.
+
 ## 2026-11-13 (Block G1 admin, Ask GO suggested replies, merged and deployed)
 
 **Where we are:** Every Ask GO reply from the admin now carries its own suggested replies. `POST /api/recommend` returns `suggestions`, 2 to 4 short tap-to-send lines written by the same model call that writes the message, so there is no extra request. A reply that asks a question gets plausible answers to it (a bachelor party asked for its budget got "Under $2000", "$2000 to $5000", "$5000 to $10000", "Not sure yet" on the live route); a reply that recommends items gets next moves for that party and lineup. `GET /api/recommend/starters` serves four opening lines for an empty chat, one per kind of party, with no model call. Admin main is `71ba3cd`. No migration. How Ask GO picks items and prices is unchanged.
