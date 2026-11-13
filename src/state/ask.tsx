@@ -4,6 +4,7 @@ import { ADMIN_API } from "@/lib/adminApi"
 import { contactFrom, contactInChat } from "@/lib/contact"
 import { useCustomer } from "@/state/customer"
 import { mockMode } from "@/lib/mock"
+import { cleanSuggestions } from "@/lib/askSuggestions"
 import type { AddonGroup } from "@/lib/addons"
 import { useBooking, type DirectItem } from "@/state/booking"
 
@@ -55,6 +56,8 @@ interface AskApiResponse {
   items?: RecommendItem[]
   total?: number
   suggestConcierge?: boolean
+  /* Block G1: tappable replies for the customer's next message. */
+  suggestions?: string[]
 }
 
 export const OPENER = "Tell me the party. I'll build it."
@@ -68,6 +71,10 @@ interface AskState {
   /* True once a recommendation has come back at least once. */
   ready: boolean
   suggestConcierge: boolean
+  /* Block G1: the latest reply's suggested replies, shown as buttons. They
+     belong to that reply: sending clears them and the next reply replaces
+     them. Empty means no buttons. */
+  suggestions: string[]
   /* "GO just updated this" until the customer looks at the party. */
   updated: boolean
   startedAt: number
@@ -85,7 +92,7 @@ interface AskApi extends AskState {
   reset: () => void
 }
 
-const INITIAL: AskState = { messages: [], party: [], loading: false, error: null, ready: false, suggestConcierge: false, updated: false, startedAt: 0, hp: "" }
+const INITIAL: AskState = { messages: [], party: [], loading: false, error: null, ready: false, suggestConcierge: false, suggestions: [], updated: false, startedAt: 0, hp: "" }
 
 const Ctx = createContext<AskApi | null>(null)
 
@@ -104,7 +111,7 @@ export function AskProvider({ children }: { children: React.ReactNode }) {
       if (!t || cur.loading) return
       const started = cur.messages.length === 0 ? Date.now() : cur.startedAt
       const next: ChatMessage[] = [...cur.messages, { role: "user", content: t }]
-      setS((p) => ({ ...p, messages: next, startedAt: started, loading: true, error: null }))
+      setS((p) => ({ ...p, messages: next, startedAt: started, loading: true, error: null, suggestions: [] }))
       try {
         // Block S9b: who is asking, when the customer is signed in or gave it.
         const who = { ...contactFrom(customer, { name: contactName, email, phone }), ...contactInChat(next) }
@@ -125,6 +132,7 @@ export function AskProvider({ children }: { children: React.ReactNode }) {
         setS((p) => ({
           ...p,
           loading: false,
+          suggestions: cleanSuggestions(data.suggestions),
           messages: [...p.messages, { role: "assistant", content: data.message, changed: data.ready }],
           ...(data.ready
             ? { party: (data.items ?? []).map(toDirectItem), ready: true, updated: true, suggestConcierge: data.suggestConcierge === true }
