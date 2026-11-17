@@ -1,5 +1,15 @@
 # GO! Event Group · project log
 
+## 2026-11-17 (Bug audit of the client's nine reports, read only)
+
+**Where we are:** The client's nine reports from testing the live store and admin are traced to their causes in `docs/BUGS-AUDIT.md` in the admin repo (admin main `8d290db`). Nothing was changed. All nine reproduced from screenshots, code or production data. The most serious: no step anywhere multiplies a per-guest item (catering, bar, decor, 24 items) by the guest count, so the cart, the tier, the hold, the Stripe retainer and the computed contract all charge one guest; and the cart drawer's quantity control is never sent, so a customer can see 3 of an item priced and be held and charged for 1. Also found: the hold refuses more than 10 items while Ask GO may build 20; every "ready" Ask GO reply replaces the cart and the model never sees it; the store's two carts are in memory only and do not join up.
+
+**What we decided:** Nothing yet. Suggested fix order: the 10-item cap, then per-guest pricing (after deciding how catering items count against stock: each has only one unit today), then Ask GO's cart behaviour, then one saved cart, then the small storefront items (occasion, search, wedding wording, contract date), then an item detail view.
+
+**What the storefront needs:** Most fixes are storefront work: one cart saved to the browser, quantities and the guest count sent with the tier call and the hold, Ask GO cart cards that keep their own totals, no stale occasion on Ask GO and "Talk to us", word-based search, clearer wedding details wording, and a hint on the contract's date box. Details and file lines are in the admin's `docs/BUGS-AUDIT.md`.
+
+**What's next:** Anthony picks the fix order and the per-guest stock rule. Also noted: production's retainer is now 30% while the client's screenshots show 20%, and the saved rental policy text still says "deposit" and "20%".
+
 ## 2026-11-13 (Block G1 storefront, Ask GO suggested replies, merged to main, not deployed)
 
 **Where we are:** The buttons under the Ask GO chat now come from the admin. The three fixed ones ("Add something for the parents", "Keep it under $800", "It might rain") and the `QUICK` list are deleted, and there is no other fixed suggestion text in the app. Branch `g1-ask-suggestions` merged to main. Nothing is deployed and no Vercel command was run. Types are clean, lint is at the 12-warning baseline and the build passes.
