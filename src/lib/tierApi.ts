@@ -1,6 +1,7 @@
 import { parseGoDocument, type GoDocument } from "@/components/go/contract/types"
 import { ADMIN_API } from "@/lib/adminApi"
 import { mockMode } from "@/lib/mock"
+import { refusedItems } from "@/lib/refusals"
 
 /* The tier decision for a cart: which agreement the booking needs. The admin
    alone knows the thresholds (they are not public), so the storefront asks
@@ -20,8 +21,22 @@ export interface TierQuote {
   document: GoDocument
 }
 
+/* Block FIX1: how the admin priced each line (S9-CONTRACT section 18). The
+   screens show these figures, not their own sum. */
+export interface TierLine {
+  itemId: string
+  name: string
+  perGuest: boolean
+  quantity: number
+  guests: number | null
+  unitPrice: number | null
+  lineTotal: number | null
+}
+
 export interface TierInfo {
   tier: Tier
+  lines: TierLine[]
+  guestCount: number | null
   reasons: string[]
   total: number | null
   retainerPercent: number | null
@@ -39,6 +54,8 @@ export interface TierInput {
   itemIds: string[]
   packageId: string | null
   addons: Record<string, string[]> | null
+  /* Block FIX1: { [itemId]: n } for counts above one; null when none. */
+  quantities?: Record<string, number> | null
   eventDate: string
   eventTime: string | null
   occasion: string | null
@@ -51,9 +68,11 @@ export interface TierInput {
   guestCount?: number | null
 }
 
-/* reason and field are the admin's, set on the one refusal the screen
-   handles in place: address-not-exact, field "address". */
-export type TierResult = { ok: true; tier: TierInfo } | { ok: false; message: string; reason?: string; field?: string }
+/* reason and field are the admin's, set on the refusals the screen handles
+   in place: address-not-exact (field "address"), guest-count-required (field
+   "guestCount"), and since Block FIX1 an item the date cannot hold, whose
+   sentences go beside the items they name (itemNotices). */
+export type TierResult = { ok: true; tier: TierInfo } | { ok: false; message: string; reason?: string; field?: string; refusedNames?: Record<string, string> }
 
 const FALLBACK = "That didn't go through. Try again, or text us."
 
@@ -70,8 +89,18 @@ export function parseTier(data: unknown): TierInfo | null {
   const document = c ? parseGoDocument(c.document) : null
   const quoteId = c ? str(c.quoteId) : null
   const contentHash = c ? str(c.contentHash) : null
+  const lines = Array.isArray(d.lines)
+    ? d.lines.flatMap((x: unknown): TierLine[] => {
+        const l = x as Record<string, unknown>
+        const itemId = str(l?.itemId)
+        if (!itemId) return []
+        return [{ itemId, name: str(l.name) ?? "", perGuest: l.perGuest === true, quantity: num(l.quantity) ?? 1, guests: num(l.guests), unitPrice: num(l.unitPrice), lineTotal: num(l.lineTotal) }]
+      })
+    : []
   return {
     tier,
+    lines,
+    guestCount: num(d.guestCount),
     reasons: Array.isArray(d.reasons) ? d.reasons.filter((r): r is string => typeof r === "string") : [],
     total: num(d.total),
     retainerPercent: num(d.retainerPercent),
@@ -89,6 +118,7 @@ export function tierBody(input: TierInput): Record<string, unknown> {
   else body.itemIds = input.itemIds
   if (input.packageId) body.packageId = input.packageId
   if (input.addons) body.addons = input.addons
+  if (input.quantities) body.quantities = input.quantities
   if (input.occasion) body.occasion = input.occasion
   if (input.placeId) body.placeId = input.placeId
   if (input.address) body.address = input.address
@@ -118,11 +148,13 @@ export async function fetchTier(input: TierInput, signal?: AbortSignal): Promise
     const said = (data as { error?: unknown } | null)?.error
     const reason = (data as { reason?: unknown } | null)?.reason
     const field = (data as { field?: unknown } | null)?.field
+    const notices = refusedItems(data)
     return {
       ok: false,
       message: !res.ok && typeof said === "string" && said.trim() ? said : FALLBACK,
       ...(typeof reason === "string" ? { reason } : {}),
       ...(typeof field === "string" ? { field } : {}),
+      ...(notices ? { refusedNames: notices } : {}),
     }
   } catch (err) {
     if ((err as { name?: string }).name === "AbortError") throw err

@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search"
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useCatalog, priceText } from "@/lib/storeCatalog"
@@ -28,8 +29,9 @@ export function SearchBox({ className = "" }: { className?: string }) {
 
   const needle = q.trim().toLowerCase()
   const live = open && needle.length >= 2
-  const cats = live && catalog.status === "ready" ? catalog.categories.filter((c) => c.toLowerCase().includes(needle)) : []
-  const items = live && catalog.status === "ready" ? catalog.items.filter((i) => i.name.toLowerCase().includes(needle)).slice(0, MAX_ITEMS) : []
+  // Block FIX1: words, spaces, hyphens and simple plurals (lib/search.ts).
+  const cats = live && catalog.status === "ready" ? catalog.categories.filter((c) => matchesSearch(needle, c)) : []
+  const items = live && catalog.status === "ready" ? catalog.items.filter((i) => matchesSearch(needle, i.name, i.description)).slice(0, MAX_ITEMS) : []
   const nothing = live && catalog.status === "ready" && cats.length === 0 && items.length === 0
 
   const go = (to: string) => {

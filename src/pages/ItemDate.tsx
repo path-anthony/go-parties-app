@@ -1,3 +1,4 @@
+import { isPerGuest } from "@/lib/pricing"
 import { useState } from "react"
 import { Navigate, useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
@@ -48,7 +49,7 @@ export default function ItemDate() {
         <h1 className="mt-1.5 text-hero text-charcoal">When do you need {items.length === 1 ? "it" : "them"}?</h1>
         <div className="mt-3.5">
           <CartItems
-            items={items}
+            items={items.map((i) => ({ ...i, perGuest: isPerGuest(i) && !b.bundle }))}
             bundle={b.bundle}
             onRemove={removeItem}
             onConfigure={() => navigate(`${here}/options`, { state: { from: here } })}

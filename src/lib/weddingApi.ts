@@ -190,15 +190,20 @@ export function weddingStatusText(d: WeddingDetails): string {
   return `${d.requiredDone} of ${d.requiredTotal} done`
 }
 
-/* "Due Oct 14", or, inside two weeks and not yet sent, "Due in 9 days"
-   in the error style. */
-const URGENT_DAYS = 14
+/* Block FIX1 (BUGS-AUDIT item 8). "Due Jan 28" in the normal color until
+   the last week; the same words in the error style within 7 days (and
+   "Due today" on the day); once the day has passed and nothing was sent,
+   "Due date passed, please send it". Never "Due today" after the date. A
+   form already sent is never urgent. */
+const URGENT_DAYS = 7
 export function weddingDueText(d: WeddingDetails): { text: string; urgent: boolean } | null {
   if (!d.dueDate) return null
   const n = daysUntil(d.dueDate)
-  const urgent = d.status !== "submitted" && n <= URGENT_DAYS
-  if (!urgent) return { text: `Due ${monthDay(d.dueDate)}`, urgent: false }
-  return { text: n <= 0 ? "Due today" : n === 1 ? "Due in 1 day" : `Due in ${n} days`, urgent: true }
+  const plain = `Due ${monthDay(d.dueDate)}`
+  if (d.status === "submitted") return { text: plain, urgent: false }
+  if (n < 0) return { text: "Due date passed, please send it", urgent: true }
+  if (n === 0) return { text: "Due today", urgent: true }
+  return { text: plain, urgent: n <= URGENT_DAYS }
 }
 
 /* "Oct 14" from "2026-10-14" (or a timestamp), read as a calendar day. */

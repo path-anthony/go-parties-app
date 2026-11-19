@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { renderPolicy, usePublicSettings } from "@/lib/settings"
+import { policyText, usePublicSettings } from "@/lib/settings"
 import { useBooking } from "@/state/booking"
 
 /* The cancellation and retainer policy, quiet, on the last screen next to
@@ -20,8 +20,10 @@ export function CheckoutAgreement({ className }: { className?: string }) {
   const textRef = useRef<HTMLParagraphElement>(null)
   // Tier 1's policy arrives with the tier answer (the rental policy for this
   // cart); the settings copy is the fallback until the tier is known.
+  // Block FIX1: the tier answer's text and the settings' policyFilled both
+  // come with their numbers filled in by the admin; neither is filled again.
   const policy = b.tier?.policy ?? settings?.policy ?? null
-  const text = policy ? (settings ? renderPolicy(policy.text, settings) : policy.text) : ""
+  const text = b.tier?.policy ? b.tier.policy.text : (policyText(settings) ?? "")
 
   // Three lines was enough to show all of it: nothing is hidden, so there is
   // nothing to open first.

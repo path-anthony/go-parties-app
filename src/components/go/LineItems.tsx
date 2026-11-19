@@ -11,10 +11,11 @@ import { Thumb } from "@/components/go/Thumb"
    leaving it out (the static package flow's lines, which aren't catalog
    items) shows no thumbnail at all. */
 export type SubLine = [label: string, amount: number]
+/* A null price (an item inside a package, Block FIX1) shows no figure. */
 export type Line =
-  | [name: string, price: number]
-  | [name: string, price: number, subs: SubLine[]]
-  | [name: string, price: number, subs: SubLine[], photoUrl: string | null]
+  | [name: string, price: number | null]
+  | [name: string, price: number | null, subs: SubLine[]]
+  | [name: string, price: number | null, subs: SubLine[], photoUrl: string | null]
 
 export function LineItems({ lines, total, note }: { lines: Line[]; total: number; note?: string }) {
   return (
@@ -24,7 +25,7 @@ export function LineItems({ lines, total, note }: { lines: Line[]; total: number
           <div className="flex items-center justify-between gap-3 text-sm text-charcoal-soft">
             {photoUrl !== undefined && <Thumb src={photoUrl} />}
             <span className="min-w-0 flex-1">{n}</span>
-            <b className="flex-none text-charcoal">{fmt(p)}</b>
+            {p !== null && <b className="flex-none text-charcoal">{fmt(p)}</b>}
           </div>
           {subs && subs.length > 0 && (
             <div className="mt-1 border-l-2 border-line pl-2.5" aria-label={`Options for ${n}`}>

@@ -93,7 +93,7 @@ function PartyPayFor({ id, kind }: { id: string; kind: "retainer" | "balance" })
       <Body>
         <GoLabel>My party</GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">{label}</h1>
-        {kind === "retainer" && <p className="mt-2 text-body text-charcoal-soft">Your retainer holds the date. It is non-refundable.</p>}
+        {kind === "retainer" && <p className="mt-2 text-body text-charcoal-soft">Your retainer holds the date.</p>}
         {kind === "balance" && <p className="mt-2 text-body text-charcoal-soft">The rest of your total, due before the event.</p>}
         {state.kind === "loading" && <p className="mt-4 text-body text-muted">Getting the amount.</p>}
         {state.kind === "nothing-due" && <p className="mt-4 rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">Nothing is due right now.</p>}

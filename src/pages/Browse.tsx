@@ -10,6 +10,10 @@ import { labelForIso } from "@/lib/availability"
 import type { PublicItem } from "@/lib/adminApi"
 import { PRICE_ON_REQUEST, askAboutText, onRequest, useCatalog, useOpenOn } from "@/lib/storeCatalog"
 import { useBooking, type DirectItem } from "@/state/booking"
+import { tooManyText } from "@/lib/cartStore"
+import { useToast } from "@/hooks/use-toast"
+import { isPerGuestUnit } from "@/lib/pricing"
+import { matchesSearch } from "@/lib/search"
 import { useStoreUi } from "@/state/store"
 import { useAsk } from "@/state/ask"
 import { cn } from "@/lib/utils"
@@ -61,6 +65,7 @@ const list = (v: string | null) => (v ? v.split(",").filter(Boolean) : [])
 export default function Browse() {
   const [params, setParams] = useSearchParams()
   const b = useBooking()
+  const { toast } = useToast()
   const { setPartyOpen, setDateOpen } = useStoreUi()
   const { start } = useAsk()
   const catalog = useCatalog()
@@ -105,7 +110,7 @@ export default function Browse() {
         (prices.length === 0 || (i.price !== null && PRICES.some(([k, , f]) => prices.includes(k) && f(i.price as number)))) &&
         (!priced || i.price !== null) &&
         (!free || (freeUnits(i.id) ?? 1) > 0) &&
-        (!needle || `${i.name} ${i.category}`.toLowerCase().includes(needle))
+        (!needle || matchesSearch(needle, i.name, i.category, i.description))
     )
     const price = (i: PublicItem) => i.price ?? Number.POSITIVE_INFINITY
     if (sort === "lo") out.sort((x, y) => price(x) - price(y))
@@ -115,7 +120,7 @@ export default function Browse() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [all, cats.join(","), prices.join(","), free, priced, q, sort, open])
 
-  const inCart = (id: string) => b.items.find((i) => i.id === id)
+  const inCart = (id: string) => (b.placed ? undefined : b.items.find((i) => i.id === id))
   const add = (item: PublicItem) => {
     if (onRequest(item)) {
       start(askAboutText(item.name))
@@ -124,18 +129,29 @@ export default function Browse() {
     const have = inCart(item.id)
     if (have) {
       // Already in the cart: just show it. Quantity changes live in the drawer.
+    } else if (full()) {
+      return
     } else if (needsConfig(item)) {
       setConfiguring(item)
       return
     } else {
-      b.setItems([...b.items, toDirect(item)])
+      const r = b.addItem(toDirect(item))
+      if (!r.ok) return toast({ title: r.message })
     }
     setPartyOpen(true)
   }
+  // Block FIX1: the admin's "Most items in one booking" stops the cart here,
+  // in a plain sentence, rather than at the hold.
+  const full = () => {
+    if (b.maxItems === null || b.placed || b.items.length < b.maxItems) return false
+    toast({ title: tooManyText(b.maxItems) })
+    return true
+  }
   const confirmOptions = (picks: Picks) => {
     if (!configuring) return
-    b.setItems([...b.items, toDirect(configuring, picks)])
+    const r = b.addItem(toDirect(configuring, picks))
     setConfiguring(null)
+    if (!r.ok) return toast({ title: r.message })
     setPartyOpen(true)
   }
 
@@ -262,7 +278,7 @@ export default function Browse() {
                   )}
                   {dayLabel && units !== null && (
                     <span className={cn("text-[11px] font-bold", booked ? "text-[#A8382C]" : "text-good")}>
-                      {booked ? `Booked ${dayLabel}` : `Free on ${dayLabel}`}
+                      {booked ? (isPerGuestUnit(item.priceUnit) ? `Fully booked ${dayLabel}` : `Booked ${dayLabel}`) : `Available ${dayLabel}`}
                     </span>
                   )}
                   <h3 className="text-[14px] leading-[1.25] font-bold text-charcoal">{item.name}</h3>

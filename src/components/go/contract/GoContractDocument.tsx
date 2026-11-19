@@ -346,7 +346,9 @@ function SignatureRow({
           DATE
         </div>
         <div className="mt-0.5 min-h-[28px] border-b px-1.5 py-1 text-[12px]" style={{ background: BOX, borderColor: RULE }}>
-          {signedOn(signature?.signedAt ?? null)}
+          {/* Block FIX1 (BUGS-AUDIT item 7): the date is the admin's, stamped
+              when the signature is received, so the box is never a field. */}
+          {signedOn(signature?.signedAt ?? null) || (who !== "GO EVENT GROUP REPRESENTATIVE" ? <span style={{ color: "#8A8A8A" }}>Filled in when you sign</span> : null)}
         </div>
       </div>
     </div>

@@ -61,3 +61,7 @@ export function fetchStarters(occ: OccasionId | null): Promise<string[]> {
   inflight.set(key, run)
   return run
 }
+
+/* Block FIX1: a dollar amount on a button reads with commas ("$2,000 to
+   $5,000"); the button still sends the admin's text exactly as it came. */
+export const withCommas = (text: string): string => text.replace(/\$(\d{4,})(?![\d,])/g, (_, n: string) => `$${Number(n).toLocaleString("en-US")}`)

@@ -5,11 +5,13 @@ import { AppShell } from "@/components/go/AppShell"
 import { Thumb } from "@/components/go/Thumb"
 import { Honeypot } from "@/components/go/Honeypot"
 import { ConciergeOffer } from "@/components/go/ConciergeOffer"
-import { cartTotal } from "@/components/go/CartItems"
 import { labelForIso } from "@/lib/availability"
 import { fmt } from "@/data/catalog"
 import { customerApi } from "@/lib/customerApi"
-import { needsConfig } from "@/lib/addons"
+import { missingRequired, needsConfig } from "@/lib/addons"
+import { cartCount, cartPrice, isPerGuest, lineTotal, needsGuests, priceLine } from "@/lib/pricing"
+import { guestsReady } from "@/lib/guests"
+import { GuestCountField } from "@/components/go/GuestCountField"
 import { PRICE_ON_REQUEST, keyUnit, onRequest, priceText, useCatalog, useOpenOn } from "@/lib/storeCatalog"
 import { tierLine, useRetainer } from "@/hooks/use-cart-tier"
 import { useResponseDays } from "@/hooks/use-response-days"
@@ -19,8 +21,8 @@ import type { ConciergeContext } from "@/lib/concierge"
 import { useToast } from "@/hooks/use-toast"
 import { ErrorNotice } from "@/components/go/ErrorNotice"
 import { useBooking, type DirectItem } from "@/state/booking"
-import { OPENER, useAsk } from "@/state/ask"
-import { fetchStarters } from "@/lib/askSuggestions"
+import { OPENER, useAsk, type CartSnapshot } from "@/state/ask"
+import { fetchStarters, withCommas } from "@/lib/askSuggestions"
 import { cn } from "@/lib/utils"
 
 /* Ask GO, the page (Block S1; the party it builds is "Cart" since S2).
@@ -56,9 +58,13 @@ export default function Ask() {
   const endRef = useRef<HTMLDivElement>(null)
 
   const party = ask.party
-  const total = cartTotal(party, null)
+  // Block FIX1: the one cart, priced by the admin's rule (the tier answer's
+  // total once it is in); a per-guest item needs the guest count.
+  const priced = cartPrice(party, b.bundle, b.guestCount)
+  const total = tier?.total ?? priced.total
   const bookable = party.filter((i) => !onRequest(i))
   const unpriced = party.length - bookable.length
+  const count = cartCount(party)
   const retainer = useRetainer(total, tier)
   const responseDays = useResponseDays(tier)
   const dayLabel = b.itemDate ? labelForIso(b.itemDate) : null
@@ -71,13 +77,14 @@ export default function Ask() {
   useEffect(() => {
     if (!fresh) return
     let live = true
-    fetchStarters(b.occ).then((list) => {
+    // Block FIX1: no remembered occasion (it may be stale; BUGS-AUDIT item 5).
+    fetchStarters(null).then((list) => {
       if (live) setStarters(list)
     })
     return () => {
       live = false
     }
-  }, [fresh, b.occ])
+  }, [fresh])
   const chips = fresh ? starters : ask.suggestions
 
   useEffect(() => {
@@ -86,15 +93,15 @@ export default function Ask() {
 
   // The tier note for the party as it stands: asked with the party date
   // once there is one; the admin alone decides it.
-  const partyKey = party.map((i) => i.id).join(",")
+  const partyKey = `${party.map((i) => `${i.id}:${i.quantity ?? 1}`).join(",")}|${b.bundle?.id ?? ""}|${b.guestCount ?? ""}`
   // Asked after a pause, once per party and date, and only once the party
   // pane is in view (the tier endpoint shares the admin's booking budget).
   const partyShown = pane === "party" || window.matchMedia("(min-width: 901px)").matches
   useEffect(() => {
-    if (!b.itemDate || party.length === 0 || !partyShown) return
+    if (!b.itemDate || party.length === 0 || !partyShown || !guestsReady(b.bundle, b.guestCount, party)) return
     let live = true
     const t = setTimeout(() => {
-      fetchTier(tierInput({ ...b, items: party, bundle: null })).then((r) => {
+      fetchTier(tierInput(b)).then((r) => {
         if (live && r.ok) setTier(r.tier)
       })
     }, 1500)
@@ -124,13 +131,16 @@ export default function Ask() {
 
   const book = () => {
     if (bookable.length === 0) return
-    // pickItems starts a fresh cart (and drops the date); the party date
-    // picked in the header is put back so checkout opens on it. An item
-    // with no price cannot be booked, so it stays here.
-    const iso = b.itemDate
-    b.pickItems(bookable)
-    if (iso) b.set("itemDate", iso)
-    if (bookable.some(needsConfig)) {
+    if (needsGuests(party, b.bundle, b.guestCount) || b.guestBad) {
+      showParty()
+      return
+    }
+    // Block FIX1: the one cart goes to checkout as it is: nothing added from
+    // the shop is dropped, and the date stays. An item with no price cannot
+    // be booked, so it stays in the cart with its note.
+    if (bookable.length !== party.length) b.setItems(bookable)
+    if (bookable.some(needsConfig)) b.set("optionsStep", true)
+    if (bookable.some((i) => missingRequired(i).length > 0)) {
       navigate(`/item/${bookable[0].id}/options`)
       return
     }
@@ -156,9 +166,12 @@ export default function Ask() {
 
   const conciergeCtx: ConciergeContext = {
     source: "ask_go",
-    occasion: b.subOcc,
+    // Block FIX1: the occasion this conversation is about, never the one
+    // remembered from an earlier screen, and the chat itself (section 22).
+    occasion: ask.occasion,
     itemOrPackage: party.map((i) => i.name).join(", ") || null,
     eventDate: b.itemDate,
+    messages: ask.messages.map(({ role, content }) => ({ role, content })),
   }
 
   const swapsFor = (item: DirectItem): DirectItem[] => {
@@ -171,13 +184,15 @@ export default function Ask() {
   }
 
   const bubble = "max-w-[88%] rounded-[12px] px-3.5 py-3 text-[14.5px] leading-normal"
-  const summary = (
+  /* The card under a reply that changed the cart: that reply's own count
+     and total, never redrawn with later prices (BUGS-AUDIT item 3). */
+  const summary = (snap: CartSnapshot) => (
     <div className="flex items-center justify-between gap-3 rounded-[12px] border border-line bg-white px-3.5 py-3">
       <div>
         <b className="block text-sm text-charcoal">
-          Your cart: {party.length} {party.length === 1 ? "item" : "items"}, {fmt(total)}
+          Your cart: {snap.count} {snap.count === 1 ? "item" : "items"}, {fmt(snap.total)}
         </b>
-        <small className="text-small text-muted">Updated just now</small>
+        <small className="text-small text-muted">{snap.guestCountNeeded ? "Plus the per-guest items, once you add a guest count." : "At the time of this message"}</small>
       </div>
       <Button variant="dark" size="sm" className="min-h-[40px] min-[901px]:hidden" onClick={showParty}>
         See it
@@ -193,7 +208,7 @@ export default function Ask() {
             Chat
           </button>
           <button aria-pressed={pane === "party"} className={cn("min-h-[44px] rounded-[9px] text-[14px] font-bold", pane === "party" ? "bg-charcoal text-white" : "text-charcoal")} onClick={showParty}>
-            Cart ({party.length})
+            Cart ({count})
           </button>
         </div>
 
@@ -202,7 +217,7 @@ export default function Ask() {
           {ask.messages.map((m, i) => (
             <div key={i} className="grid gap-2.5">
               <div className={cn(bubble, m.role === "user" ? "justify-self-end border border-orange bg-orange-tint text-charcoal" : "border border-line bg-white text-charcoal")}>{m.content}</div>
-              {m.changed && summary}
+              {m.cart && summary(m.cart)}
             </div>
           ))}
           {ask.loading && <div className={cn(bubble, "border border-line bg-white text-muted")}>Thinking.</div>}
@@ -223,7 +238,7 @@ export default function Ask() {
                   disabled={ask.loading}
                   onClick={() => submit(q)}
                 >
-                  {q}
+                  {withCommas(q)}
                 </button>
               ))}
             </div>
@@ -276,6 +291,7 @@ export default function Ask() {
                     <b className="block text-sm text-charcoal">{item.name}</b>
                     {item.description && <small className="line-clamp-2 block text-[12px] leading-[1.35] text-charcoal-soft">{item.description}</small>}
                     <small className="block text-small text-muted">{item.category}</small>
+                    {priceLine(item, b.guestCount) && <small className="block text-small text-charcoal-soft">{priceLine(item, b.guestCount)}</small>}
                     <div className="mt-1 flex gap-3">
                       {changeFor ? (
                         <button className="min-h-[44px] text-[13px] font-bold text-charcoal underline underline-offset-2 disabled:opacity-50 min-[641px]:min-h-[36px]" disabled={switching} onClick={() => switchTo(item)}>
@@ -300,8 +316,8 @@ export default function Ask() {
                     </div>
                   </div>
                   <span className="max-w-[40%] flex-none text-right text-sm font-extrabold text-charcoal">
-                    {item.price !== null ? fmt(item.price) : PRICE_ON_REQUEST}
-                    {item.price !== null && keyUnit(item.priceUnit) && <small className="block text-[11px] font-medium text-muted">{keyUnit(item.priceUnit)}</small>}
+                    {item.price !== null ? fmt(b.bundle ? item.price : (lineTotal(item, b.guestCount) ?? item.price)) : PRICE_ON_REQUEST}
+                    {item.price !== null && keyUnit(item.priceUnit) && !isPerGuest(item) && <small className="block text-[11px] font-medium text-muted">{keyUnit(item.priceUnit)}</small>}
                   </span>
                 </div>
                 {swapOpen === k && (
@@ -328,6 +344,13 @@ export default function Ask() {
           </div>
           {!changeFor && (
             <>
+              {/* Block FIX1: per-guest items are priced from the guest count. */}
+              {party.length > 0 && (b.bundle?.perGuest || (!b.bundle && party.some(isPerGuest))) && (
+                <GuestCountField label="Guests" className="px-4 pt-3" />
+              )}
+              {b.maxItems !== null && party.length > b.maxItems && (
+                <p className="px-4 pt-3 text-small font-bold text-[#A8382C]">A booking can have up to {b.maxItems} items. Remove {party.length - b.maxItems} to book, or call or text us and we'll put it together with you.</p>
+              )}
               <div className="px-4 pt-2">
                 <button className="min-h-[44px] text-[13px] font-bold text-[#8A4E00]" onClick={() => navigate("/browse")}>
                   Add an item from the shop
@@ -336,7 +359,7 @@ export default function Ask() {
               <div className="grid gap-1.5 border-t border-line px-4 py-3 text-sm text-charcoal">
                 <div className="flex justify-between">
                   <span>
-                    {party.length} {party.length === 1 ? "item" : "items"}
+                    {count} {count === 1 ? "item" : "items"}
                   </span>
                   <span>{fmt(total)}</span>
                 </div>
@@ -370,7 +393,7 @@ export default function Ask() {
             <>
               <div className="min-w-0">
                 <b className="block truncate text-sm">
-                  Cart: {party.length} {party.length === 1 ? "item" : "items"} · {fmt(total)}
+                  Cart: {count} {count === 1 ? "item" : "items"} · {fmt(total)}
                 </b>
                 <small className="block text-[12px] text-[#CFC8C2]">{ask.updated ? "GO just updated it" : dayLabel ? `Built for ${dayLabel}` : "Built from the catalog"}</small>
               </div>

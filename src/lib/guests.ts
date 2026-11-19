@@ -1,4 +1,5 @@
-import type { Bundle } from "@/state/booking"
+import type { Bundle, DirectItem } from "@/state/booking"
+import { isPerGuestUnit } from "@/lib/pricing"
 
 /* Block S9a. The guest count. Every order may carry one (a whole number
    from 1 to 5000, sent as `guestCount` on the tier call, the hold and the
@@ -28,11 +29,11 @@ export function parseGuests(text: string): number | null {
 
 const inRange = (p: NonNullable<Bundle["perGuest"]>, n: number) => n >= p.min && (p.max === null || n <= p.max)
 
-/* A per-guest package is priced only inside its range; any other cart
-   needs nothing. */
-export function guestsReady(bundle: Bundle | null, count: number | null): boolean {
+/* A per-guest package is priced only inside its range; a cart with a
+   per-guest item (Block FIX1) needs a count; any other cart needs nothing. */
+export function guestsReady(bundle: Bundle | null, count: number | null, items: Pick<DirectItem, "priceUnit">[] = []): boolean {
   const p = perGuestOf(bundle)
-  if (!p) return true
+  if (!p) return bundle !== null || !items.some((i) => isPerGuestUnit(i.priceUnit)) || (count !== null && count >= 1)
   return count !== null && inRange(p, count)
 }
 

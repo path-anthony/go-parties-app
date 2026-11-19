@@ -7,6 +7,7 @@ import type { Delivery } from "@/lib/places"
 import { parseOffer, type PaymentOffer } from "@/lib/paymentApi"
 import { PHONE_HINT } from "@/lib/phone"
 import type { Tier } from "@/lib/tierApi"
+import { refusedItems } from "@/lib/refusals"
 
 export const ADMIN_API = import.meta.env.VITE_ADMIN_API_URL || "http://localhost:3001"
 
@@ -141,7 +142,7 @@ export interface ReviewReceipt {
 export type DirectResult =
   | { ok: true; kind: "held"; booking: DirectBooking }
   | { ok: true; kind: "review"; review: ReviewReceipt }
-  | { ok: false; reason: DirectReason; message: string; detail?: string; field?: "address" | "homeAddress" | "phone" | "guestCount" }
+  | { ok: false; reason: DirectReason; message: string; detail?: string; field?: "address" | "homeAddress" | "phone" | "guestCount"; refusedNames?: Record<string, string> }
 
 const FALLBACK = "That didn't go through. Try again, or text us."
 const REVIEW_FALLBACK = "This one goes to our team first. Nothing is held yet; we'll be in touch to put it together with you."
@@ -165,6 +166,9 @@ export async function bookDirect(input: {
   itemIds: string[]
   packageId: string | null
   addons: Record<string, string[]> | null
+  /* Block FIX1: { [itemId]: n } for counts above one, null when none. Until
+     this block the drawer's quantity never reached the admin. */
+  quantities: Record<string, number> | null
   eventDate: string
   customerName: string | null
   phone: string | null
@@ -201,8 +205,9 @@ export async function bookDirect(input: {
   if (import.meta.env.DEV && mockMode("checkout")) {
     return (await import("./checkoutMock")).mockHold(input)
   }
-  const { customerName, phone, email, itemIds, packageId, addons, occasion, formStartedAt, tier, signature, homeAddress, eventAddressSameAsHome, guestCount, ...rest } = input
+  const { customerName, phone, email, itemIds, packageId, addons, quantities, occasion, formStartedAt, tier, signature, homeAddress, eventAddressSameAsHome, guestCount, ...rest } = input
   const body: Record<string, unknown> = { ...rest }
+  if (quantities) body.quantities = quantities
   if (homeAddress) body.homeAddress = homeAddress
   if (eventAddressSameAsHome !== null) body.eventAddressSameAsHome = eventAddressSameAsHome
   if (guestCount !== null) body.guestCount = guestCount
@@ -277,7 +282,10 @@ export async function bookDirect(input: {
   // bad phone is the one on the signed-in account; the fix is in My party.
   if (reason === "phone-invalid") return { ok: false, reason, message: detail ?? PHONE_HINT, detail, field: "phone" }
   if (reason === "guest-count") return { ok: false, reason, message: detail ?? FALLBACK, detail, field: "guestCount" }
-  return { ok: false, reason, message: detail ?? FALLBACK }
+  // Block FIX1: an item the date cannot hold in the quantity asked, or a
+  // per-guest item booked out that day: its sentence goes beside the item.
+  const refusedNames = reason === "unavailable" ? refusedItems(data) : null
+  return { ok: false, reason, message: detail ?? FALLBACK, ...(refusedNames ? { refusedNames } : {}) }
 }
 
 /* Published packages for one sub-occasion, as the admin exposes them: a

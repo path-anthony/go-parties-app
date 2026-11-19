@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState } from "react"
+import { createContext, useContext, useEffect, useMemo, useState } from "react"
 import type { OccasionId } from "@/data/catalog"
 import type { DirectBooking, ReviewReceipt } from "@/lib/adminApi"
 import type { PaymentOffer } from "@/lib/paymentApi"
@@ -7,11 +7,23 @@ import type { SignatureValues } from "@/components/go/contract/signature"
 import type { VerifiedAddress } from "@/lib/places"
 import type { LatLng } from "@/lib/maps"
 import { needsConfig, type AddonGroup, type Picks } from "@/lib/addons"
+import { usePublicSettings } from "@/lib/settings"
+import { isPerGuest } from "@/lib/pricing"
+import { loadCart, saveCart, tooManyText } from "@/lib/cartStore"
 
 /* Single booking store. The occasion and sub-occasion picked on Home, then
    the cart and everything the real checkout (/item/*) needs: items with
    their picks, the package they came from, date, time, contact, address,
-   and the admin's answer. One refresh rule applies to all of it. */
+   and the admin's answer. One refresh rule applies to all of it.
+
+   Block FIX1: this is the one cart. The shop, the drawer, checkout and Ask
+   GO all read and change it (Ask GO's own cart is gone), the header counts
+   it, and it is saved in the browser (lib/cartStore.ts) so a reload or a new
+   tab keeps it. A successful hold or request marks it placed: the saved
+   copy is emptied and the header reads 0 at once, while the confirmation
+   screens still read what was booked; the next change starts a fresh cart.
+   The occasion is never saved (a stale one went out on leads, BUGS-AUDIT
+   item 5), and a new Ask GO conversation forgets it (forgetOccasion). */
 
 /* One admin catalog item, as returned inside an Ask GO recommendation or a
    package. quantity is how many units to hold; missing means one. */
@@ -114,6 +126,13 @@ export interface BookingState {
   /* The admin's 202: sent to the team, nothing held. Its own screen. */
   review: ReviewReceipt | null
   changeFor: { bookingId: string; itemName: string; eventDate: string } | null
+  /* Block FIX1: the admin's refusal of one item (a quantity it cannot
+     hold, a per-guest item booked out that day), its own sentence, by item
+     id, shown beside that item in the cart. Cleared by any change to the
+     cart or the date. */
+  itemNotices: Record<string, string>
+  /* True once a hold or request went through (see above). */
+  placed: boolean
 }
 
 const INITIAL: BookingState = {
@@ -148,7 +167,19 @@ const INITIAL: BookingState = {
   direct: null,
   review: null,
   changeFor: null,
+  itemNotices: {},
+  placed: false,
 }
+
+/* What a fresh cart starts from after one was placed: nothing of the last
+   booking, but the person's own details stay. */
+const fresh = (prev: BookingState): BookingState => ({
+  ...INITIAL,
+  contactName: prev.contactName,
+  phone: prev.phone,
+  email: prev.email,
+  homeAddress: prev.homeAddress,
+})
 
 interface BookingApi extends BookingState {
   set: <K extends keyof BookingState>(key: K, value: BookingState[K]) => void
@@ -160,6 +191,14 @@ interface BookingApi extends BookingState {
      typed is not one. A count changes what a per-guest package costs and
      what a tier 2 contract says, so it drops the tier answer then. */
   setGuests: (count: number | null, bad: boolean) => void
+  /* Block FIX1: one item into the cart (or more of one already there),
+     refused with the admin's limit as a sentence when the cart already holds
+     "Most items in one booking" different items. */
+  addItem: (item: DirectItem) => { ok: true } | { ok: false; message: string }
+  /* The admin's limit on different items, null until settings load. */
+  maxItems: number | null
+  /* A new Ask GO conversation: the remembered occasion is dropped. */
+  forgetOccasion: () => void
 }
 
 /* Anything that changes what the contract would say drops the tier answer,
@@ -169,19 +208,47 @@ const CLEAR_TIER = { tier: null, signature: { name: "", additional: "", consent:
 const Ctx = createContext<BookingApi | null>(null)
 
 export function BookingProvider({ children }: { children: React.ReactNode }) {
-  const [s, setS] = useState<BookingState>(INITIAL)
+  const [s, setS] = useState<BookingState>(() => ({ ...INITIAL, ...loadCart() }))
+  const settings = usePublicSettings()
+  const maxItems = settings?.tokens.maxItemsPerBooking ?? null
+
+  // The saved copy follows the cart; a placed cart saves as empty.
+  useEffect(() => {
+    saveCart(s.placed ? null : s)
+  }, [s])
 
   const api = useMemo<BookingApi>(() => {
     const RESETS_TIER: (keyof BookingState)[] = ["itemDate", "itemTime", "occ", "subOcc"]
     const set = <K extends keyof BookingState>(key: K, value: BookingState[K]) =>
-      setS((prev) => (RESETS_TIER.includes(key) && prev[key] !== value ? { ...prev, [key]: value, ...CLEAR_TIER } : { ...prev, [key]: value }))
+      setS((prev) => {
+        // A hold (direct) or a request (review) that went through places the cart.
+        const placing = (key === "direct" || key === "review") && value !== null ? { placed: true } : {}
+        const dateNotices = key === "itemDate" && prev.itemDate !== value ? { itemNotices: {} } : {}
+        return RESETS_TIER.includes(key) && prev[key] !== value ? { ...prev, [key]: value, ...CLEAR_TIER, ...dateNotices, ...placing } : { ...prev, [key]: value, ...placing }
+      })
+    // Any change to a placed cart starts a fresh one.
+    const base = (prev: BookingState) => (prev.placed ? fresh(prev) : prev)
     return {
       ...s,
       set,
+      maxItems,
       pick: (occ) => setS((prev) => ({ ...prev, occ, subOcc: null })),
+      forgetOccasion: () => setS((prev) => (prev.occ === null && prev.subOcc === null ? prev : { ...prev, occ: null, subOcc: null, ...CLEAR_TIER })),
+      addItem: (item) => {
+        const cur = base(s)
+        const have = cur.items.find((i) => i.id === item.id)
+        if (!have && maxItems !== null && cur.items.length >= maxItems) return { ok: false, message: tooManyText(maxItems) }
+        setS((p0) => {
+          const prev = base(p0)
+          const there = prev.items.find((i) => i.id === item.id)
+          const items = there ? prev.items.map((i) => (i.id === item.id ? { ...i, quantity: (i.quantity ?? 1) + (item.quantity ?? 1) } : i)) : [...prev.items, item]
+          return { ...prev, items, bundle: null, itemNotices: {}, ...CLEAR_TIER, formStartedAt: prev.items.length === 0 || prev.formStartedAt === 0 ? Date.now() : prev.formStartedAt }
+        })
+        return { ok: true }
+      },
       pickItems: (items, bundle) =>
-        setS((prev) => ({
-          ...prev,
+        setS((p0) => ({
+          ...base(p0),
           items,
           bundle: bundle ?? null,
           optionsStep: items.some(needsConfig),
@@ -197,28 +264,35 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           ...CLEAR_TIER,
           direct: null,
           review: null,
+          itemNotices: {},
         })),
       // The cart's first item is when the form started; an emptied cart ends it.
       setItems: (items) =>
-        setS((prev) => ({
+        setS((p0) => {
+          const prev = base(p0)
+          return {
           ...prev,
           items,
           bundle: null,
+          itemNotices: {},
           ...(items.length === 0 ? { accountStep: false, guestCount: null, guestBad: false } : {}),
           ...CLEAR_TIER,
           formStartedAt: items.length === 0 ? 0 : prev.items.length === 0 || prev.formStartedAt === 0 ? Date.now() : prev.formStartedAt,
-        })),
+          }
+        }),
       setGuests: (count, bad) =>
         setS((prev) => {
           if (prev.guestCount === count && prev.guestBad === bad) return prev
-          const asked = prev.bundle?.perGuest || prev.tier?.tier === 2
-          return { ...prev, guestCount: count, guestBad: bad, ...(asked ? CLEAR_TIER : {}) }
+          // Since Block FIX1 the count prices per-guest items too, so any
+          // tier answer for a priced cart is stale once it changes.
+          const asked = prev.bundle?.perGuest || prev.tier?.tier === 2 || prev.items.some(isPerGuest)
+          return { ...prev, guestCount: count, guestBad: bad, ...(asked ? { ...CLEAR_TIER, itemNotices: {} } : {}) }
         }),
       // Not setItems: choosing an option doesn't change what the cart is, so
       // a package stays the package.
       setPicks: (itemId, picks) => setS((prev) => ({ ...prev, ...CLEAR_TIER, items: prev.items.map((i) => (i.id === itemId ? { ...i, picks } : i)) })),
     }
-  }, [s])
+  }, [s, maxItems])
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>
 }

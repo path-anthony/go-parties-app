@@ -28,10 +28,15 @@ export interface CustomerPatch {
   homeAddress?: string | null
 }
 
+/* One thing the booking holds. A physical unit has its id and label
+   ("Unit #2"). Crew has no unit (unitId null, label "Crew"). Since Block FIX1
+   an item that holds no unit is a booking line, unitId null too, labelled
+   by the admin: "100 guests" for a per-guest line, "x 3" for a quantity,
+   "Included" for one. itemId is null when the item was since deleted. */
 export interface BookingUnit {
-  unitId: string
+  unitId: string | null
   unitLabel: string
-  itemId: string
+  itemId: string | null
   itemName: string
 }
 
@@ -361,6 +366,20 @@ export const whenOf = (b: CustomerBooking) => {
 }
 export const whatOf = (b: CustomerBooking) => {
   const counts = new Map<string, number>()
-  for (const u of b.units) counts.set(u.itemName, (counts.get(u.itemName) ?? 0) + 1)
-  return [...counts].map(([name, n]) => (n > 1 ? `${name} x ${n}` : name)).join(", ") || "Booking"
+  // Block FIX1: a line that holds no unit says its own count ("100 guests",
+  // "x 3"), so it reads "Mediterranean Spread for 100 guests".
+  const lines = new Map<string, string>()
+  for (const u of b.units) {
+    if (u.unitId === null && u.unitLabel !== "Crew") {
+      const q = /^x\s*(\d+)$/i.exec(u.unitLabel.trim())
+      if (q) counts.set(u.itemName, (counts.get(u.itemName) ?? 0) + Number(q[1]))
+      else {
+        if (/guests?$/i.test(u.unitLabel.trim())) lines.set(u.itemName, u.unitLabel.trim())
+        if (!counts.has(u.itemName)) counts.set(u.itemName, 1)
+      }
+      continue
+    }
+    counts.set(u.itemName, (counts.get(u.itemName) ?? 0) + 1)
+  }
+  return [...counts].map(([name, n]) => (lines.has(name) ? `${name} for ${lines.get(name)}` : n > 1 ? `${name} x ${n}` : name)).join(", ") || "Booking"
 }

@@ -1,5 +1,5 @@
 import { FULL, SIGNED_DOC } from "@/lib/contractMock"
-import type { ApiResult, CancelAsked, CancelInfo, CancelTerms, CustomerBooking, CustomerContract, CustomerRequests, SignBody } from "@/lib/customerApi"
+import type { ApiResult, BookingUnit, CancelAsked, CancelInfo, CancelTerms, CustomerBooking, CustomerContract, CustomerRequests, SignBody } from "@/lib/customerApi"
 import { MOCK_SECRET, mockPaymentStatus } from "@/lib/paymentMockState"
 import { sessionIdOf, type PaymentOffer } from "@/lib/paymentApi"
 
@@ -16,7 +16,7 @@ const unit = (itemName: string, i = 1) => ({ unitId: `u${i}`, unitLabel: `Unit #
 
 type Row = CustomerBooking & { _signed: boolean; _sessions?: Partial<Record<"retainer" | "balance", string>> }
 
-const base = (id: string, stage: string, tier: 1 | 2 | 3, units: ReturnType<typeof unit>[], extra: Partial<CustomerBooking> & { _signed?: boolean }): Row => ({
+const base = (id: string, stage: string, tier: 1 | 2 | 3, units: BookingUnit[], extra: Partial<CustomerBooking> & { _signed?: boolean }): Row => ({
   id,
   eventDate: day(30),
   eventTime: "2 PM",
@@ -163,7 +163,9 @@ const rows: Row[] = [
   }),
   // Block S9b: a small rental whose retainer is paid (terms from the policy),
   // and one with a cancellation request already waiting on staff.
-  base("bk-small-confirmed", "Confirmed", 1, [unit("Snow Cone Station")], {
+  // Block FIX1: two booking lines that hold no unit, as the admin sends them
+  // (unitId null, labelled "100 guests" and "x 3").
+  base("bk-small-confirmed", "Confirmed", 1, [unit("Snow Cone Station"), { unitId: null, unitLabel: "100 guests", itemId: "it-spread", itemName: "Mediterranean Spread" }, { unitId: null, unitLabel: "x 3", itemId: "it-cups", itemName: "Snow Cone Cups" }], {
     eventDate: day(26),
     depositPaid: true,
     steps: [

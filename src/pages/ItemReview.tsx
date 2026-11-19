@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { AppShell, Body, Foot } from "@/components/go/AppShell"
 import { pickedOf } from "@/lib/addons"
-import { qtyOf } from "@/components/go/CartItems"
+import { isPerGuest, qtyOf } from "@/lib/pricing"
 import { useResponseDays } from "@/hooks/use-response-days"
 import { labelForIso } from "@/lib/availability"
 import { clockLabel as clockFor } from "@/data/catalog"
@@ -66,7 +66,7 @@ export default function ItemReview() {
             <div key={i.id}>
               <span className={b.bundle ? "block text-small text-charcoal-soft" : "block text-sm font-bold text-charcoal"}>
                 {i.name}
-                {qtyOf(i) > 1 ? ` x ${qtyOf(i)}` : ""}
+                {isPerGuest(i) && !b.bundle && b.guestCount ? ` for ${b.guestCount} guests` : qtyOf(i) > 1 ? ` x ${qtyOf(i)}` : ""}
               </span>
               {pickedOf(i).map(({ group, addon }) => (
                 <span key={group.id} className="block text-small text-muted">

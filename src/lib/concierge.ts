@@ -23,7 +23,15 @@ export interface ConciergeContext {
   itemOrPackage: string | null
   /* YYYY-MM-DD */
   eventDate: string | null
+  /* Block FIX1 (S9-CONTRACT section 22): the Ask GO chat, so the lead gets
+     the occasion the customer wrote about. Ask GO only. */
+  messages?: { role: "user" | "assistant"; content: string }[]
 }
+
+/* The chat as sent: the last 30 turns, each clipped, well inside the
+   admin's 32 KB body limit. */
+const MAX_TURNS = 30
+const MAX_TURN_TEXT = 600
 
 const MAX_TEXT = 200
 
@@ -49,7 +57,7 @@ export function calendlyUrl(ctx: ConciergeContext): string {
    of the three the admin makes no lead and the customer still goes to
    Calendly. */
 export function logConcierge(ctx: ConciergeContext, bot?: { hpField: string; formStartedAt: number }, contact: LeadContact = {}): void {
-  const body: Record<string, string | number> = { source: ctx.source }
+  const body: Record<string, unknown> = { source: ctx.source }
   if (contact.name) body.name = contact.name
   if (contact.email) body.email = contact.email
   if (contact.phone) body.phone = contact.phone
@@ -60,6 +68,9 @@ export function logConcierge(ctx: ConciergeContext, bot?: { hpField: string; for
   if (ctx.occasion) body.occasion = clip(ctx.occasion)
   if (ctx.itemOrPackage) body.itemOrPackage = clip(ctx.itemOrPackage)
   if (ctx.eventDate) body.eventDate = ctx.eventDate
+  if (ctx.messages && ctx.messages.length > 0) {
+    body.messages = ctx.messages.slice(-MAX_TURNS).map((m) => ({ role: m.role, content: m.content.slice(0, MAX_TURN_TEXT) }))
+  }
   try {
     fetch(`${ADMIN_API}/api/leads/concierge`, {
       method: "POST",
