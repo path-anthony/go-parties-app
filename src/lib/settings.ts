@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { ADMIN_API } from "@/lib/adminApi"
+import { mockMode } from "@/lib/mock"
 
 /* GET /api/settings/public: the rush rule the admin owns. The notice hours
    drive the short-notice warning; the phone is null until the admin sets a
@@ -17,6 +18,10 @@ export interface PublicSettings {
   /* The current cancellation and deposit policy, or null until the admin has
      written one. Null hides the agreement checkbox entirely. */
   policy: { version: number; text: string } | null
+  /* Block FIX1 (S9-CONTRACT section 23): the policy with its numbers filled
+     in by the admin from Settings at this moment. Shown in preference to
+     filling the raw text here; null from an older admin. */
+  policyFilled: string | null
   /* Every number the admin sent, by field name, for the policy's {{tokens}}
      (depositPercentage, cancellationWindowDays, and whatever it adds next).
      Built from the response itself, not from a list here, so a new token
@@ -45,7 +50,15 @@ export function renderPolicy(text: string, s: Pick<PublicSettings, "tokens">): s
 
 let cached: Promise<PublicSettings | null> | null = null
 
+/* The policy as the customer reads it: the admin's filled copy, else the
+   raw text filled here. */
+export const policyText = (s: PublicSettings | null): string | null => (s ? (s.policyFilled ?? (s.policy ? renderPolicy(s.policy.text, s) : null)) : null)
+
 function load(): Promise<PublicSettings | null> {
+  if (import.meta.env.DEV && mockMode("checkout")) {
+    if (!cached) cached = import("./checkoutMock").then((m) => m.mockSettings())
+    return cached
+  }
   if (!cached) {
     cached = fetch(`${ADMIN_API}/api/settings/public`)
       .then((res) => (res.ok ? res.json() : null))
@@ -59,6 +72,7 @@ function load(): Promise<PublicSettings | null> {
           rushContactPhone: phone || null,
           companyPhone: (typeof data.companyPhone === "string" && data.companyPhone.trim()) || phone || null,
           policy,
+          policyFilled: typeof data.policyFilled === "string" && data.policyFilled.trim() ? data.policyFilled.trim() : null,
           tokens: Object.fromEntries(
             Object.entries(data as Record<string, unknown>).flatMap(([k, v]) => {
               const n = asNumber(v)

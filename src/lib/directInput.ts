@@ -5,6 +5,8 @@ import { addonsPayload } from "@/lib/addons"
 import type { BalancePreference, HoldSignature } from "@/lib/adminApi"
 import type { TierInput } from "@/lib/tierApi"
 import type { Delivery } from "@/lib/places"
+import { isPerGuest, qtyOf } from "@/lib/pricing"
+import type { DirectItem } from "@/state/booking"
 
 /* The request for POST /api/bookings/direct, built the same way from the
    who screen (signed in) and the account step (guest, or just signed up).
@@ -24,6 +26,17 @@ export function occasionOf(b: BookingState): string | null {
   return b.occ ? OCC[b.occ].label : null
 }
 
+/* Block FIX1: the quantity of each item, { [itemId]: n }, as the drawer
+   shows it. Only counts above one go (missing means one), never for a
+   per-guest item (the guest count prices it), and inside a package the
+   package holds its own quantities. Null when there is nothing to say. */
+export function quantitiesOf(items: DirectItem[], inPackage: boolean): Record<string, number> | null {
+  if (inPackage) return null
+  const out: Record<string, number> = {}
+  for (const i of items) if (!isPerGuest(i) && qtyOf(i) > 1) out[i.id] = Math.min(50, qtyOf(i))
+  return Object.keys(out).length > 0 ? out : null
+}
+
 /* What the tier decision is made from: the cart and the date, nothing about
    the person. */
 export function tierInput(b: BookingState): TierInput {
@@ -31,6 +44,7 @@ export function tierInput(b: BookingState): TierInput {
     itemIds: b.items.map((i) => i.id),
     packageId: b.bundle?.id ?? null,
     addons: addonsPayload(b.items),
+    quantities: quantitiesOf(b.items, !!b.bundle),
     eventDate: b.itemDate ?? "",
     eventTime: clockLabel(b.itemTime),
     occasion: occasionOf(b),
@@ -76,6 +90,7 @@ export function directInput(b: BookingState, customer: Customer | null) {
     itemIds: b.items.map((i) => i.id),
     packageId: b.bundle?.id ?? null,
     addons: addonsPayload(b.items),
+    quantities: quantitiesOf(b.items, !!b.bundle),
     eventDate: b.itemDate ?? "",
     customerName: customer ? customer.name?.trim() || typedName : typedName,
     phone: customer ? customer.phone : b.phone.trim(),

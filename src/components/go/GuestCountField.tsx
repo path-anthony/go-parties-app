@@ -5,6 +5,7 @@ import { FieldError } from "@/components/go/ErrorNotice"
 import { fmt } from "@/data/catalog"
 import { bundleTotal, guestProblem, guestRange, parseGuests } from "@/lib/guests"
 import { useBooking } from "@/state/booking"
+import { guestCountSentence, isPerGuest } from "@/lib/pricing"
 
 /* The guest count (Block S9a), kept in the booking store. Optional on every
    order ("A rough number helps us plan."), required for a per-guest
@@ -13,7 +14,11 @@ import { useBooking } from "@/state/booking"
    typed; a number that cannot be a count (or is outside the package's
    range) saves as none, so nothing stale is ever sent. A range problem
    shows once the typed number is long enough to be wrong, or on leaving
-   the field. */
+   the field.
+   Block FIX1: a per-guest item makes the count required too. While it is
+   missing the admin's own guest-count-required sentence shows under the
+   field ("Tell us how many guests, so we can price Mediterranean Spread.
+   It is priced per guest."), and checkout waits for it. */
 export function GuestCountField({ label = "Guest count", className }: { label?: string; className?: string }) {
   const b = useBooking()
   const bundle = b.bundle
@@ -32,6 +37,8 @@ export function GuestCountField({ label = "Guest count", className }: { label?: 
   const ripe = left || (per !== null && text.length >= String(per.min).length) || (n !== null && per?.max != null && n > per.max)
   const problem = ripe || (text !== "" && n === null) ? guestProblem(bundle, text, left) : null
   const total = bundle && per ? bundleTotal(bundle, n) : null
+  const perGuestNames = bundle ? [] : b.items.filter(isPerGuest).map((i) => i.name)
+  const required = perGuestNames.length > 0 && text.trim() === "" ? guestCountSentence(perGuestNames) : null
 
   return (
     <div className={className}>
@@ -43,17 +50,19 @@ export function GuestCountField({ label = "Guest count", className }: { label?: 
         value={text}
         onChange={(e) => onChange(e.target.value)}
         onBlur={() => setLeft(true)}
-        aria-invalid={problem ? true : undefined}
+        aria-invalid={problem || required ? true : undefined}
         aria-describedby="guest-note"
         className="max-w-[10rem]"
       />
-      {problem && <FieldError>{problem}</FieldError>}
+      {(problem ?? required) && <FieldError>{problem ?? required}</FieldError>}
       <small id="guest-note" className="mt-1 block text-[11.5px] text-muted">
         {per && bundle
           ? total !== null && n !== null
             ? `${n} x ${fmt(bundle.price)}${per.base > 0 ? ` + ${fmt(per.base)}` : ""} = ${fmt(total)}`
             : `${guestRange(bundle)}. ${fmt(bundle.price)} per guest${per.base > 0 ? `, plus ${fmt(per.base)}` : ""}.`
-          : "Optional. A rough number helps us plan."}
+          : perGuestNames.length > 0
+            ? "Required. Per-guest items are priced by it."
+            : "Optional. A rough number helps us plan."}
       </small>
     </div>
   )

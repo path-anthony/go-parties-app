@@ -56,7 +56,9 @@ export default function PartyReschedule() {
 
   if (ready && !customer) return <Navigate to="/party/signin" replace />
   if (booking === null) return <Navigate to="/party" replace />
-  const whenItems = booking ? [...new Map(booking.units.map((u) => [u.itemId, { id: u.itemId, name: u.itemName }])).values()] : []
+  // Block FIX1: a line that holds no unit (unitId null; a per-guest one
+  // reads "100 guests") is checked for its daily maximum, never a count.
+  const whenItems = booking ? [...new Map(booking.units.flatMap((u) => (u.itemId ? [[u.itemId, { id: u.itemId, name: u.itemName, perGuest: u.unitId === null && /guests?$/.test(u.unitLabel) }] as const] : []))).values()] : []
 
   const timeOk = time === null || timeInRange(time)
   const canSubmit = !!booking && !!iso && available && timeOk && !busy

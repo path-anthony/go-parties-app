@@ -18,6 +18,8 @@ export interface WhenItem {
   name: string
   /* Units needed that day; missing means one. */
   quantity?: number
+  /* Block FIX1: billed per guest, so it holds no unit (S9-CONTRACT 18). */
+  perGuest?: boolean
 }
 
 type Check = { iso: string; state: "loading" | "done" | "error"; results?: Availability[] }
@@ -34,8 +36,25 @@ export interface ItemWhenProps {
   onAvailable: (available: boolean) => void
 }
 
-const needOf = (item: WhenItem) => item.quantity ?? 1
+const needOf = (item: WhenItem) => (item.perGuest ? 1 : (item.quantity ?? 1))
 const isOpen = (r: Availability, need = 1) => r.directBooking && r.available && (r.freeUnits ?? 1) >= need
+
+/* Block FIX1. The day's answer in plain words, never a unit count for an
+   item that holds no unit: "Available", "2 left that day", "Fully booked
+   that day" (the admin's daily maximum), "Booked solid that day". An item
+   the admin does not count against stock answers freeUnits 999 with no
+   maximum. */
+function dayWord(r: Availability, item: WhenItem): string {
+  if (!r.directBooking) return r.message ?? "Not bookable online. Call or text us."
+  const free = r.freeUnits ?? 1
+  const noStock = !!item.perGuest || free >= 999 || (r.totalUnits ?? 0) >= 999
+  if (!r.available || free <= 0) return noStock ? "Fully booked that day." : "Booked solid that day."
+  if (noStock) return "Available."
+  const need = needOf(item)
+  if (free < need) return `Only ${free} left that day, you asked for ${need}.`
+  if (r.totalUnits !== undefined && free < r.totalUnits) return `${free} left that day.`
+  return "Available."
+}
 
 export function ItemWhen({ items, month, onMonth, iso, onIso, time, onTime, onAvailable }: ItemWhenProps) {
   const [check, setCheck] = useState<Check | null>(null)
@@ -84,16 +103,13 @@ export function ItemWhen({ items, month, onMonth, iso, onIso, time, onTime, onAv
         ) : (
         <div className="rounded-[14px] border border-line bg-white px-4 py-3.5 text-sm text-charcoal">
           {current?.state === "loading" && <span className="text-muted">Checking the calendar.</span>}
-          {current?.state === "done" && single && results[0] && !results[0].directBooking && results[0].message}
-          {current?.state === "done" && single && results[0] && isOpen(results[0], needOf(items[0])) && (
+          {current?.state === "done" && single && results[0] && (
             <span className="flex items-center gap-2.5">
-              <i className="inline-block size-1.5 flex-none rounded-full bg-good" />
-              Open. {results[0].freeUnits} of {results[0].totalUnits} ready.
+              {isOpen(results[0], needOf(items[0])) && <i className="inline-block size-1.5 flex-none rounded-full bg-good" />}
+              {dayWord(results[0], items[0])}
+              {results[0].directBooking && !isOpen(results[0], needOf(items[0])) ? " Try another date." : ""}
             </span>
           )}
-          {current?.state === "done" && single && results[0]?.directBooking && !results[0].available && "Booked solid that day. Try another date."}
-          {current?.state === "done" && single && results[0]?.directBooking && results[0].available && !isOpen(results[0], needOf(items[0])) &&
-            `Only ${results[0].freeUnits} open that day, this needs ${needOf(items[0])}. Try another date.`}
           {current?.state === "done" && !single && (
             <div className="space-y-1.5">
               {items.map((item, i) => {
@@ -104,14 +120,7 @@ export function ItemWhen({ items, month, onMonth, iso, onIso, time, onTime, onAv
                     <i className={`mt-[7px] inline-block size-1.5 flex-none rounded-full ${isOpen(r, needOf(item)) ? "bg-good" : "bg-line"}`} />
                     <span>
                       {item.name}
-                      {needOf(item) > 1 ? ` x ${needOf(item)}` : ""}:{" "}
-                      {!r.directBooking
-                        ? r.message
-                        : !r.available
-                          ? "Booked solid that day."
-                          : isOpen(r, needOf(item))
-                            ? `Open, ${r.freeUnits} of ${r.totalUnits}.`
-                            : `Only ${r.freeUnits} open, this needs ${needOf(item)}.`}
+                      {needOf(item) > 1 ? ` x ${needOf(item)}` : ""}: {dayWord(r, item)}
                     </span>
                   </div>
                 )

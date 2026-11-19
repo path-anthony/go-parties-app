@@ -22,7 +22,7 @@ export function useCartTier(enabled = true): TierInfo | null {
   const b = useBooking()
   const key = `${b.items.map((i) => `${i.id}:${i.quantity ?? 1}:${JSON.stringify(i.picks ?? {})}`).join(",")}|${b.bundle?.id ?? ""}|${b.itemDate}|${b.itemTime}`
   useEffect(() => {
-    if (!enabled || b.tier || !b.itemDate || b.items.length === 0 || !guestsReady(b.bundle, b.guestCount)) return
+    if (!enabled || b.tier || !b.itemDate || b.items.length === 0 || !guestsReady(b.bundle, b.guestCount, b.items)) return
     let live = true
     const t = setTimeout(() => {
       fetchTier(tierInput(b)).then((r) => {
@@ -45,11 +45,13 @@ export const tierLine = (tier: 1 | 2 | 3, responseDays: number | null): string =
   tier === 1 ? "Checkout asks you to agree to the rental policy." : tier === 2 ? "Checkout includes GO's contract to sign." : reviewLine(responseDays)
 
 /* The retainer due today, in dollars, when it can be known: the tier's
-   amount first, else the settings' deposit percent of the total. */
+   amount and percent first (S9-CONTRACT section 23), else, until the tier
+   is known, the admin's retainerPercent setting of the total. Never a
+   percent typed into the store. */
 export function useRetainer(total: number, tier: TierInfo | null): { amount: number | null; percent: number | null } {
   const settings = usePublicSettings()
   if (tier?.retainerAmount !== null && tier?.retainerAmount !== undefined) return { amount: tier.retainerAmount, percent: tier.retainerPercent }
-  const pct = tier?.retainerPercent ?? settings?.tokens.depositPercentage ?? null
+  const pct = tier?.retainerPercent ?? settings?.tokens.retainerPercent ?? settings?.tokens.depositPercentage ?? null
   if (pct === null || total <= 0) return { amount: null, percent: pct }
   return { amount: Math.round((total * pct) / 100), percent: pct }
 }

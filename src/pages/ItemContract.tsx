@@ -7,6 +7,7 @@ import { GoLabel } from "@/components/go/GoLabel"
 import { GoContractSigner } from "@/components/go/contract/GoContractSigner"
 import { EMPTY_SIGNATURE } from "@/components/go/contract/signature"
 import { QUOTE_REASONS, bookDirect, type DirectReason } from "@/lib/adminApi"
+import { noticesById } from "@/lib/refusals"
 import { directInput, tierInput } from "@/lib/directInput"
 import { missingRequired } from "@/lib/addons"
 import { checkoutSteps } from "@/lib/steps"
@@ -94,6 +95,17 @@ export default function ItemContract() {
       if (QUOTE_REASONS.includes(result.reason)) {
         await changed(result.message)
         return
+      }
+      // Block FIX1: an item the date cannot hold as asked. Its sentence goes
+      // beside it in the cart on the event details step, where it can be
+      // changed or removed (the contract is rebuilt from the new cart).
+      if (result.refusedNames) {
+        const byId = noticesById(result.refusedNames, b.items)
+        if (Object.keys(byId).length > 0) {
+          b.set("itemNotices", byId)
+          navigate(`/item/${firstId}/who`)
+          return
+        }
       }
       if (result.reason === "account-required") {
         // The admin saw no session, so there is none here either: dropping

@@ -21,6 +21,7 @@ import { useAddressMode } from "@/hooks/use-address-mode"
 import { resolveAddressText, type VerifiedAddress } from "@/lib/places"
 import { labelForIso } from "@/lib/availability"
 import { bookDirect, type DirectReason } from "@/lib/adminApi"
+import { noticesById } from "@/lib/refusals"
 import { directInput, tierInput } from "@/lib/directInput"
 import { fetchTier } from "@/lib/tierApi"
 import { OCCASION_CHOICES, clockLabel as clockFor, type OccasionId } from "@/data/catalog"
@@ -80,7 +81,7 @@ export default function ItemWho() {
   const sameSeq = useRef(0)
   // A per-guest package is priced from the guest count, so the tier is not
   // asked until the count is a usable one.
-  const guestsOk = guestsReady(b.bundle, b.guestCount) && !b.guestBad
+  const guestsOk = guestsReady(b.bundle, b.guestCount, b.items) && !b.guestBad
 
   // The tier is asked for as soon as this screen opens, so the button and
   // the step count can say what comes next; it is cleared by the store
@@ -245,6 +246,18 @@ export default function ItemWho() {
     }
   }
 
+  // Block FIX1: a refusal that names items (a quantity the date cannot
+  // hold, a per-guest item booked out that day) goes beside those items in
+  // the cart above, not in the general notice.
+  const placeItemNotices = (byName: Record<string, string> | undefined): boolean => {
+    const byId = noticesById(byName, b.items)
+    if (Object.keys(byId).length === 0) return false
+    b.set("itemNotices", byId)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+    return true
+  }
+  const itemsRefused = Object.keys(b.itemNotices).length > 0
+
   const submit = async () => {
     if (!canSubmit) return
     setSubmitting(true)
@@ -255,6 +268,7 @@ export default function ItemWho() {
       // hold anyway and refuses a mismatch (S1.2).
       const t = b.tier ? ({ ok: true, tier: b.tier } as const) : await fetchTier(tierInput(b))
       if (!t.ok) {
+        if (placeItemNotices(t.refusedNames)) return
         if (t.reason === "address-not-exact") {
           refuseAddress("address", t.message)
           return
@@ -287,6 +301,7 @@ export default function ItemWho() {
         setPhoneRefused(result.message)
         return
       }
+      if (placeItemNotices(result.refusedNames)) return
       if (result.reason === "account-required") {
         // The admin saw no session, so there is none here either: dropping
         // the customer sends the guard above to the account step, cart kept,
@@ -423,6 +438,9 @@ export default function ItemWho() {
         {tier !== 2 && <CheckoutAgreement className="mt-4" />}
         <CheckoutConcierge className="mt-1.5" />
       </Body>
+      {itemsRefused && !notice && (
+        <p className="mx-5 mb-2 text-small font-bold text-[#A8382C]">An item in your cart can't be held as it is. The note is beside it above.</p>
+      )}
       {/* The refusal sits directly above the button that was tapped. */}
       {notice && (
         <ErrorNotice className="mx-5 mb-2">

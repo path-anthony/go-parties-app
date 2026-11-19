@@ -1,3 +1,4 @@
+import { cartCount } from "@/lib/pricing"
 import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import { Logo } from "@/components/go/Logo"
 import { SearchBox } from "@/components/go/SearchBox"
@@ -23,7 +24,8 @@ export function Header() {
   const [params] = useSearchParams()
   const b = useBooking()
   const { setPartyOpen, setDateOpen, setMenuOpen } = useStoreUi()
-  const count = b.items.reduce((n, i) => n + (i.quantity ?? 1), 0)
+  // Block FIX1: the one cart (shop and Ask GO alike); a placed cart reads 0.
+  const count = b.placed ? 0 : cartCount(b.items)
   const inStore = pathname === "/browse"
   const shopAll = inStore && !params.get("cat")
 

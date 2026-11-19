@@ -8,7 +8,8 @@ import { LineItems, type Line, type SubLine } from "@/components/go/LineItems"
 import { pickedOf } from "@/lib/addons"
 import { labelForIso } from "@/lib/availability"
 import { bookedNames } from "@/lib/adminApi"
-import { cartTotal, lineTotal, qtyOf } from "@/components/go/CartItems"
+import { cartTotal } from "@/components/go/CartItems"
+import { isPerGuest, lineTotal, optionTotal, qtyOf } from "@/lib/pricing"
 import { usePublicSettings } from "@/lib/settings"
 import { useBooking } from "@/state/booking"
 import { clockLabel as clockFor } from "@/data/catalog"
@@ -51,9 +52,12 @@ export default function ItemHeld() {
   const subsOf = (i: (typeof items)[number]): SubLine[] =>
     direct.addons
       ? direct.addons.filter((a) => a.itemId === i.id).map((a) => [`${a.groupName}: ${a.addonName}`, a.priceDelta * a.quantity])
-      : pickedOf(i).map(({ group, addon }) => [`${group.name}: ${addon.name}`, addon.priceDelta * qtyOf(i)])
+      : pickedOf(i).map(({ group, addon }) => [`${group.name}: ${addon.name}`, optionTotal(i, addon.priceDelta, b.guestCount, !!b.bundle)])
   const priced = items.filter((i) => i.price !== null || subsOf(i).length > 0)
-  const lines: Line[] = priced.map((i) => [qtyOf(i) > 1 ? `${i.name} x ${qtyOf(i)}` : i.name, lineTotal(i), subsOf(i), i.photoUrl ?? null])
+  // Block FIX1: a per-guest line reads "Mediterranean Spread for 100 guests";
+  // anything else "Gold Chair x 40".
+  const nameOf = (i: (typeof items)[number]) => (isPerGuest(i) && !b.bundle && b.guestCount ? `${i.name} for ${b.guestCount} guests` : qtyOf(i) > 1 ? `${i.name} x ${qtyOf(i)}` : i.name)
+  const lines: Line[] = priced.map((i) => [nameOf(i), b.bundle ? null : lineTotal(i, b.guestCount), subsOf(i), i.photoUrl ?? null])
   const extras = direct.addonsTotal ?? 0
   // The admin's total is the truth (the package's bundle price, or the
   // items times quantity); the cart's own sum only fills in if it's absent.

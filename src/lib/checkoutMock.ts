@@ -5,6 +5,9 @@ import { mockMode } from "@/lib/mock"
 import { MOCK_SECRET } from "@/lib/paymentMockState"
 import { sessionIdOf } from "@/lib/paymentApi"
 import type { TierInfo, TierInput, TierResult } from "@/lib/tierApi"
+import type { PublicSettings } from "@/lib/settings"
+import { isPerGuestUnit } from "@/lib/pricing"
+import { refusedItems } from "@/lib/refusals"
 
 /* Checkout fixtures, DEV only (loaded lazily behind import.meta.env.DEV).
    `?mock=<name>` picks the scenario for the tab:
@@ -22,6 +25,14 @@ import type { TierInfo, TierInput, TierResult } from "@/lib/tierApi"
    the hold logs the guest count, the same-as-home tick and the setup pin, a
    phone of 860 555 0123 is refused 400 phone-invalid (sign in with "serverphone"
    in the email), and a hold with a wedding occasion makes a wedding booking.
+   Block FIX1: the catalog adds a per-guest item (Mediterranean Spread,
+   $58.56 per guest, no unit), a per-guest item booked out every day (Taco
+   Bar), Gold Chiavari Chair (10 units, 7 free, so 8 is refused with the
+   admin's "only 7 of ... are free" and `short`), the Waterslide for search,
+   and 30 small items for a big cart. The tier answer prices by the admin's
+   rule and carries `lines`; a per-guest item with no guest count is refused
+   guest-count-required; more than 40 items is refused too-many-items.
+   mockSettings stands in for GET /api/settings/public.
    Nothing here touches the admin. */
 
 const POLICY = {
@@ -48,7 +59,7 @@ const quoteDocument = () => ({
 })
 
 function tierFor(scenario: string, input: TierInput): TierInfo {
-  const base = { reasons: [] as string[], policy: null, contract: null, quoteExpiresAt: endOfDayEastern(), responseDays: null }
+  const base = { reasons: [] as string[], lines: [], guestCount: null, policy: null, contract: null, quoteExpiresAt: endOfDayEastern(), responseDays: null }
   if (scenario === "tier3") return { ...base, tier: 3, reasons: ["threshold"], total: 18400, retainerPercent: 30, retainerAmount: 5520, responseDays: 3 }
   if (scenario.startsWith("tier2") && !(scenario === "tier2-retier" && retiered)) {
     return {
@@ -61,10 +72,32 @@ function tierFor(scenario: string, input: TierInput): TierInfo {
       contract: { quoteId: `q_mock_${hashRound}`, contentHash: `mock-hash-${hashRound}`, termsVersion: 1, format: "go-v2", document: quoteDocument() },
     }
   }
-  const n = Math.max(1, input.itemIds.length)
-  const total = input.packageId === PER_GUEST_ID && input.guestCount ? PER_GUEST_BASE + PER_GUEST_RATE * input.guestCount : 1499 * n
-  return { ...base, tier: 1, policy: POLICY, total, retainerPercent: 30, retainerAmount: Math.round(total * 0.3 * 100) / 100 }
+  const priced = priceMock(input.itemIds, input.quantities ?? null, input.guestCount ?? null)
+  const total = input.packageId === PER_GUEST_ID && input.guestCount ? PER_GUEST_BASE + PER_GUEST_RATE * input.guestCount : priced.total
+  return { ...base, tier: 1, lines: priced.lines, guestCount: input.guestCount ?? null, policy: POLICY, total, retainerPercent: 30, retainerAmount: Math.round(total * 0.3 * 100) / 100 }
 }
+
+/* The admin's pricing rule over the mock catalog (S9-CONTRACT section 18). */
+function priceMock(ids: string[], quantities: Record<string, number> | null, guests: number | null) {
+  const lines = ids.map((id) => {
+    const it = ITEMS.find((i) => i.id === id)
+    const perGuest = isPerGuestUnit(it?.priceUnit)
+    const quantity = perGuest ? 1 : (quantities?.[id] ?? 1)
+    const price = it?.price ?? null
+    const lineTotal = price === null ? null : Math.round(price * (perGuest ? (guests ?? 0) : quantity) * 100) / 100
+    return { itemId: id, name: it?.name ?? id, perGuest, quantity, guests: perGuest ? guests : null, unitPrice: price, lineTotal }
+  })
+  return { lines, total: Math.round(lines.reduce((s, l) => s + (l.lineTotal ?? 0), 0) * 100) / 100 }
+}
+
+/* The refusals the admin makes before pricing (sections 19 and 20). */
+function cartRefusal(ids: string[], guests: number | null | undefined): { reason: string; message: string; field?: string } | null {
+  if (ids.length > MAX_ITEMS) return { reason: "too-many-items", message: `A booking can have up to ${MAX_ITEMS} items. Remove some, or call or text us and we'll put it together with you.` }
+  const per = ids.map((id) => ITEMS.find((i) => i.id === id)).filter((i) => i && isPerGuestUnit(i.priceUnit)).map((i) => i!.name)
+  if (per.length > 0 && !guests) return { reason: "guest-count-required", field: "guestCount", message: `Tell us how many guests, so we can price ${per.join(" and ")}. ${per.length === 1 ? "It is" : "They are"} priced per guest.` }
+  return null
+}
+const MAX_ITEMS = 40
 
 /* Block A8: the per-guest package's rule, as the admin's packagePrice states it. */
 const PER_GUEST_ID = "pkg-perguest"
@@ -80,7 +113,8 @@ const guestRefusal = (packageId: string | null | undefined, guestCount: number |
 export async function mockTier(input: TierInput): Promise<TierResult> {
   await new Promise((r) => setTimeout(r, 250))
   console.debug("mock tier body", JSON.stringify({ packageId: input.packageId, guestCount: input.guestCount ?? null }))
-  const refusal = guestRefusal(input.packageId, input.guestCount)
+  console.debug("mock tier quantities", JSON.stringify({ quantities: input.quantities ?? null, guestCount: input.guestCount ?? null }))
+  const refusal = guestRefusal(input.packageId, input.guestCount) ?? cartRefusal(input.itemIds, input.guestCount)
   if (refusal) return { ok: false, message: refusal.message, reason: refusal.reason }
   if (input.address || input.placeId) console.debug("mock tier address", JSON.stringify({ placeId: input.placeId ?? null, address: input.address ?? null }))
   if (input.placeId === "mock-place-refused") return { ok: false, message: NOT_EXACT, reason: "address-not-exact", field: "address" }
@@ -100,14 +134,24 @@ let wedding = false
    "bk_mock" a wedding details form (weddingMock.ts reads this). */
 export const mockIsWedding = () => wedding
 
-export async function mockHold(input: { occasion?: string | null; itemIds: string[]; packageId?: string | null; eventDate: string; eventTime: string | null; address: string | null; homeAddress?: string | null; delivery: unknown; customerName: string | null; phone?: string | null; guestCount?: number | null; eventAddressSameAsHome?: boolean | null; tier: number | null; signature: { contentHash: string } | null }): Promise<DirectResult> {
+export async function mockHold(input: { quantities?: Record<string, number> | null; occasion?: string | null; itemIds: string[]; packageId?: string | null; eventDate: string; eventTime: string | null; address: string | null; homeAddress?: string | null; delivery: unknown; customerName: string | null; phone?: string | null; guestCount?: number | null; eventAddressSameAsHome?: boolean | null; tier: number | null; signature: { contentHash: string } | null }): Promise<DirectResult> {
   await new Promise((r) => setTimeout(r, 400))
   console.debug("mock hold delivery", JSON.stringify(input.delivery))
   console.debug("mock hold occasion", JSON.stringify(input.occasion ?? null))
   console.debug("mock hold extras", JSON.stringify({ guestCount: input.guestCount ?? null, eventAddressSameAsHome: input.eventAddressSameAsHome ?? null, packageId: input.packageId ?? null }))
   if (input.phone && input.phone.replace(/\D/g, "") === "8605550123") return { ok: false, reason: "phone-invalid", message: PHONE_HINT, field: "phone" }
-  const guests = guestRefusal(input.packageId, input.guestCount)
-  if (guests) return { ok: false, reason: "guest-count", message: guests.message, field: "guestCount" }
+  console.debug("mock hold quantities", JSON.stringify({ quantities: input.quantities ?? null, guestCount: input.guestCount ?? null }))
+  const guests = guestRefusal(input.packageId, input.guestCount) ?? cartRefusal(input.itemIds, input.guestCount)
+  if (guests) return { ok: false, reason: guests.reason === "too-many-items" ? "error" : "guest-count", message: guests.message, field: "guestCount" }
+  // Block FIX1: more chairs than are free, and a per-guest item booked out.
+  const asked = input.quantities?.["it-chair"] ?? 1
+  if (input.itemIds.includes("it-chair") && asked > CHAIR_FREE) {
+    return { ok: false, reason: "unavailable", message: `Not enough free that date: only ${CHAIR_FREE} of Gold Chiavari Chair are free (you asked for ${asked}). Nothing was booked.`, refusedNames: refusedItems({ reason: "unavailable", error: `Not enough free that date: only ${CHAIR_FREE} of Gold Chiavari Chair are free (you asked for ${asked}). Nothing was booked.`, unavailable: ["Gold Chiavari Chair"], short: [{ name: "Gold Chiavari Chair", asked, free: CHAIR_FREE }] }) ?? undefined }
+  }
+  if (input.itemIds.includes("it-taco")) {
+    const said = "Taco Bar is fully booked that day, so nothing was booked. Drop it or try another date."
+    return { ok: false, reason: "unavailable", message: said, refusedNames: refusedItems({ reason: "unavailable", error: said, unavailable: ["Taco Bar"] }) ?? undefined }
+  }
   wedding = /wedding|rehearsal|reception/i.test(input.occasion ?? "")
   const placeId = (input.delivery as { placeId?: string } | null)?.placeId ?? null
   console.debug("mock hold address", JSON.stringify({ placeId, address: input.address, homeAddress: input.homeAddress ?? null }))
@@ -146,7 +190,7 @@ export async function mockHold(input: { occasion?: string | null; itemIds: strin
   }
   const tier = scenario.startsWith("tier2") && !retiered ? 2 : 1
   if (tier === 2 && input.signature?.contentHash !== `mock-hash-${hashRound}`) return refuse("contract-changed")
-  const total = tier === 2 ? 3330 : 1499 * Math.max(1, input.itemIds.length)
+  const total = tier === 2 ? 3330 : priceMock(input.itemIds, input.quantities ?? null, input.guestCount ?? null).total
   const retainer = Math.round(total * 0.3 * 100) / 100
   const booking: DirectBooking = {
     bookingId: "bk_mock",
@@ -194,6 +238,30 @@ const ITEMS: PublicItem[] = [
   },
 ]
 
+// Block FIX1 fixtures.
+const CHAIR_FREE = 7
+ITEMS.push(
+  { id: "it-spread", name: "Mediterranean Spread", category: "Catering", price: 58.56, priceUnit: "per guest", description: "Hummus, tabbouleh, grilled chicken and warm pita.", photoUrl: null, hasUnits: false, freeUnits: 999, addonGroups: [] },
+  { id: "it-taco", name: "Taco Bar", category: "Catering", price: 14, priceUnit: "per guest", description: "Booked out every day in this fixture: the daily maximum is reached.", photoUrl: null, hasUnits: false, freeUnits: 0, addonGroups: [] },
+  { id: "it-chair", name: "Gold Chiavari Chair", category: "Venue Essentials", price: 8, priceUnit: "each", description: null, photoUrl: null, hasUnits: true, freeUnits: CHAIR_FREE, addonGroups: [] },
+  { id: "it-slide", name: "Big Wave Single Lane Waterslide", category: "Inflatables", price: 425, priceUnit: "per day", description: "A tall single lane water slide with a splash pool.", photoUrl: null, hasUnits: true, freeUnits: 1, addonGroups: [] },
+  { id: "it-cups", name: "Snow Cone Cups", category: "Fun Foods", price: 30, priceUnit: "per 10 guests", description: "Sold in tens, by quantity.", photoUrl: null, hasUnits: true, freeUnits: 20, addonGroups: [] },
+  ...Array.from({ length: 30 }, (_, i): PublicItem => ({ id: `it-small-${i + 1}`, name: `Test Table Linen ${i + 1}`, category: "Lighting and Decor", price: 12, priceUnit: "each", description: null, photoUrl: null, hasUnits: true, freeUnits: 5, addonGroups: [] }))
+)
+const TOTAL_UNITS: Record<string, number> = { "it-chair": 10, "it-spread": 999, "it-taco": 999, ...Object.fromEntries(Array.from({ length: 30 }, (_, i) => [`it-small-${i + 1}`, 7])) }
+
+export async function mockSettings(): Promise<PublicSettings> {
+  await new Promise((r) => setTimeout(r, 100))
+  return {
+    minBookingNoticeHours: 72,
+    rushContactPhone: "(860) 555-0100",
+    companyPhone: "(860) 555-0100",
+    policy: { version: 4, text: "A retainer of {{retainerPercent}}% of your total holds your date." },
+    policyFilled: "A retainer of 30% of your total holds your date. The balance is due 30 days before your event.",
+    tokens: { minBookingNoticeHours: 72, retainerPercent: 30, depositPercentage: 30, balanceDueDays: 30, cancellationWindowDays: 30, rescheduleFeePercent: 20, maxItemsPerBooking: MAX_ITEMS, requestResponseDays: 2 },
+  }
+}
+
 export async function mockPublicItems(q: string, category: string): Promise<{ items: PublicItem[]; categories: string[] }> {
   await new Promise((r) => setTimeout(r, 150))
   const items = ITEMS.filter((i) => (!q.trim() || i.name.toLowerCase().includes(q.trim().toLowerCase())) && (!category || i.category === category))
@@ -203,7 +271,11 @@ export async function mockPublicItems(q: string, category: string): Promise<{ it
 export async function mockAvailability(itemId: string, date: string): Promise<Availability> {
   await new Promise((r) => setTimeout(r, 150))
   const item = ITEMS.find((i) => i.id === itemId)
-  return { itemId, date, directBooking: true, available: true, freeUnits: item?.freeUnits ?? 1, totalUnits: item?.freeUnits ?? 1 }
+  // The chair answers 10 free here and only 7 at the hold: someone booked
+  // three between the date check and the hold, which is the case the hold's
+  // own refusal (409 with `short`) is for.
+  const free = itemId === "it-chair" ? 10 : (item?.freeUnits ?? 1)
+  return { itemId, date, directBooking: true, available: free > 0, freeUnits: free, totalUnits: TOTAL_UNITS[itemId] ?? free }
 }
 
 /* Block S9a: a fixed package and a per-guest one, so Home shows both and the

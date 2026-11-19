@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
 import { Thumb } from "@/components/go/Thumb"
-import { cartTotal, lineTotal, qtyOf } from "@/components/go/CartItems"
-import { bundleNote, totalIsFrom } from "@/lib/guests"
+import { cartPrice, cartCount, isPerGuest, lineTotal, needsGuests, priceLine, qtyOf } from "@/lib/pricing"
+import { bundleNote } from "@/lib/guests"
 import { GuestCountField } from "@/components/go/GuestCountField"
 import { addonsTotal } from "@/lib/addons"
 import { labelForIso } from "@/lib/availability"
@@ -24,7 +24,12 @@ import { useStoreUi } from "@/state/store"
    shopping" and "Checkout". Checkout hands the cart to the existing
    /item/:id flow unchanged. Block S5: the description under the name
    (two lines, clipped) and the unit after the price when it is per guest
-   or per hour. */
+   or per hour.
+   Block FIX1: every figure follows the admin's pricing rule (lib/pricing.ts)
+   and is the tier answer's own total once it is in. A per-guest item has no
+   quantity control and reads "100 guests x $58.56 = $5,856"; with one in the
+   cart the guest count is asked here and Checkout waits for it. A refusal
+   of one item (a quantity the date cannot hold) sits under that item. */
 
 function useDesktop() {
   const [wide, setWide] = useState(() => window.matchMedia("(min-width: 641px)").matches)
@@ -43,21 +48,26 @@ export function PartyDrawer() {
   const { partyOpen, setPartyOpen } = useStoreUi()
   const desktop = useDesktop()
   const items = b.items
-  const total = cartTotal(items, b.bundle, b.guestCount)
-  const from = totalIsFrom(b.bundle, b.guestCount)
+  const priced = cartPrice(items, b.bundle, b.guestCount)
   const tier = useCartTier(partyOpen)
+  const total = tier?.total ?? priced.total
+  const from = !tier && priced.partial
   const days = useResponseDays(tier)
   const retainer = useRetainer(total, tier)
-  const count = items.reduce((n, i) => n + qtyOf(i), 0)
+  const count = cartCount(items)
+  const guestsMissing = needsGuests(items, b.bundle, b.guestCount) || b.guestBad
   // Free units on the party date: an item with more than one gets a
   // quantity control, capped there; a single-unit item shows none.
   const open = useOpenOn(b.itemDate)
   const capOf = (id: string): number | null => (open.status === "ready" ? open.open.get(id) ?? 0 : null)
+  // Without a date there is no cap to read: the quantity can go up to the
+  // admin's 50, and the hold says if the date cannot take it.
+  const maxOf = (id: string): number => capOf(id) ?? 50
 
   const remove = (id: string) => b.setItems(items.filter((i) => i.id !== id))
   const setQty = (id: string, qty: number) => b.setItems(items.map((i) => (i.id === id ? { ...i, quantity: qty } : i)))
   const checkout = () => {
-    if (items.length === 0) return
+    if (items.length === 0 || guestsMissing) return
     setPartyOpen(false)
     b.set("optionsStep", false)
     navigate(`/item/${items[0].id}`)
@@ -65,6 +75,7 @@ export function PartyDrawer() {
 
   const what = tier ? tierLine(tier.tier, days) : b.itemDate ? null : "Pick a date to see what checkout asks for."
   const due = retainer.amount !== null && tier?.tier !== 3 && !from ? `${fmt(retainer.amount)} today holds the date.` : null
+  const perGuestIn = !b.bundle && items.some(isPerGuest)
 
   return (
     <Drawer open={partyOpen} onOpenChange={setPartyOpen} direction={desktop ? "right" : "bottom"}>
@@ -87,18 +98,19 @@ export function PartyDrawer() {
                     <b className="block text-sm text-charcoal">{i.name}</b>
                     {i.description && <small className="line-clamp-2 block text-[12px] leading-[1.35] text-charcoal-soft">{i.description}</small>}
                     <small className="block text-small text-muted">
-                      {qtyOf(i)} × {i.price !== null ? fmt(i.price) : PRICE_ON_REQUEST}
-                      {i.price !== null && keyUnit(i.priceUnit) ? ` ${keyUnit(i.priceUnit)}` : ""}
-                      {i.price !== null && qtyOf(i) > 1 ? ` = ${fmt(lineTotal(i))}` : ""}
+                      {i.price === null
+                        ? PRICE_ON_REQUEST
+                        : (priceLine(i, b.guestCount) ?? `${fmt(lineTotal(i, b.guestCount) ?? i.price)}${keyUnit(i.priceUnit) ? ` ${keyUnit(i.priceUnit)}` : ""}`)}
                     </small>
+                    {b.itemNotices[i.id] && <small className="mt-0.5 block text-[12px] font-bold text-[#A8382C]">{b.itemNotices[i.id]}</small>}
                   </div>
-                  {(capOf(i.id) ?? 1) > 1 && (
+                  {!isPerGuest(i) && maxOf(i.id) > 1 && (
                     <div className="flex flex-none items-center rounded-[10px] border-[1.5px] border-line" aria-label={`Quantity of ${i.name}`}>
                       <button className="min-h-[44px] min-w-[40px] px-2 text-[15px] font-bold text-charcoal disabled:opacity-40" disabled={qtyOf(i) <= 1} aria-label="Fewer" onClick={() => setQty(i.id, qtyOf(i) - 1)}>
                         -
                       </button>
                       <span className="min-w-[20px] text-center text-sm font-bold text-charcoal">{qtyOf(i)}</span>
-                      <button className="min-h-[44px] min-w-[40px] px-2 text-[15px] font-bold text-charcoal disabled:opacity-40" disabled={qtyOf(i) >= (capOf(i.id) ?? 1)} aria-label="More" onClick={() => setQty(i.id, qtyOf(i) + 1)}>
+                      <button className="min-h-[44px] min-w-[40px] px-2 text-[15px] font-bold text-charcoal disabled:opacity-40" disabled={qtyOf(i) >= maxOf(i.id)} aria-label="More" onClick={() => setQty(i.id, qtyOf(i) + 1)}>
                         +
                       </button>
                     </div>
@@ -109,18 +121,20 @@ export function PartyDrawer() {
                 </div>
               ))
             )}
-            {/* Block S9a: a per-guest package is priced from its guest count. */}
-            {b.bundle?.perGuest && items.length > 0 && <GuestCountField label="Guests" className="py-3" />}
+            {/* Block S9a: a per-guest package is priced from its guest count;
+                Block FIX1: so is every per-guest item. */}
+            {(b.bundle?.perGuest || perGuestIn) && items.length > 0 && <GuestCountField label="Guests" className="py-3" />}
           </div>
           <div className="border-t border-line px-5 pt-3 pb-5">
             <div className="flex justify-between text-base">
               <b className="text-charcoal">Total</b>
               <b className="text-charcoal">
-                {from ? "From " : ""}
+                {from && b.bundle ? "From " : ""}
                 {fmt(total)}
               </b>
             </div>
             {b.bundle && <small className="block text-small text-muted">{bundleNote(b.bundle, b.guestCount, addonsTotal(items) !== 0)}</small>}
+            {!b.bundle && from && <small className="block text-small text-muted">Plus the per-guest items, once you add a guest count.</small>}
             {items.length > 0 && (what || due) && (
               <p className="mt-1.5 text-small text-charcoal-soft">
                 {what} {due}
@@ -130,7 +144,7 @@ export function PartyDrawer() {
               <Button variant="ghost" className="flex-1" onClick={() => setPartyOpen(false)}>
                 Keep shopping
               </Button>
-              <Button className="flex-1" disabled={count === 0} onClick={checkout}>
+              <Button className="flex-1" disabled={count === 0 || guestsMissing} onClick={checkout}>
                 Checkout
               </Button>
             </div>

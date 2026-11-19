@@ -1,3 +1,4 @@
+import { usePublicSettings } from "@/lib/settings"
 import { useCallback, useState } from "react"
 import { Navigate, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
@@ -26,6 +27,8 @@ type Phase = "form" | "checking" | "paid" | "unconfirmed"
 export default function ItemPay() {
   const navigate = useNavigate()
   const b = useBooking()
+  const settings = usePublicSettings()
+  const pct = b.tier?.retainerPercent ?? settings?.tokens.retainerPercent ?? null
   const [phase, setPhase] = useState<Phase>("form")
   // Set while the cart is cleared on the way to the wedding details form, so
   // the guard below does not send the customer home instead.
@@ -83,7 +86,10 @@ export default function ItemPay() {
         </GoLabel>
         <h1 className="mt-1.5 text-hero text-charcoal">Your retainer</h1>
         <p className="mt-2 text-body text-charcoal-soft">
-          {offer ? `Your ${b.tier?.retainerPercent ?? 30}% retainer holds the date. It is non-refundable.` : "Your retainer holds the date. It is non-refundable."}
+          {/* Block FIX1: the percent is the admin's (the tier answer, else the
+              retainerPercent setting), never typed here, and the refund terms
+              are the policy's own words, not a line of the store's. */}
+          {pct !== null ? `Your ${pct}% retainer holds the date.` : "Your retainer holds the date."}
         </p>
         <div className="mt-3.5 grid grid-cols-2 gap-2">
           <MetaCard label="Retainer" value={offer ? usd(offer.amount) : "To be confirmed"} />
