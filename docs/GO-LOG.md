@@ -1,5 +1,16 @@
 # GO! Event Group · project log
 
+## 2026-11-19 · Block FIX1b admin: line prices for the store, and the retainer token
+
+Admin main 8c702f7 (commit fa6e123), deployed to Railway, no migration.
+
+- Every place a customer reads items now carries one line per item: `itemId`, `name`, `kind` ("per guest", "per 10 guests", "each", "per day", "per event", "in package"), `perGuest`, `quantity`, `guests`, `unitPrice`, `optionsTotal`, `lineTotal`. A per-guest line's quantity is the guest count, never 1.
+- My party (`GET /api/customer/bookings` and `/:id`) gains `lines`, including items that hold no unit. The pay link `items` and the request `items` (`GET /api/customer/requests`, with `total`) use the same shape; `name` and `quantity` are kept.
+- `{{depositAmount}}` and the older contract's retainer line now show what the booking owes, from the same figure the pay link charges: the whole total under "collect in full", a signed contract's own retainer, else total x percent.
+- Totals, retainers and Stripe amounts are calculated exactly as before.
+- Store side: `docs/S9-CONTRACT.md` section 25 in the admin repo, with example JSON.
+- Tests: `server/tests/fix1bLines.test.ts` (9), all 33 server suites and 19 front tests pass on a throwaway database.
+
 ## 2026-11-19 (Block FIX1 storefront, one cart, correct prices and small fixes, merged to main, not deployed)
 
 **Where we are:** The store uses the admin's FIX1 answers (S9-CONTRACT sections 18 to 24, admin main 37d107f) and fixes the storefront half of the client's nine reports (docs in the admin repo, BUGS-AUDIT.md). Branch `fix1` merged to main. Nothing is deployed and no Vercel command was run. Types are clean, lint is at 11 warnings (baseline 12) and the build passes with no mock in the bundle.
